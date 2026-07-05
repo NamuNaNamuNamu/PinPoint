@@ -6,7 +6,7 @@ import { onExcalidrawMount } from "./onExcalidrawMount";
 import { handleChange } from "./handleChange";
 import { getInitialData } from "./getInitialData";
 import { bindExcalidrawAPI } from "./bindExcalidrawAPI";
-
+import { io } from "socket.io-client";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -18,6 +18,8 @@ function App() {
         if (!excalidrawAPI) {
             return;
         }
+
+        const socket = io("http://localhost:3001");
 
         excalidrawAPI.onChange(() => {
             handleChange();
