@@ -13,7 +13,16 @@ class SocketRequestSender {
 
         this.socket.on(SocketEvents.HELLO, (message) => {
             console.log(message);
-        } ); // 双方向通信お試し
+        }); // 双方向通信お試し
+    }
+
+    public joinRoom(roomId: string) {
+        console.log(`roomId: ${roomId} に参加しようとしています。\nsocketId: ${this.socket.id}`)
+        this.socket.emit(SocketEvents.JOIN_ROOM, roomId);
+
+        this.socket.on(SocketEvents.JOIN_ROOM, (message) => {
+            console.log(message);
+        }); 
     }
 }
 

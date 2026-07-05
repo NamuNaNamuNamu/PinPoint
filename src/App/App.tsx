@@ -19,7 +19,8 @@ function App() {
             return;
         }
 
-        socketRequestSender.hello();
+        // socketRequestSender.hello();
+        socketRequestSender.joinRoom("123");
 
         excalidrawAPI.onChange(() => {
             handleChange();
