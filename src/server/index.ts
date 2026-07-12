@@ -8,10 +8,7 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
     cors: {
-        origin: [
-            "http://192.168.3.33:5173",
-            "*" // 本番では消す
-        ]
+        origin: "*" // 本番ではアプリURLを指定する
     },
 });
 

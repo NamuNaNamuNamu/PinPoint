@@ -2,6 +2,7 @@ import { Socket } from "socket.io";
 import { SocketEvents } from "../../SocketEvents";
 import { roomController } from "../features/room/RoomController";
 import { helloController } from "../features/hello/HelloController";
+import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
 
 class SocketController {
     public register(socket: Socket) {
@@ -12,6 +13,11 @@ class SocketController {
         socket.on(SocketEvents.JOIN_ROOM, (message) => {
             const roomId = message;
             roomController.join(socket, roomId);
+        });
+
+        socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {
+            const elements = message;
+            excalidrawSyncController.send(socket, elements);
         });
     }
 }

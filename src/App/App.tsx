@@ -7,6 +7,7 @@ import { handleChange } from "./handleChange";
 import { getInitialData } from "./getInitialData";
 import { bindExcalidrawAPI } from "./bindExcalidrawAPI";
 import { socketRequestSender } from "./socket/SocketRequestSender";
+import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -22,8 +23,8 @@ function App() {
         // socketRequestSender.hello();
         socketRequestSender.joinRoom("123");
 
-        excalidrawAPI.onChange(() => {
-            handleChange();
+        excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
+            handleChange(elements, excalidrawAPI);
         });
 
         // TODO: Excalidraw マウントをトリガーに発動したい。
