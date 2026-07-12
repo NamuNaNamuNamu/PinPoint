@@ -1,13 +1,12 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { Line } from "../Elements/Line/Line";
 import { lines } from "../Elements/Line/lines";
-import { socketRequestSender } from "./socket/SocketRequestSender";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import { socketController } from "./socket/SocketController";
 
-export function handleChange(elements: readonly ExcalidrawElement[], excalidrawAPI: ExcalidrawImperativeAPI): void {
+export function handleChange(elements: readonly ExcalidrawElement[]): void {
     lines.forEach((line: Line) => {
         line.onChange();
     });
 
-    socketRequestSender.sendElements(elements, excalidrawAPI);
+    socketController.syncElements(elements);
 }

@@ -1,31 +1,16 @@
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import type { LineProps } from "./LineSkeletonFactory";
+import { excalidrawAPIHolder } from "../../App/ExcalidrawAPIHolder";
 
 export class Line {
     private readonly skeleton;
     private readonly moveRange: MoveRange;
-    private excalidrawAPI: ExcalidrawImperativeAPI | null;
 
     constructor ({ skeleton, moveRange }: Params) {
         this.skeleton = skeleton;
         this.moveRange = moveRange;
-        this.excalidrawAPI = null;
-    }
-
-    setExcalidrawAPI(excalidrawAPI: ExcalidrawImperativeAPI) {
-        this.excalidrawAPI = excalidrawAPI;
-    }
-
-    getExalidrawAPI() {
-        if (!this.excalidrawAPI) {
-            throw new Error("ExcalidrawAPI が未設定です");
-        }
-
-        return this.excalidrawAPI;
     }
 
     private getExcalidrawElement() {
-        const api = this.getExalidrawAPI();
+        const api = excalidrawAPIHolder.getApi();
 
         const element = api
             .getSceneElements()
@@ -49,7 +34,7 @@ export class Line {
     private getX() { return this.getExcalidrawElement().x }
 
     private setX(x: number) {
-        const api = this.getExalidrawAPI();
+        const api = excalidrawAPIHolder.getApi();
         const elements = api.getSceneElements();
 
         api.updateScene({
@@ -67,7 +52,7 @@ export class Line {
     private getY() { return this.getExcalidrawElement().y }
 
     private setY(y: number) {
-        const api = this.getExalidrawAPI();
+        const api = excalidrawAPIHolder.getApi();
         const elements = api.getSceneElements();
 
         api.updateScene({

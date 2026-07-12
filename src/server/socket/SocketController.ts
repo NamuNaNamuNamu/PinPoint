@@ -12,7 +12,7 @@ class SocketController {
 
         socket.on(SocketEvents.JOIN_ROOM, (message) => {
             const roomId = message;
-            roomController.join(socket, roomId);
+            roomController.joinRoom(socket, roomId);
         });
 
         socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {

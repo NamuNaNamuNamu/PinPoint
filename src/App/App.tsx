@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { onExcalidrawMount } from "./onExcalidrawMount";
 import { handleChange } from "./handleChange";
 import { getInitialData } from "./getInitialData";
-import { bindExcalidrawAPI } from "./bindExcalidrawAPI";
-import { socketRequestSender } from "./socket/SocketRequestSender";
+import { socketController } from "./socket/SocketController";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import { excalidrawAPIHolder } from "./ExcalidrawAPIHolder";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -20,17 +20,17 @@ function App() {
             return;
         }
 
-        // socketRequestSender.hello();
-        socketRequestSender.joinRoom("123");
+        socketController.register();
+        socketController.joinRoom("123"); // TODO: ルーム参加の仕組みを整える（UI作成してそれトリガーに発火）
 
         excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
-            handleChange(elements, excalidrawAPI);
+            handleChange(elements);
         });
 
         // TODO: Excalidraw マウントをトリガーに発動したい。
         // NOTE: useEffect のタイミングでは、Excalidraw が未マウント。
         setTimeout(() => {
-            onExcalidrawMount(excalidrawAPI);
+            onExcalidrawMount();
         }, 10);
     }); 
     
@@ -43,7 +43,7 @@ function App() {
 
                 excalidrawAPI = { (api) => {
                     setExcalidrawAPI(api);
-                    bindExcalidrawAPI(api);
+                    excalidrawAPIHolder.setApi(api);
                 }}
             />
         </div>  

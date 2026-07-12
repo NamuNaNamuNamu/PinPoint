@@ -2,7 +2,7 @@ import type { Socket } from "socket.io";
 import { SocketEvents } from "../../../SocketEvents";
 
 class RoomController {
-    public join = (socket: Socket, roomId: string) => {
+    public joinRoom = (socket: Socket, roomId: string) => {
         const message = `socketId: ${socket.id} が roomId: ${roomId} に参加しました。`;
 
         console.log(`${message}\n`)
