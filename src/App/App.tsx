@@ -8,6 +8,7 @@ import { getInitialData } from "./getInitialData";
 import { socketController } from "./socket/SocketController";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { excalidrawAPIHolder } from "./ExcalidrawAPIHolder";
+import { TopRightUI } from "./ui/topRightUI";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -21,7 +22,6 @@ function App() {
         }
 
         socketController.register();
-        socketController.joinRoom("123"); // TODO: ルーム参加の仕組みを整える（UI作成してそれトリガーに発火）
 
         excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
             handleChange(elements);
@@ -45,6 +45,8 @@ function App() {
                     setExcalidrawAPI(api);
                     excalidrawAPIHolder.setApi(api);
                 }}
+
+                renderTopRightUI = { () => TopRightUI }
             />
         </div>  
     );

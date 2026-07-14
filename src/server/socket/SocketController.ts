@@ -4,22 +4,27 @@ import { roomController } from "../features/room/RoomController";
 import { helloController } from "../features/hello/HelloController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
 
-class SocketController {
-    public register(socket: Socket) {
-        socket.on(SocketEvents.HELLO, (message) => {
-            helloController.hello(socket, message)
+export class SocketController {
+    private socket: Socket;
+    
+    constructor(socket: Socket) {
+        this.socket = socket;
+    }
+
+    public register() {
+        // 受信
+        this.socket.on(SocketEvents.HELLO, (message) => {
+            helloController.hello(this.socket, message)
         } ); // 双方向通信お試し
 
-        socket.on(SocketEvents.JOIN_ROOM, (message) => {
+        this.socket.on(SocketEvents.JOIN_ROOM, (message) => {
             const roomId = message;
-            roomController.joinRoom(socket, roomId);
+            roomController.joinRoom(this.socket, roomId);
         });
 
-        socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {
+        this.socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {
             const elements = message;
-            excalidrawSyncController.send(socket, elements);
+            excalidrawSyncController.send(this.socket, elements);
         });
     }
 }
-
-export const socketController = new SocketController()

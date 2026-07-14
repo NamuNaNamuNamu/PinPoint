@@ -1,7 +1,8 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { socketController } from "./socket/SocketController";
+import { SocketController } from "./socket/SocketController";
+import { socketLogger } from "./logging/SocketLogger";
 
 const app = express();
 const httpServer = createServer(app);
@@ -13,7 +14,13 @@ const io = new Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
-    socketController.register(socket);
+    const socketController = new SocketController(socket);
+    socketController.register();
+    socketLogger.outputAllSockets(io, `接続: ${socket.id}`);
+
+    socket.on("disconnect", (reason) => {
+        socketLogger.outputAllSockets(io, `切断: ${socket.id}\n理由: ${reason}`);
+    })
 });
 
 httpServer.listen(3001, () => {
