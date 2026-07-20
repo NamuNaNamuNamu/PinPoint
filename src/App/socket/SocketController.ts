@@ -1,9 +1,10 @@
-import { io, type Socket } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import { SocketEvents } from "../../SocketEvents";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { roomController } from "../features/room/RoomController";
 import { helloController } from "../features/hello/HelloController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
+import { userController } from "../features/user/UserController";
 
 class SocketController {
     private socket: Socket;
@@ -18,6 +19,11 @@ class SocketController {
             const helloMessage = message;
             helloController.hello(helloMessage);
         }); // 双方向通信お試し
+
+        this.socket.on(SocketEvents.REGISTER_USER, (message) => {
+            const consoleLog = message;
+            userController.registerUser(consoleLog);
+        });
 
         this.socket.on(SocketEvents.JOIN_ROOM, (message) => {
             const consoleLog = message;
@@ -35,6 +41,10 @@ class SocketController {
         this.socket.emit(SocketEvents.HELLO, "こんにちは");
     }
 
+    public registerUser(userName: string) {
+        this.socket.emit(SocketEvents.REGISTER_USER, userName);
+    }
+
     public joinRoom(roomId: string) {
         console.log(`roomId: ${roomId} に参加しようとしています。\nsocketId: ${this.socket.id}`)
         this.socket.emit(SocketEvents.JOIN_ROOM, roomId);
@@ -46,4 +56,4 @@ class SocketController {
     }
 }
 
-export const socketController = new SocketController(io("http://localhost:3001"));
+export const socketController = new SocketController(io("http://192.168.3.6:3001"));

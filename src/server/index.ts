@@ -24,5 +24,5 @@ io.on("connection", (socket) => {
 });
 
 httpServer.listen(3001, () => {
-    console.log("Server started: http://localhost:3001");
+    console.log("Server started: http://192.168.3.6:3001");
 });

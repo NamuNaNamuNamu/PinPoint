@@ -3,6 +3,7 @@ import { SocketEvents } from "../../SocketEvents";
 import { roomController } from "../features/room/RoomController";
 import { helloController } from "../features/hello/HelloController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
+import { userController } from "../features/user/UserController";
 
 export class SocketController {
     private socket: Socket;
@@ -16,6 +17,11 @@ export class SocketController {
         this.socket.on(SocketEvents.HELLO, (message) => {
             helloController.hello(this.socket, message)
         } ); // 双方向通信お試し
+
+        this.socket.on(SocketEvents.REGISTER_USER, (message) => {
+            const userName = message;
+            userController.registerUser(this.socket, userName);
+        });
 
         this.socket.on(SocketEvents.JOIN_ROOM, (message) => {
             const roomId = message;

@@ -22,6 +22,8 @@ function App() {
         }
 
         socketController.register();
+        const userName = prompt("名前を入力してね") ?? "";
+        socketController.registerUser(userName);
 
         excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
             handleChange(elements);
