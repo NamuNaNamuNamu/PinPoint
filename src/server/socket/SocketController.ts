@@ -1,7 +1,6 @@
 import { Socket } from "socket.io";
 import { SocketEvents } from "../../SocketEvents";
 import { roomController } from "../features/room/RoomController";
-import { helloController } from "../features/hello/HelloController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
 import { userController } from "../features/user/UserController";
 
@@ -14,10 +13,6 @@ export class SocketController {
 
     public register() {
         // 受信
-        this.socket.on(SocketEvents.HELLO, (message) => {
-            helloController.hello(this.socket, message)
-        } ); // 双方向通信お試し
-
         this.socket.on(SocketEvents.REGISTER_USER, (message) => {
             const userName = message;
             userController.registerUser(this.socket, userName);

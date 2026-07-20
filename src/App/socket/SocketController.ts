@@ -2,7 +2,6 @@ import { io, Socket } from "socket.io-client";
 import { SocketEvents } from "../../SocketEvents";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { roomController } from "../features/room/RoomController";
-import { helloController } from "../features/hello/HelloController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
 import { userController } from "../features/user/UserController";
 
@@ -15,11 +14,6 @@ class SocketController {
 
     public register() {
         // 受信
-        this.socket.on(SocketEvents.HELLO, (message) => {
-            const helloMessage = message;
-            helloController.hello(helloMessage);
-        }); // 双方向通信お試し
-
         this.socket.on(SocketEvents.REGISTER_USER, (message) => {
             const consoleLog = message;
             userController.registerUser(consoleLog);
@@ -37,10 +31,6 @@ class SocketController {
     }
 
     // 送信
-    public hello() {
-        this.socket.emit(SocketEvents.HELLO, "こんにちは");
-    }
-
     public registerUser(userName: string) {
         this.socket.emit(SocketEvents.REGISTER_USER, userName);
     }
