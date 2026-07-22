@@ -16,13 +16,15 @@ const io = new Server(httpServer, {
 io.on("connection", (socket) => {
     const socketController = new SocketController(socket);
     socketController.register();
-    socketLogger.outputAllSockets(io, `接続: ${socket.id}`);
+    socketLogger.setIo(io);
+    
+    socketLogger.outputAllSockets(`接続: ${socket.id}`);
 
     socket.on("disconnect", (reason) => {
-        socketLogger.outputAllSockets(io, `切断: ${socket.id}\n理由: ${reason}`);
+        socketLogger.outputAllSockets(`切断: ${socket.id}\n理由: ${reason}`);
     })
 });
 
 httpServer.listen(3001, () => {
-    console.log("Server started: http://192.168.3.6:3001");
+    console.log("Server started: http://192.168.3.23:3001");
 });

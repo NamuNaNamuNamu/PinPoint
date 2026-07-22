@@ -2,12 +2,12 @@ import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useEffect, useState } from "react";
-import { onExcalidrawMount } from "./onExcalidrawMount";
-import { handleChange } from "./handleChange";
-import { getInitialData } from "./getInitialData";
+import { onExcalidrawMount } from "./features/excalidraw/onExcalidrawMount";
+import { handleChange } from "./features/excalidraw/handleChange";
+import { getInitialData } from "./features/excalidraw/getInitialData";
 import { socketController } from "./socket/SocketController";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import { excalidrawAPIHolder } from "./ExcalidrawAPIHolder";
+import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
 import { TopRightUI } from "./ui/topRightUI";
 
 function App() {

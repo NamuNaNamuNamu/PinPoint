@@ -1,5 +1,5 @@
 import type { Socket } from "socket.io";
-import { SocketEvents } from "../../../SocketEvents";
+import { SocketEvents } from "../../../shared/SocketEvents";
 import { userService } from "./UserService";
 
 class UserController {

@@ -1,4 +1,4 @@
-import type { User } from "../../../App/User/User";
+import type { User } from "../../../client/features/user/User";
 
 export class UserState {
     private users: User[];

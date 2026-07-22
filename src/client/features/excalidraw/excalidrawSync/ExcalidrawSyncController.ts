@@ -1,6 +1,6 @@
 import type { ReconciledExcalidrawElement, RemoteExcalidrawElement } from "@excalidraw/excalidraw/data/reconcile";
 import { reconcileElements } from "@excalidraw/excalidraw";
-import { excalidrawAPIHolder } from "../../ExcalidrawAPIHolder";
+import { excalidrawAPIHolder } from "../ExcalidrawAPIHolder"; 
 
 class ExcalidrawSyncController {
     public syncElements = (elements: readonly RemoteExcalidrawElement[]) => {

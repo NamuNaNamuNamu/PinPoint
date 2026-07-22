@@ -1,5 +1,5 @@
 import type { Socket } from "socket.io";
-import { SocketEvents } from "../../../SocketEvents";
+import { SocketEvents } from "../../../shared/SocketEvents";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 class ExcalidrawSyncController {

@@ -1,4 +1,4 @@
-import { degToRad } from "../../utils/degToRad";
+import { degToRad } from "../../../utils/degToRad";
 import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/data/transform";
 
 

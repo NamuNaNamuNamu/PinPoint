@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import { SocketEvents } from "../../SocketEvents";
+import { SocketEvents } from "../../shared/SocketEvents";
 import { roomController } from "../features/room/RoomController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
 import { userController } from "../features/user/UserController";

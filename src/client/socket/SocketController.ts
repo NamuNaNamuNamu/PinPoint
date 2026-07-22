@@ -1,9 +1,10 @@
 import { io, Socket } from "socket.io-client";
-import { SocketEvents } from "../../SocketEvents";
+
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { roomController } from "../features/room/RoomController";
-import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
+import { excalidrawSyncController } from "../features/excalidraw/excalidrawSync/ExcalidrawSyncController";
 import { userController } from "../features/user/UserController";
+import { SocketEvents } from "../../shared/SocketEvents";
 
 class SocketController {
     private socket: Socket;
@@ -46,4 +47,4 @@ class SocketController {
     }
 }
 
-export const socketController = new SocketController(io("http://192.168.3.6:3001"));
+export const socketController = new SocketController(io("http://192.168.3.23:3001"));

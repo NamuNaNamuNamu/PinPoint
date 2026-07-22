@@ -1,4 +1,4 @@
-import { excalidrawAPIHolder } from "../../App/ExcalidrawAPIHolder";
+import { excalidrawAPIHolder } from "../../../../client/features/excalidraw/ExcalidrawAPIHolder";
 
 export class Line {
     private readonly skeleton;
