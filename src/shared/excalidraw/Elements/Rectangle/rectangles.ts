@@ -10,7 +10,7 @@ export const rectangles: Rectangle[] = [
             y: 100,
             width: 300,
             height: 100,
-            locked: false
+            locked: true
         }),
     })
 ];

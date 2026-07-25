@@ -49,6 +49,7 @@ function App() {
                 }}
 
                 renderTopRightUI = { () => TopRightUI }
+                zenModeEnabled = { true }
             />
         </div>  
     );
