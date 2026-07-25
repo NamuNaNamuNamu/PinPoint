@@ -3,10 +3,12 @@ import { excalidrawAPIHolder } from "../../../../client/features/excalidraw/Exca
 export class Line {
     private readonly skeleton;
     private readonly moveRange: MoveRange;
+    private previousElement: any;
 
     constructor ({ skeleton, moveRange }: Params) {
         this.skeleton = skeleton;
         this.moveRange = moveRange;
+        this.previousElement = null;
     }
 
     private getExcalidrawElement() {
@@ -67,7 +69,31 @@ export class Line {
         });
     }
 
+    private getHeight() { return this.getExcalidrawElement().height }
+
+    private cancelChange() {
+        const api = excalidrawAPIHolder.getApi();
+        const elements = api.getSceneElements();
+
+        api.updateScene({
+            elements: elements.map((el) =>
+                el.id === this.getId()
+                    ? {
+                        ...this.previousElement
+                    }
+                    : el
+            ),
+        });
+    }
+
     onChange(): void {
+        // 移動以外の変更を無効化
+        if (this.previousElement) {
+            if(this.getHeight() !== this.previousElement.height) {
+                this.cancelChange();
+            }
+        }
+
         // 移動制限
         if (this.getX() < this.moveRange.minX) {
             this.setX(this.moveRange.minX);
@@ -84,6 +110,9 @@ export class Line {
         if (this.getY() > this.moveRange.maxY) {
             this.setY(this.moveRange.maxY);
         }
+
+        // cancelChange() 用
+        this.previousElement = structuredClone(this.getExcalidrawElement());
     }
 }
 
