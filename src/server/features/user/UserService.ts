@@ -1,14 +1,15 @@
-import { User } from "../../../client/features/user/User";
+import { User } from "./User";
 import { userLogger } from "../../logging/UserLogger";
 import { userState } from "./UserState";
 
 class UserService {
     private nextId: number = 1;
 
-    public addUser(userName: string) {
+    public addUser(userName: string, socketId: string) {
         const user: User = new User({
             id: this.nextId,
-            name: userName
+            name: userName,
+            socketId: socketId
         });
 
         userState.addUser(user);

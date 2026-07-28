@@ -4,7 +4,7 @@ import { userService } from "./UserService";
 
 class UserController {
     public registerUser = (socket: Socket, userName: string) => {
-        userService.addUser(userName);
+        userService.addUser(userName, socket.id);
         socket.emit(SocketEvents.REGISTER_USER, `ユーザー: ${userName} が追加されました。`);
     };
 }

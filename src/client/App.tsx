@@ -8,7 +8,10 @@ import { getInitialData } from "./features/excalidraw/getInitialData";
 import { socketController } from "./socket/SocketController";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
-import { TopRightUI } from "./ui/topRightUI";
+
+import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx"
+import { url } from "./features/url/Url.ts";
+import { joinRoom } from "./features/room/joinRoom.ts";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -21,12 +24,16 @@ function App() {
             return;
         }
 
+        // サーバーからの受信開始
         socketController.register();
-        const userName = prompt("名前を入力してね") ?? null;
-        if (userName) socketController.registerUser(userName);
-        const roomNumber = prompt("ルーム番号を入力してね") ?? null;
-        if (roomNumber) socketController.joinRoom(roomNumber); // TODO: ルーム参加の仕組みを整える（UI作成してそれトリガーに発火）
-        if (roomNumber) alert(`${roomNumber} に部屋参加`);
+
+        const roomId = url.getRoomIdFromParams();
+        if (roomId) {
+            joinRoom(roomId);
+        }
+
+        // const userName = prompt("名前を入力してね") ?? null;
+        // if (userName) socketController.registerUser(userName);
 
         excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
             handleChange(elements);
@@ -40,7 +47,7 @@ function App() {
     }); 
     
     return (
-        <div style={{ height: "100dvh" }}>
+        <div style = {{ height: "100dvh" }}>
             <Excalidraw
                 initialData = {{
                     elements: getInitialData()
@@ -52,7 +59,9 @@ function App() {
                 }}
 
                 zenModeEnabled = { true }
-            />
+            >
+                <ExcalidrawMainMenu />
+            </Excalidraw>
         </div>  
     );
 }

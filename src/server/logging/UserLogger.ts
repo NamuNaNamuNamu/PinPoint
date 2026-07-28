@@ -1,5 +1,5 @@
 import type { UserState } from "../features/user/UserState";
-import type { User } from "../../client/features/user/User";
+import type { User } from "../features/user/User";
 
 class UserLogger {
     outputUserState(userState: UserState) {
