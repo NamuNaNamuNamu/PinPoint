@@ -10,7 +10,6 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
 
 import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx"
-import { ShareDialog } from "./ui/share/ShareDialog.tsx";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -56,66 +55,9 @@ function App() {
                 zenModeEnabled = { true }
             >
                 <ExcalidrawMainMenu />
-
-                <ShareDialog
-                    collabAPI={null}
-                    onExportToBackend={async () => {
-                        if (excalidrawAPI) {
-                            try {
-                                await onExportToBackend(
-                                    excalidrawAPI.getSceneElements(),
-                                    excalidrawAPI.getAppState(),
-                                    excalidrawAPI.getFiles(),
-                                );
-                            } catch (error: any) {
-                                setErrorMessage(error.message);
-                            }
-                        }
-                    }}
-                />
             </Excalidraw>
         </div>  
     );
 }
-
-const onExportToBackend = async (
-    exportedElements: readonly NonDeletedExcalidrawElement[],
-    appState: Partial<AppState>,
-    files: BinaryFiles,
-) => {
-    if (exportedElements.length === 0) {
-        throw new Error(t("alerts.cannotExportEmptyCanvas"));
-    }
-    try {
-        const { url, errorMessage } = await exportToBackend(
-            exportedElements,
-            {
-                ...appState,
-                viewBackgroundColor: appState.exportBackground
-                    ? appState.viewBackgroundColor
-                    : getDefaultAppState().viewBackgroundColor,
-            },
-            files,
-        );
-
-        if (errorMessage) {
-            throw new Error(errorMessage);
-        }
-
-        if (url) {
-            setLatestShareableLink(url);
-        }
-    } catch (error: any) {
-        if (error.name !== "AbortError") {
-            const { width, height } = appState;
-            console.error(error, {
-                width,
-                height,
-                devicePixelRatio: window.devicePixelRatio,
-            });
-            throw new Error(error.message);
-        }
-    }
-};
 
 export default App;
