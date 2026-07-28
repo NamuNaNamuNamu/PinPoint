@@ -25,9 +25,6 @@ function App() {
         socketController.register();
         const userName = prompt("名前を入力してね") ?? null;
         if (userName) socketController.registerUser(userName);
-        const roomNumber = prompt("ルーム番号を入力してね") ?? null;
-        if (roomNumber) socketController.joinRoom(roomNumber); // TODO: ルーム参加の仕組みを整える（UI作成してそれトリガーに発火）
-        if (roomNumber) alert(`${roomNumber} に部屋参加`);
 
         excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
             handleChange(elements);
