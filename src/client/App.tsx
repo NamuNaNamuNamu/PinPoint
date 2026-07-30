@@ -10,6 +10,7 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
 
 import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx"
+import { url } from "./features/url/Url.ts";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -22,7 +23,10 @@ function App() {
             return;
         }
 
+        // サーバーからの受信開始
         socketController.register();
+        alert(url.getRoomIdFromParams());
+
         const userName = prompt("名前を入力してね") ?? null;
         if (userName) socketController.registerUser(userName);
 
