@@ -1,4 +1,4 @@
-import type { User } from "../../../client/features/user/User";
+import type { User } from "../user/User";
 
 export class RoomState {
     private rooms: Room[];

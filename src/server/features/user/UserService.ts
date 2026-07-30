@@ -1,4 +1,4 @@
-import { User } from "../../../client/features/user/User";
+import { User } from "./User";
 import { userLogger } from "../../logging/UserLogger";
 import { userState } from "./UserState";
 
