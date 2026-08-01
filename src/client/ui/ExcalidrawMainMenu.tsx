@@ -1,10 +1,10 @@
 import { MainMenu } from "@excalidraw/excalidraw"
-import { usersIcon } from "./UsersIcon";
+import { usersIcon } from "./icons";
 import { socketController } from "../socket/SocketController";
 import { url } from "../features/url/Url";
 import { useState } from "react";
 
-import RoomURLDialog from "./RoomURLDialog";
+import { ShareDialog } from "./RoomURLDialog";
 
 function ExcalidrawMainMenu() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -35,7 +35,7 @@ function ExcalidrawMainMenu() {
             </MainMenu>
 
             {isDialogOpen && (
-                <RoomURLDialog
+                <ShareDialog
                     closeDialog = {() => setIsDialogOpen(false)}
                 />
             )}

@@ -42,7 +42,7 @@ function App() {
     }); 
     
     return (
-        <div style={{ height: "100dvh" }}>
+        <div style = {{ height: "100dvh" }}>
             <Excalidraw
                 initialData = {{
                     elements: getInitialData()

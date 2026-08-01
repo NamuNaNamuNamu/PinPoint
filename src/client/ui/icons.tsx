@@ -16,6 +16,15 @@ const tablerIconProps: Opts = {
   strokeLinejoin: "round",
 } as const;
 
+const modifiedTablerIconProps: Opts = {
+  width: 20,
+  height: 20,
+  fill: "none",
+  stroke: "currentColor",
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
 const createIcon = (
   d: string | React.ReactNode,
   opts: number | Opts = 512,
@@ -51,4 +60,24 @@ export const usersIcon = createIcon(
     <path d="M21 21v-2a4 4 0 0 0 -3 -3.85"></path>
   </g>,
   tablerIconProps,
+);
+
+export const CloseIcon = createIcon(
+  <>
+    <g
+      clipPath="url(#a)"
+      stroke="currentColor"
+      strokeWidth="1.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M15 5 5 15M5 5l10 10" />
+    </g>
+    <defs>
+      <clipPath id="a">
+        <path fill="#fff" d="M0 0h20v20H0z" />
+      </clipPath>
+    </defs>
+  </>,
+  modifiedTablerIconProps,
 );
