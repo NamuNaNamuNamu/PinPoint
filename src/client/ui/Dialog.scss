@@ -41,7 +41,7 @@
     & + .Dialog__content {
       --offset: 28px;
       height: calc(100% - var(--offset)) !important;
-      margin-top: var(--offset) !important;
+      margin-top: 0px !important;
     }
   }
 

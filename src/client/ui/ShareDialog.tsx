@@ -2,14 +2,14 @@ import { useRef } from "react";
 import { url } from "../features/url/Url";
 import { TextField } from "./TextField";
 
-import "./RoomURLDialog.scss";
+import "./ShareDialog.scss";
 import { Dialog } from "./Dialog";
 
 type Props = {
     closeDialog: () => void;
 };
 
-function RoomURLDialog({ closeDialog }: Props) {
+function RoomURLDialog() {
     const ref = useRef<HTMLInputElement>(null);
 
     return (
@@ -35,9 +35,7 @@ const ShareDialogInner = ({ closeDialog }: Props) => {
     return (
         <Dialog size = "small" onCloseRequest = {closeDialog} title = {false}>
             <div className="ShareDialog">
-                    <RoomURLDialog
-                        closeDialog = { closeDialog }
-                    />
+                <RoomURLDialog/>
             </div>
         </Dialog>
     );
