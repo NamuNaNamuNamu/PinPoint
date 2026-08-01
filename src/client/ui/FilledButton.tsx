@@ -5,8 +5,8 @@ import React, { forwardRef, useState } from "react";
 
 // import { AbortError } from "../errors";
 
-// import Spinner from "./Spinner";
-// import { tablerCheckIcon } from "./icons";
+import Spinner from "./Spinner";
+import { tablerCheckIcon } from "./icons";
 
 import "./FilledButton.scss";
 
@@ -53,33 +53,33 @@ export const FilledButton = forwardRef<HTMLButtonElement, FilledButtonProps>(
     },
     ref,
   ) => {
-    // const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // const _onClick = async (event: React.MouseEvent) => {
-    //   const ret = onClick?.(event);
+    const _onClick = async (event: React.MouseEvent) => {
+      const ret = onClick?.(event);
 
-    //   if (isPromiseLike(ret)) {
-    //     // delay loading state to prevent flicker in case of quick response
-    //     const timer = window.setTimeout(() => {
-    //       setIsLoading(true);
-    //     }, 50);
-    //     try {
-    //       await ret;
-    //     } catch (error: any) {
-    //       if (!(error instanceof AbortError)) {
-    //         throw error;
-    //       } else {
-    //         console.warn(error);
-    //       }
-    //     } finally {
-    //       clearTimeout(timer);
-    //       setIsLoading(false);
-    //     }
-    //   }
-    // };
+      if (isPromiseLike(ret)) {
+        // delay loading state to prevent flicker in case of quick response
+        const timer = window.setTimeout(() => {
+          setIsLoading(true);
+        }, 50);
+        try {
+          await ret;
+        } catch (error: any) {
+          if (!(error instanceof AbortError)) {
+            throw error;
+          } else {
+            console.warn(error);
+          }
+        } finally {
+          clearTimeout(timer);
+          setIsLoading(false);
+        }
+      }
+    };
 
-    // const _status = isLoading ? "loading" : status;
-    // color = _status === "success" ? "success" : color;
+    const _status = isLoading ? "loading" : status;
+    color = _status === "success" ? "success" : color;
 
     return (
       <button
@@ -88,24 +88,24 @@ export const FilledButton = forwardRef<HTMLButtonElement, FilledButtonProps>(
           `ExcButton--color-${color}`,
           `ExcButton--variant-${variant}`,
           `ExcButton--size-${size}`,
-          // `ExcButton--status-${_status}`,
+          `ExcButton--status-${_status}`,
           { "ExcButton--fullWidth": fullWidth },
           className,
         )}
-        onClick={onClick}
+        onClick={_onClick}
         type="button"
         aria-label={label}
         ref={ref}
-        // disabled={disabled || _status === "loading" || _status === "success"}
+        disabled={disabled || _status === "loading" || _status === "success"}
       >
         <div className="ExcButton__contents">
-          {/* {_status === "loading" ? (
+          {_status === "loading" ? (
             <Spinner className="ExcButton__statusIcon" />
           ) : (
             _status === "success" && (
               <div className="ExcButton__statusIcon">{tablerCheckIcon}</div>
             )
-          )} */}
+          )}
           {icon && (
             <div className="ExcButton__icon" aria-hidden>
               {icon}
@@ -117,3 +117,27 @@ export const FilledButton = forwardRef<HTMLButtonElement, FilledButtonProps>(
     );
   },
 );
+
+type ResolutionType<T extends (...args: any) => any> = T extends (
+  ...args: any
+) => Promise<infer R>
+  ? R
+  : any;
+
+const isPromiseLike = (
+  value: any,
+): value is Promise<ResolutionType<typeof value>> => {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    "then" in value &&
+    "catch" in value &&
+    "finally" in value
+  );
+};
+
+class AbortError extends DOMException {
+  constructor(message: string = "Request Aborted") {
+    super(message, "AbortError");
+  }
+}
