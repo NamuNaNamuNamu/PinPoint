@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
-import { url } from "../features/url/Url";
+import { url } from "../../features/url/Url";
 import { TextField } from "./TextField";
 
 import "./ShareDialog.scss";
 import { Dialog } from "./Dialog";
 import { FilledButton } from "./FilledButton";
-import { copyIcon } from "./icons";
-import { useCopyStatus } from "./useCopiedIndicator";
+import { copyIcon } from "../icons";
+import { useCopyStatus } from "../../hooks/useCopiedIndicator";
 import { copyTextToSystemClipboard } from "./clipboard";
 
 type Props = {

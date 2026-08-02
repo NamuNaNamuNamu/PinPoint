@@ -3,7 +3,7 @@
 
 // import { KEYS, queryFocusableElements } from "@excalidraw/common";
 
-import { useCallbackRefState } from "./useCallbackRefState";
+import { useCallbackRefState } from "../../hooks/useCallbackRefState";
 
 // import {
 //   useExcalidrawContainer,
@@ -13,7 +13,7 @@ import { useCallbackRefState } from "./useCallbackRefState";
 import { Island } from "./Island";
 // import { isLibraryMenuOpenAtom } from "./LibraryMenu";
 import { Modal } from "./Modal";
-import { CloseIcon } from "./icons";
+import { CloseIcon } from "../icons";
 
 import "./Dialog.scss";
 

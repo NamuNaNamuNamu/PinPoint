@@ -6,7 +6,7 @@ import React, { forwardRef, useState } from "react";
 // import { AbortError } from "../errors";
 
 import Spinner from "./Spinner";
-import { tablerCheckIcon } from "./icons";
+import { tablerCheckIcon } from "../icons";
 
 import "./FilledButton.scss";
 

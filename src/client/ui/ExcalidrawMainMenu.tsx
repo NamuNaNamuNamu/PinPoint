@@ -4,7 +4,7 @@ import { usersIcon } from "./icons";
 // import { url } from "../features/url/Url";
 import { useState } from "react";
 
-import { ShareDialog } from "./ShareDialog";
+import { ShareDialog } from "./ShareDialog/ShareDialog";
 
 function ExcalidrawMainMenu() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
