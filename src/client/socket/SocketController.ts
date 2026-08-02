@@ -5,6 +5,7 @@ import { roomController } from "../features/room/RoomController";
 import { excalidrawSyncController } from "../features/excalidraw/excalidrawSync/ExcalidrawSyncController";
 import { userController } from "../features/user/UserController";
 import { SocketEvents } from "../../shared/SocketEvents";
+import type { Room } from "../../server/features/room/RoomState";
 
 class SocketController {
     private socket: Socket;
@@ -18,6 +19,11 @@ class SocketController {
         this.socket.on(SocketEvents.REGISTER_USER, (message) => {
             const consoleLog = message;
             userController.registerUser(consoleLog);
+        });
+
+        this.socket.on(SocketEvents.CREATE_ROOM, (message) => {
+            const consoleLog = message;
+            roomController.createRoom(consoleLog);
         });
 
         this.socket.on(SocketEvents.JOIN_ROOM, (message) => {
@@ -34,6 +40,18 @@ class SocketController {
     // 送信
     public registerUser(userName: string) {
         this.socket.emit(SocketEvents.REGISTER_USER, userName);
+    }
+    
+    public createRoom(): Promise<Room> {
+        return new Promise((resolve, _reject) => {
+            this.socket.emit(
+                SocketEvents.CREATE_ROOM,
+                "",
+                (response: Room) => {
+                    resolve(response);
+                },
+            );
+        });
     }
 
     public joinRoom(roomId: string) {

@@ -18,6 +18,13 @@ export class SocketController {
             userController.registerUser(this.socket, userName);
         });
 
+        this.socket.on(SocketEvents.CREATE_ROOM, (_message, callback) => {
+            const room = roomController.createRoom();
+
+            // レスポンス
+            callback(room);
+        });
+
         this.socket.on(SocketEvents.JOIN_ROOM, (message) => {
             const roomId = message;
             roomController.joinRoom(this.socket, roomId);

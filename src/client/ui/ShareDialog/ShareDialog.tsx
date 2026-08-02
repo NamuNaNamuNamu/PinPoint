@@ -39,7 +39,7 @@ function RoomURLDialog() {
         ref.current?.select();
     };
 
-    const roomUrl = url.createRoomUrl("123");
+    const roomUrl = url.createRoomUrl("123"); // TODO: 自分が参加している部屋で作成する。
 
     return (
         <>

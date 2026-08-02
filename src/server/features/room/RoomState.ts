@@ -7,7 +7,7 @@ export class RoomState {
         this.rooms = [];
     }
 
-    public getRoomById(id: number): Room | undefined {
+    public getRoomById(id: string): Room | undefined {
         return this.rooms.find(room => room.id === id);
     }
 
@@ -15,13 +15,26 @@ export class RoomState {
         this.rooms.forEach(callback);
     }
 
-    public addRoom() {
+    public addRoom(): Room {
+        let roomId: string;
 
+        do {
+            roomId = crypto.randomUUID();
+        } while (this.getRoomById(roomId) !== undefined);
+
+        const room: Room = {
+            id: roomId,
+            users: [],
+        };
+
+        this.rooms.push(room);
+
+        return room;
     }
 }
 
 export interface Room {
-    id: number;
+    id: string;
     users: User[];
 }
 
