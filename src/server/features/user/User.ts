@@ -19,4 +19,5 @@ export class User {
 interface UserParams {
     id: number;
     name: string;
+    socketId: string;
 }

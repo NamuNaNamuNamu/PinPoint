@@ -24,18 +24,47 @@ export class RoomState {
 
         const room: Room = {
             id: roomId,
-            users: [],
+            socketIds: []
+            // users: [],
         };
 
         this.rooms.push(room);
 
         return room;
     }
+
+    public join(roomId: string, socketId: string) {
+        const room = this.getRoomById(roomId);
+
+        if (!room) {
+            return;
+        }
+
+        room.socketIds.push(socketId);
+    }
+
+    public leave(socketId: string): void {
+        for (const room of this.rooms) {
+            const index = room.socketIds.indexOf(socketId);
+
+            if (index !== -1) {
+                room.socketIds.splice(index, 1);
+
+                // 部屋が空になったら削除
+                if (room.socketIds.length === 0) {
+                    this.rooms = this.rooms.filter(r => r.id !== room.id);
+                }
+
+                return;
+            }
+        }
+    }
 }
 
 export interface Room {
     id: string;
-    users: User[];
+    socketIds: string[];
+    // users: User[]; TODO: 後ほど user と socketId を紐づける
 }
 
 export const roomState = new RoomState();

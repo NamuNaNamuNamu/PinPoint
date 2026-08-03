@@ -3,6 +3,8 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { SocketController } from "./socket/SocketController";
 import { socketLogger } from "./logging/SocketLogger";
+import { roomState } from "./features/room/RoomState";
+import { roomLogger } from "./logging/RoomLogger";
 
 const app = express();
 const httpServer = createServer(app);
@@ -22,6 +24,8 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", (reason) => {
         socketLogger.outputAllSockets(`切断: ${socket.id}\n理由: ${reason}`);
+        roomState.leave(socket.id);
+        roomLogger.outputRoomState(roomState);
     })
 });
 
