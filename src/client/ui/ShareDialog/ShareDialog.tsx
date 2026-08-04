@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type Dispatch } from "react";
 import { url } from "../../features/url/Url";
 import { TextField } from "./TextField";
 
@@ -8,10 +8,16 @@ import { FilledButton } from "./FilledButton";
 import { copyIcon, playerPlayIcon } from "../icons";
 import { useCopyStatus } from "../../hooks/useCopiedIndicator";
 import { copyTextToSystemClipboard } from "./clipboard";
+import { socketController } from "../../socket/SocketController";
 
 type Props = {
     closeDialog: () => void;
+    initCurrentRoomId: string | undefined;
 };
+
+type RoomURLDialogProps = {
+    currentRoomId: string;
+}
 
 type ShareStartDialogProps = {
     startCollaborating: () => void;
@@ -19,11 +25,21 @@ type ShareStartDialogProps = {
 
 type ShareDialogInnerProps = {
     closeDialog: () => void;
-    isCollaborating: boolean;
+    currentRoomId: string | undefined;
     startCollaborating: () => void;
 };
 
-function RoomURLDialog() {
+const startCollaborating = async (setCurrentRoomId: Dispatch<any>) => {
+    const room = await socketController.createRoom();
+    const response = await socketController.joinRoom(room.id);
+    
+    if (response) {
+        const roomId = response;
+        setCurrentRoomId(roomId);
+    }
+}
+
+function RoomURLDialog({ currentRoomId }: RoomURLDialogProps) {
     const ref = useRef<HTMLInputElement>(null);
     const timerRef = useRef<number>(0);
     const [, setJustCopied] = useState(false);
@@ -49,7 +65,7 @@ function RoomURLDialog() {
         ref.current?.select();
     };
 
-    const roomUrl = url.createRoomUrl("123"); // TODO: 自分が参加している部屋で作成する。
+    const roomUrl = url.createRoomUrl(currentRoomId);
 
     return (
         <>
@@ -117,24 +133,24 @@ const ShareStartDialog = ({ startCollaborating }: ShareStartDialogProps) => {
   )
 };
 
-const ShareDialogInner = ({ closeDialog, isCollaborating, startCollaborating }: ShareDialogInnerProps) => {
+const ShareDialogInner = ({ closeDialog, currentRoomId, startCollaborating }: ShareDialogInnerProps) => {
     return (
         <Dialog size = "small" onCloseRequest = {closeDialog} title = {false}>
             <div className="ShareDialog">
-                {isCollaborating ? <RoomURLDialog/> : <ShareStartDialog startCollaborating = { startCollaborating } />}
+                {!!currentRoomId ? <RoomURLDialog currentRoomId = { currentRoomId } /> : <ShareStartDialog startCollaborating = { startCollaborating } />}
             </div>
         </Dialog>
     )
 };
 
-export const ShareDialog = ({ closeDialog }: Props) => {
-  const [isCollaborating, setIsCollaborating] = useState(false); // TODO: 現在通信しているかを判定するメソッドを実装する
-    
-  return (
-    <ShareDialogInner
-      closeDialog = { closeDialog }
-      isCollaborating = { isCollaborating }
-      startCollaborating = { () => setIsCollaborating(true) }
-    />
-  );
+export const ShareDialog = ({ closeDialog, initCurrentRoomId }: Props) => {
+    const [currentRoomId, setCurrentRoomId] = useState(initCurrentRoomId);
+
+    return (
+        <ShareDialogInner
+            closeDialog = { closeDialog }
+            currentRoomId = { currentRoomId }
+            startCollaborating = { () => startCollaborating(setCurrentRoomId) }
+        />
+    );
 };

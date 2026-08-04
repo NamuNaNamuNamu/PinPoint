@@ -5,10 +5,11 @@ import { userState } from "./UserState";
 class UserService {
     private nextId: number = 1;
 
-    public addUser(userName: string) {
+    public addUser(userName: string, socketId: string) {
         const user: User = new User({
             id: this.nextId,
-            name: userName
+            name: userName,
+            socketId: socketId
         });
 
         userState.addUser(user);

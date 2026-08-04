@@ -1,5 +1,3 @@
-import type { User } from "../user/User";
-
 export class RoomState {
     private rooms: Room[];
 
@@ -9,6 +7,14 @@ export class RoomState {
 
     public getRoomById(id: string): Room | undefined {
         return this.rooms.find(room => room.id === id);
+    }
+
+    public getRoomBySocketId(socketId: string): Room | undefined {
+        return this.rooms.find(room => room.socketIds.includes(socketId));
+    }
+
+    public getRoomIdBySocketId(socketId: string): string | undefined {
+        return this.getRoomBySocketId(socketId)?.id;
     }
 
     public forEachRoom(callback: (room: Room) => void): void {
@@ -33,14 +39,15 @@ export class RoomState {
         return room;
     }
 
-    public join(roomId: string, socketId: string) {
+    public join(roomId: string, socketId: string): boolean {
         const room = this.getRoomById(roomId);
 
         if (!room) {
-            return;
+            return false;
         }
 
         room.socketIds.push(socketId);
+        return true;
     }
 
     public leave(socketId: string): void {

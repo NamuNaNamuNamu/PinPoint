@@ -11,6 +11,7 @@ import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
 
 import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx"
 import { url } from "./features/url/Url.ts";
+import { joinRoom } from "./features/room/joinRoom.ts";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -25,10 +26,14 @@ function App() {
 
         // サーバーからの受信開始
         socketController.register();
-        alert(url.getRoomIdFromParams());
 
-        const userName = prompt("名前を入力してね") ?? null;
-        if (userName) socketController.registerUser(userName);
+        const roomId = url.getRoomIdFromParams();
+        if (roomId) {
+            joinRoom(roomId);
+        }
+
+        // const userName = prompt("名前を入力してね") ?? null;
+        // if (userName) socketController.registerUser(userName);
 
         excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
             handleChange(elements);

@@ -25,9 +25,18 @@ export class SocketController {
             callback(room);
         });
 
-        this.socket.on(SocketEvents.JOIN_ROOM, (message) => {
+        this.socket.on(SocketEvents.JOIN_ROOM, (message, callback) => {
             const roomId = message;
-            roomController.joinRoom(this.socket, roomId);
+            const response = roomController.joinRoom(this.socket, roomId);
+
+            callback(response);
+        });
+
+        this.socket.on(SocketEvents.GET_ROOM_ID, (_message, callback) => {
+            const roomId = roomController.getRoomId(this.socket);
+
+            // レスポンス
+            callback(roomId);
         });
 
         this.socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {
