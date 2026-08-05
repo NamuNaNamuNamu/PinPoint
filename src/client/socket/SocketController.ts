@@ -82,4 +82,4 @@ class SocketController {
     }
 }
 
-export const socketController = new SocketController(io("http://192.168.3.23:3001"));
+export const socketController = new SocketController(io());

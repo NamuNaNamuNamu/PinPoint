@@ -14,15 +14,15 @@ export const Island = React.forwardRef<HTMLDivElement, IslandProps>(
   (
     {
       children,
-      padding,
+      // padding,
       className,
-      style,
+      // style,
     },
     ref,
   ) => (
     <div
       className={clsx("Island", className)}
-      style={{ "--padding": padding, ...style }}
+      // style={{ "--padding": padding, ...style }}
       ref={ref}
     >
       {children}

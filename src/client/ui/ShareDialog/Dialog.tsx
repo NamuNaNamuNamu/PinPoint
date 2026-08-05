@@ -46,7 +46,7 @@ function getDialogSize(size: DialogSize): number {
 }
 
 export const Dialog = (props: DialogProps) => {
-  const [islandNode, setIslandNode] = useCallbackRefState<HTMLDivElement>();
+  const [/* islandNode */, setIslandNode] = useCallbackRefState<HTMLDivElement>();
   // const [lastActiveElement] = useState(document.activeElement);
   // const { id } = useExcalidrawContainer();
   // const isFullscreen = useEditorInterface().formFactor === "phone";
