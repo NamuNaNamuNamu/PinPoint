@@ -11,13 +11,15 @@ class SocketLogger {
         this.io = io;
     }
 
-    public outputAllSockets(eventString: string) {
+    public outputAllSockets({
+        event, socketId
+    }: Props) {
         if (!this.io) {
             throw Error("io が未設定");
         }
 
         console.log("===== Sockets =====");
-        console.log(eventString);
+        console.log(`${event}: ${socketId}`);
 
         for (const socket of this.io.sockets.sockets.values()) {
             console.log({
@@ -29,6 +31,11 @@ class SocketLogger {
         
         console.log("=============\n");
     }
+}
+
+type Props = {
+    event: string,
+    socketId: string
 }
 
 export const socketLogger = new SocketLogger();

@@ -13,7 +13,10 @@ class RoomController {
         const success = roomState.join(roomId, socket.id);
         if (success) { socket.join(roomId); }
         roomLogger.outputRoomState(roomState);
-        if (success) socketLogger.outputAllSockets(`部屋参加: ${socket.id}`);
+        if (success) socketLogger.outputAllSockets({
+            event: "部屋参加",
+            socketId: socket.id
+        });
         
         let response;
         if (success) {
