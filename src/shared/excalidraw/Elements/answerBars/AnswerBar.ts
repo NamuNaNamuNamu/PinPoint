@@ -15,7 +15,8 @@ export class AnswerBar {
             skeleton: lineSkeletonFactory.createWith({
                 id: `line-${id}`,
                 x: x + width / 2,
-                y: y + height / 2,
+                y: y,
+                width: height, // 長方形の高さが線の長さ
                 locked: false
             }),
             moveRange: {
@@ -34,7 +35,7 @@ export class AnswerBar {
                 height: height,
                 locked: true
             }),
-        })
+        });
     }
 
     getLine() {
