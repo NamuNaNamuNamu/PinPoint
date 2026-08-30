@@ -1,17 +1,15 @@
+import { ElementCommon } from "../../ElementCommon";
+
 export class Rectangle {
-    private readonly skeleton;
+    private readonly elementCommon;
 
     constructor ({ skeleton }: Params) {
-        this.skeleton = skeleton;
+        this.elementCommon = new ElementCommon({ skeleton });
     }
 
-    getSkeleton() {
-        return this.skeleton;
-    }
+    getSkeleton() { return this.elementCommon.getSkeleton(); }
 
-    getId() {
-        return this.skeleton.id;
-    }
+    getId() { return this.elementCommon.getId(); }
 }
 
 interface Params {
