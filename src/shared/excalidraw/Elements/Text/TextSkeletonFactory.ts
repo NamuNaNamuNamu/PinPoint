@@ -14,7 +14,7 @@ export const textSkeletonFactory = new TextSkeletonFactory();
 // ExcalidrawElementSkeleton から id、x、y、text だけを取り出した型
 export type TextProps = Pick<
     TextSkeleton,
-    "id" | "x" | "y" | "text"
+    "id" | "x" | "y" | "text" | "locked"
 >;
 
 type TextSkeleton = Extract<
@@ -39,5 +39,6 @@ const textFixedProps = {
     type: "text",
     fontSize: 20,
     fontFamily: FONT_FAMILY.Excalifont,
+    textAlign: "center",
     strokeColor: "#5f3dc4",
 } satisfies Partial<TextSkeleton>;

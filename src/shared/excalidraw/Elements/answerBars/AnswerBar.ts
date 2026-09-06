@@ -2,11 +2,14 @@ import { Line } from "../Line/Line";
 import { lineSkeletonFactory } from "../Line/LineSkeletonFactory";
 import { Rectangle } from "../Rectangle/Rectangle";
 import { rectangleSkeletonFactory } from "../Rectangle/RectangleSkeletonFactory";
+import { Text } from "../Text/Text";
+import { textSkeletonFactory } from "../Text/TextSkeletonFactory";
 
 
 export class AnswerBar {
     private readonly line: Line;
     private readonly rectangle: Rectangle;
+    private readonly name: Text
 
     constructor(
         { id, x, y, width, height }: Params
@@ -36,20 +39,26 @@ export class AnswerBar {
                 locked: true
             }),
         });
+        this.name = new Text({
+            skeleton: textSkeletonFactory.createWith({
+                id: `text-${id}`,
+                x: x + width / 2,
+                y: y + height * 1.1,
+                text: "名前",
+                locked: true
+            })
+        })
     }
 
     getLine() {
         return this.line;
     }
 
-    getRectangle() {
-        return this.rectangle;
-    }
-
     getSkeleton() {
         return [
             this.rectangle.getSkeleton(),
-            this.line.getSkeleton()
+            this.line.getSkeleton(),
+            this.name.getSkeleton()
         ];
     }
 }
