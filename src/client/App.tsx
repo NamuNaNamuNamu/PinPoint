@@ -17,7 +17,7 @@ function App() {
     // excalidrawAPI を React の state に保存する準備
     // excalidrawAPI = { (api) => setExcalidrawAPI(api) } で実際に保存
     const [excalidrawAPI, setExcalidrawAPI] = useState<ExcalidrawImperativeAPI | null>(null);
-    
+
     // 画面描画後に実行 (ただし、Excalidraw が未マウント)
     useEffect(() => {
         if (!excalidrawAPI) {
@@ -39,6 +39,18 @@ function App() {
             handleChange(elements);
         });
 
+        const initialize = async () => {
+            // フォントロード完了を待つ。テキストが全て描画されない不具合の解消用
+            await document.fonts.ready;
+            await document.fonts.load("20px Excalifont");
+            const elements = getInitialData().elements;
+
+            excalidrawAPI.updateScene({
+                elements: [...elements],
+            });
+        };
+        initialize();
+
         // TODO: Excalidraw マウントをトリガーに発動したい。
         // NOTE: useEffect のタイミングでは、Excalidraw が未マウント。
         setTimeout(() => {
@@ -49,9 +61,7 @@ function App() {
     return (
         <div style = {{ height: "100dvh" }}>
             <Excalidraw
-                initialData = {{
-                    elements: getInitialData()
-                }}
+                initialData = { getInitialData() }
 
                 excalidrawAPI = { (api) => {
                     setExcalidrawAPI(api);
