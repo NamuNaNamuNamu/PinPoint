@@ -1,7 +1,7 @@
 import type { Ordered, NonDeletedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { excalidrawAPIHolder } from "./ExcalidrawAPIHolder";
 
-export function onExcalidrawMount() {
+export function onExcalidrawElementsInitialized() {
     const excalidrawAPI = excalidrawAPIHolder.getApi();
     const elements: readonly Ordered<NonDeletedExcalidrawElement>[] = excalidrawAPI.getSceneElements()
     

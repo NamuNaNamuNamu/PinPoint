@@ -2,9 +2,9 @@ import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useEffect, useState } from "react";
-import { onExcalidrawMount } from "./features/excalidraw/onExcalidrawMount";
+import { onExcalidrawElementsInitialized } from "./features/excalidraw/onExcalidrawElementsInitialized";
 import { handleChange } from "./features/excalidraw/handleChange";
-import { getInitialData } from "./features/excalidraw/getInitialData";
+import { getInitialElements } from "./features/excalidraw/getInitialElements";
 import { socketController } from "./socket/SocketController";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
@@ -24,45 +24,40 @@ function App() {
             return;
         }
 
-        // サーバーからの受信開始
-        socketController.register();
-
-        const roomId = url.getRoomIdFromParams();
-        if (roomId) {
-            joinRoom(roomId);
-        }
-
-        // const userName = prompt("名前を入力してね") ?? null;
-        // if (userName) socketController.registerUser(userName);
-
-        excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
-            handleChange(elements);
-        });
-
         const initialize = async () => {
+            // サーバーからの受信開始
+            socketController.register();
+
+            const roomId = url.getRoomIdFromParams();
+            if (roomId) {
+                joinRoom(roomId);
+            }
+
+            // const userName = prompt("名前を入力してね") ?? null;
+            // if (userName) socketController.registerUser(userName);
+
             // フォントロード完了を待つ。テキストが全て描画されない不具合の解消用
             await document.fonts.ready;
             await document.fonts.load("20px Excalifont");
-            const elements = getInitialData().elements;
 
+            // フォントロード後にSkeleton → Element変換
+            const elements = getInitialElements();
             excalidrawAPI.updateScene({
                 elements: [...elements],
             });
+
+            // 初期 elements を投入後、実行する
+            onExcalidrawElementsInitialized();
+            excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
+                handleChange(elements);
+            });
         };
         initialize();
-
-        // TODO: Excalidraw マウントをトリガーに発動したい。
-        // NOTE: useEffect のタイミングでは、Excalidraw が未マウント。
-        setTimeout(() => {
-            onExcalidrawMount();
-        }, 10);
     }); 
     
     return (
         <div style = {{ height: "100dvh" }}>
             <Excalidraw
-                initialData = { getInitialData() }
-
                 excalidrawAPI = { (api) => {
                     setExcalidrawAPI(api);
                     excalidrawAPIHolder.setApi(api);
