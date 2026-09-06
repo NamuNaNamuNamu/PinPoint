@@ -1,37 +1,22 @@
 import { excalidrawAPIHolder } from "../../../../client/features/excalidraw/ExcalidrawAPIHolder";
+import { ElementCommon } from "../../ElementCommon";
 
 export class Line {
-    private readonly skeleton;
+    private readonly elementCommon;
     private readonly moveRange: MoveRange;
     private previousElement: any;
 
     constructor ({ skeleton, moveRange }: Params) {
-        this.skeleton = skeleton;
+        this.elementCommon = new ElementCommon({ skeleton });
         this.moveRange = moveRange;
         this.previousElement = null;
     }
 
-    private getExcalidrawElement() {
-        const api = excalidrawAPIHolder.getApi();
+    private getExcalidrawElement() { return this.elementCommon.getExcalidrawElement() }
 
-        const element = api
-            .getSceneElements()
-            .find(e => e.id === this.getId());
+    getSkeleton() { return this.elementCommon.getSkeleton(); }
 
-        if (!element) {
-            throw new Error("Excalidraw 要素が見つかりませんでした");
-        }
-
-        return element;
-    }
-
-    getSkeleton() {
-        return this.skeleton;
-    }
-
-    getId() {
-        return this.skeleton.id;
-    }
+    getId() { return this.elementCommon.getId(); }
 
     private getX() { return this.getExcalidrawElement().x }
 

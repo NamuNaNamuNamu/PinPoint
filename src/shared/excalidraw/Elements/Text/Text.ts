@@ -1,6 +1,6 @@
 import { ElementCommon } from "../../ElementCommon";
 
-export class Rectangle {
+export class Text {
     private readonly elementCommon;
 
     constructor ({ skeleton }: Params) {
