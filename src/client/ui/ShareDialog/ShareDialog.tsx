@@ -9,6 +9,7 @@ import { copyIcon, playerPlayIcon } from "../icons";
 import { useCopyStatus } from "../../hooks/useCopiedIndicator";
 import { copyTextToSystemClipboard } from "./clipboard";
 import { socketController } from "../../socket/SocketController";
+import { userSessionStorage } from "../../features/sessionStorage/sessionStorage";
 
 type Props = {
     closeDialog: () => void;
@@ -30,8 +31,9 @@ type ShareDialogInnerProps = {
 };
 
 const startCollaborating = async (setCurrentRoomId: Dispatch<any>) => {
+    const userId = userSessionStorage.getUserId();
     const room = await socketController.createRoom();
-    const response = await socketController.joinRoom(room.id);
+    const response = userId ? await socketController.joinRoom(userId, room.id) : null;
     
     if (response) {
         const roomId = response;

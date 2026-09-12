@@ -12,6 +12,7 @@ import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
 import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx";
 import { url } from "./features/url/Url.ts";
 import { joinRoom } from "./features/room/joinRoom.ts";
+import { userSessionStorage } from "./features/sessionStorage/sessionStorage.ts";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -28,13 +29,21 @@ function App() {
             // サーバーからの受信開始
             socketController.register();
 
-            const roomId = url.getRoomIdFromParams();
-            if (roomId) {
-                joinRoom(roomId);
+            const userId = userSessionStorage.getUserId();
+            let user = await socketController.getUser(userId);
+
+            if (user) {
+                await socketController.updateSocketId(userId);
+            } else {
+                const userName = prompt("名前を入力してね") ?? "名無し";
+                user = await socketController.registerUser(userName);
+                userSessionStorage.setUserId(user.id);
             }
 
-            // const userName = prompt("名前を入力してね") ?? null;
-            // if (userName) socketController.registerUser(userName);
+            const roomId = url.getRoomIdFromParams();
+            if (roomId) {
+                await joinRoom(user.id, roomId);
+            }
 
             // フォントロード完了を待つ。テキストが全て描画されない不具合の解消用
             await document.fonts.ready;

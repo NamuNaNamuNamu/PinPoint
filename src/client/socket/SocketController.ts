@@ -3,9 +3,8 @@ import { io, Socket } from "socket.io-client";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { roomController } from "../features/room/RoomController";
 import { excalidrawSyncController } from "../features/excalidraw/excalidrawSync/ExcalidrawSyncController";
-import { userController } from "../features/user/UserController";
 import { SocketEvents } from "../../shared/SocketEvents";
-import type { Room } from "../../server/features/room/RoomState";
+import type { UserParams } from "../../server/features/user/User";
 
 class SocketController {
     private socket: Socket;
@@ -16,11 +15,6 @@ class SocketController {
 
     public register() {
         // 受信
-        this.socket.on(SocketEvents.REGISTER_USER, (message) => {
-            const consoleLog = message;
-            userController.registerUser(consoleLog);
-        });
-
         this.socket.on(SocketEvents.CREATE_ROOM, (message) => {
             const consoleLog = message;
             roomController.createRoom(consoleLog);
@@ -33,29 +27,67 @@ class SocketController {
     }
 
     // 送信
-    public registerUser(userName: string) {
-        this.socket.emit(SocketEvents.REGISTER_USER, userName);
-    }
-    
-    public createRoom(): Promise<Room> {
+    public registerUser(userName: string): Promise<UserParams> {
         return new Promise((resolve, _reject) => {
             this.socket.emit(
-                SocketEvents.CREATE_ROOM,
-                "",
-                (response: Room) => {
+                SocketEvents.REGISTER_USER,
+                userName,
+                (response: UserParams) => {
                     resolve(response);
                 },
             );
         });
     }
 
-    public joinRoom(roomId: string): Promise<string | null> {
-        console.log(`roomId: ${roomId} に参加しようとしています。\nsocketId: ${this.socket.id}`)
+    public getUser(userId: number | undefined): Promise<UserParams | undefined> {
+        return new Promise((resolve, _reject) => {
+            this.socket.emit(
+                SocketEvents.GET_USER,
+                userId,
+                (response: UserParams | undefined) => {
+                    resolve(response);
+                },
+            );
+        });
+    }
+
+    public updateSocketId(userId: number | undefined): Promise<UserParams | undefined> {
+        return new Promise((resolve, _reject) => {
+            this.socket.emit(
+                SocketEvents.UPDATE_SOCKET_ID,
+                {
+                    userId: userId,
+                    socketId: this.socket.id
+                },
+                (response: UserParams | undefined) => {
+                    resolve(response);
+                },
+            );
+        });
+    }
+    
+    public createRoom(): Promise<any> {
+        return new Promise((resolve, _reject) => {
+            this.socket.emit(
+                SocketEvents.CREATE_ROOM,
+                "",
+                (response: any) => {
+                    resolve(response);
+                },
+            );
+        });
+    }
+
+    public joinRoom(userId: number, roomId: string): Promise<string | null> {
+        console.log(`roomId: ${roomId} に参加しようとしています。\nsocketId: ${this.socket.id}`);
 
         return new Promise((resolve, _reject) => {
             this.socket.emit(
                 SocketEvents.JOIN_ROOM,
-                roomId,
+                {
+                    userId: userId,
+                    roomId: roomId
+                },
                 // 部屋参加に失敗したら null で返却
                 (response: string | null) => {
                     resolve(response);
@@ -80,6 +112,11 @@ class SocketController {
         const message = elements;
         this.socket.emit(SocketEvents.SYNC_ELEMENTS, message);
     }
+}
+
+export type UpdateSocketIdRequestType = {
+    userId: number | undefined;
+    socketId: string;
 }
 
 export const socketController = new SocketController(io());

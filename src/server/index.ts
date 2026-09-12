@@ -1,15 +1,15 @@
-import express from "express"
+import express from "express";
 import { createServer } from "http";
-import { Server, Socket } from "socket.io";
+import { Server, Socket, type DisconnectReason } from "socket.io";
 import { SocketController } from "./socket/SocketController";
 import { socketLogger } from "./logging/SocketLogger";
-import { roomState } from "./features/room/RoomState";
-import { roomLogger } from "./logging/RoomLogger";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getLocalIPAddress } from "./network/getLocalIPAddress";
+import { roomService } from "./features/room/RoomService";
+import { userService } from "./features/user/UserService";
 
-const {app, io, httpServer} = createServerEntryPoint();
+const { app, io, httpServer } = createServerEntryPoint();
 
 // 各クライアントとのコネクションごとにスレッドが生成されるように。
 io.on("connection", (socket) => {
@@ -25,35 +25,44 @@ httpServer.listen(3001, () => {
 });
 
 function createServerEntryPoint() {
-    const app = express()
+    const app = express();
     const httpServer = createServer(app);
 
     const io = new Server(httpServer, {
         cors: {
-            origin: "*" // 本番ではアプリURLを指定する
+            origin: "*", // 本番ではアプリURLを指定する
         },
     });
 
-    return {app, io, httpServer};
+    return { app, io, httpServer };
 }
 
 function onConnect(socket: Socket) {
     const socketController = new SocketController(socket);
     socketController.register();
-    
+
     socketLogger.outputAllSockets({
         event: "接続",
-        socketId: socket.id
+        socketId: socket.id,
     });
 
     socket.on("disconnect", (reason) => {
-        socketLogger.outputAllSockets({
-            event: `切断（理由: ${reason}）`,
-            socketId: socket.id
-        });
-        roomState.leave(socket.id);
-        roomLogger.outputRoomState(roomState);
-    })
+        onDisconnect(socket, reason);
+    });
+}
+
+function onDisconnect(socket: Socket, reason: DisconnectReason) {
+    socketLogger.outputAllSockets({
+        event: `切断（理由: ${reason}）`,
+        socketId: socket.id,
+    });
+
+    const leftUser = userService.getUserBySocketId(socket.id);
+    if (!leftUser) {
+        return;
+    }
+
+    roomService.leave(leftUser.getId());
 }
 
 // 以下、デプロイ時起動用コード

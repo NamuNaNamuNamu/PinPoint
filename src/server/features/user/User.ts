@@ -20,9 +20,13 @@ export class User {
     public getSocketId(): string {
         return this.socketId;
     }
+
+    public setSocketId(socketId: string): void {
+        this.socketId = socketId;
+    }
 }
 
-interface UserParams {
+export interface UserParams {
     id: number;
     name: string;
     socketId: string;

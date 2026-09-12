@@ -1,36 +1,30 @@
 import type { Socket } from "socket.io";
 import { socketLogger } from "../../logging/SocketLogger";
-import { roomState, type Room } from "./RoomState";
-import { roomLogger } from "../../logging/RoomLogger";
+import { Room } from "./Room";
+import { roomService } from "./RoomService";
 
 class RoomController {
     public createRoom = (): Room => {
-        const room: Room = roomState.addRoom();
-        return room;
+        return roomService.createRoom();
     };
 
-    public joinRoom = (socket: Socket, roomId: string): string | null => {
-        const success = roomState.join(roomId, socket.id);
-        if (success) { socket.join(roomId); }
-        roomLogger.outputRoomState(roomState);
-        if (success) socketLogger.outputAllSockets({
-            event: "部屋参加",
-            socketId: socket.id
-        });
-        
-        let response;
+    public joinRoom = (socket: Socket, userId: number, roomId: string): string | null => {
+        const success = roomService.joinRoom(userId, roomId);
+
         if (success) {
-            response = roomId;
-        } else {
-            response = null;
+            socket.join(roomId);
+            socketLogger.outputAllSockets({
+                event: "部屋参加",
+                socketId: socket.id,
+            });
         }
-        return response;
+
+        return success ? roomId : null;
     };
 
-    public getRoomId = (socket: Socket) => {
-        const roomId: string | undefined = roomState.getRoomIdBySocketId(socket.id);
-        return roomId;
-    }
+    public getRoomId = (socket: Socket): string | undefined => {
+        return roomService.getRoomIdBySocketId(socket.id);
+    };
 }
 
 export const roomController = new RoomController();

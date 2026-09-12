@@ -3,6 +3,8 @@ import { SocketEvents } from "../../shared/SocketEvents";
 import { roomController } from "../features/room/RoomController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
 import { userController } from "../features/user/UserController";
+import type { User } from "../features/user/User";
+import type { UpdateSocketIdRequestType } from "../../client/socket/SocketController";
 
 export class SocketController {
     private socket: Socket;
@@ -13,9 +15,29 @@ export class SocketController {
 
     public register() {
         // 受信
-        this.socket.on(SocketEvents.REGISTER_USER, (message) => {
-            const userName = message;
-            userController.registerUser(this.socket, userName);
+        this.socket.on(SocketEvents.REGISTER_USER, (message, callback) => {
+            const userName: string = message;
+            const user: User = userController.registerUser(this.socket, userName);
+
+            // レスポンス
+            callback(user);
+        });
+
+        this.socket.on(SocketEvents.GET_USER, (message, callback) => {
+            const userId: number | undefined = message;
+            const user: User | undefined = userController.getUser(userId);
+
+            // レスポンス
+            callback(user);
+        });
+
+        this.socket.on(SocketEvents.UPDATE_SOCKET_ID, (message: UpdateSocketIdRequestType, callback) => {
+            const userId = message.userId;
+            const socketId = message.socketId; 
+            const user: User | undefined = userController.updateSocketId(userId, socketId);
+
+            // レスポンス
+            callback(user);
         });
 
         this.socket.on(SocketEvents.CREATE_ROOM, (_message, callback) => {
@@ -26,8 +48,9 @@ export class SocketController {
         });
 
         this.socket.on(SocketEvents.JOIN_ROOM, (message, callback) => {
-            const roomId = message;
-            const response = roomController.joinRoom(this.socket, roomId);
+            const userId = message?.userId;
+            const roomId = message?.roomId;
+            const response = roomController.joinRoom(this.socket, userId, roomId);
 
             callback(response);
         });
