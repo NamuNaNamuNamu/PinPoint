@@ -1,10 +1,16 @@
-/** @type {import('ts-jest').JestConfigWithTsJest} */
+/** @type {import('jest').Config} */
 module.exports = {
-    preset: "ts-jest",
     testEnvironment: "node",
-    globals: {
-        "ts-jest": {
-            tsconfig: "tsconfig.test.json",
-        },
+
+    extensionsToTreatAsEsm: [".ts", ".tsx"],
+
+    transform: {
+        "^.+\\.tsx?$": [
+            "ts-jest",
+            {
+                useESM: true,
+                tsconfig: "tsconfig.test.json",
+            },
+        ],
     },
 };
