@@ -9,7 +9,7 @@ import { socketController } from "./socket/SocketController";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
 
-import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx"
+import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx";
 import { url } from "./features/url/Url.ts";
 import { joinRoom } from "./features/room/joinRoom.ts";
 
@@ -53,21 +53,21 @@ function App() {
             });
         };
         initialize();
-    }); 
-    
+    });
+
     return (
-        <div style = {{ height: "100dvh" }}>
+        <div style={{ height: "100dvh" }}>
             <Excalidraw
-                excalidrawAPI = { (api) => {
+                excalidrawAPI={(api) => {
                     setExcalidrawAPI(api);
                     excalidrawAPIHolder.setApi(api);
                 }}
 
-                zenModeEnabled = { true }
+                zenModeEnabled={true}
             >
                 <ExcalidrawMainMenu />
             </Excalidraw>
-        </div>  
+        </div>
     );
 }
 
