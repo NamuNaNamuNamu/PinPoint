@@ -18,11 +18,11 @@ type Props = {
 
 type RoomURLDialogProps = {
     currentRoomId: string;
-}
+};
 
 type ShareStartDialogProps = {
     startCollaborating: () => void;
-}
+};
 
 type ShareDialogInnerProps = {
     closeDialog: () => void;
@@ -34,12 +34,13 @@ const startCollaborating = async (setCurrentRoomId: Dispatch<any>) => {
     const userId = userSessionStorage.getUserId();
     const room = await socketController.createRoom();
     const response = userId ? await socketController.joinRoom(userId, room.id) : null;
-    
+
     if (response) {
         const roomId = response;
         setCurrentRoomId(roomId);
+        url.replaceRoomUrl(roomId);
     }
-}
+};
 
 function RoomURLDialog({ currentRoomId }: RoomURLDialogProps) {
     const ref = useRef<HTMLInputElement>(null);
@@ -51,7 +52,7 @@ function RoomURLDialog({ currentRoomId }: RoomURLDialogProps) {
         try {
             await copyTextToSystemClipboard(roomUrl);
         } catch (e) {
-            new Error("クリップボードにコピーできませんでした。")
+            new Error("クリップボードにコピーできませんでした。");
         }
 
         setJustCopied(true);
@@ -71,21 +72,19 @@ function RoomURLDialog({ currentRoomId }: RoomURLDialogProps) {
 
     return (
         <>
-            <h3 className="ShareDialog__active__header">
-                通信モード
-            </h3>
+            <h3 className="ShareDialog__active__header">通信モード</h3>
 
             <div className="ShareDialog__active__linkRow">
                 <TextField
-                    ref = {ref}
-                    label = "リンク"
+                    ref={ref}
+                    label="リンク"
                     readonly
                     fullWidth
-                    value = { roomUrl }
+                    value={roomUrl}
                 />
                 <FilledButton
-                    size = "large"
-                    label = "リンクをコピー"
+                    size="large"
+                    label="リンクをコピー"
                     icon={copyIcon}
                     status={copyStatus}
                     onClick={() => {
@@ -95,54 +94,56 @@ function RoomURLDialog({ currentRoomId }: RoomURLDialogProps) {
                 />
             </div>
         </>
-    )
+    );
 }
 
 const ShareStartDialog = ({ startCollaborating }: ShareStartDialogProps) => {
-//   const { t } = useI18n();
+    //   const { t } = useI18n();
 
-//   const { collabAPI } = props;
+    //   const { collabAPI } = props;
 
-  return (
-    <>
-      <div className="ShareDialog__picker__header">
-        通信モード
-      </div>
+    return (
+        <>
+            <div className="ShareDialog__picker__header">通信モード</div>
 
-      <div className="ShareDialog__picker__description">
-        <div style={{ marginBottom: "1em" }}>通信モードを開始します。</div>
-      </div>
+            <div className="ShareDialog__picker__description">
+                <div style={{ marginBottom: "1em" }}>通信モードを開始します。</div>
+            </div>
 
-      <div className="ShareDialog__picker__button">
-        <FilledButton
-          size="large"
-          label="開始"
-          icon={playerPlayIcon}
-          onClick={() => {
-            startCollaborating();
-            // trackEvent("share", "room creation", `ui (${getFrame()})`);
-            // collabAPI.startCollaboration(null);
-          }}
-        />
-      </div>
+            <div className="ShareDialog__picker__button">
+                <FilledButton
+                    size="large"
+                    label="開始"
+                    icon={playerPlayIcon}
+                    onClick={() => {
+                        startCollaborating();
+                        // trackEvent("share", "room creation", `ui (${getFrame()})`);
+                        // collabAPI.startCollaboration(null);
+                    }}
+                />
+            </div>
 
-      {/* {props.type === "share" && (
+            {/* {props.type === "share" && (
         <div className="ShareDialog__separator">
           <span>{t("shareDialog.or")}</span>
         </div>
       )} */}
-    </>
-  )
+        </>
+    );
 };
 
 const ShareDialogInner = ({ closeDialog, currentRoomId, startCollaborating }: ShareDialogInnerProps) => {
     return (
-        <Dialog size = "small" onCloseRequest = {closeDialog} title = {false}>
+        <Dialog size="small" onCloseRequest={closeDialog} title={false}>
             <div className="ShareDialog">
-                {!!currentRoomId ? <RoomURLDialog currentRoomId = { currentRoomId } /> : <ShareStartDialog startCollaborating = { startCollaborating } />}
+                {!!currentRoomId ? (
+                    <RoomURLDialog currentRoomId={currentRoomId} />
+                ) : (
+                    <ShareStartDialog startCollaborating={startCollaborating} />
+                )}
             </div>
         </Dialog>
-    )
+    );
 };
 
 export const ShareDialog = ({ closeDialog, initCurrentRoomId }: Props) => {
@@ -150,9 +151,9 @@ export const ShareDialog = ({ closeDialog, initCurrentRoomId }: Props) => {
 
     return (
         <ShareDialogInner
-            closeDialog = { closeDialog }
-            currentRoomId = { currentRoomId }
-            startCollaborating = { () => startCollaborating(setCurrentRoomId) }
+            closeDialog={closeDialog}
+            currentRoomId={currentRoomId}
+            startCollaborating={() => startCollaborating(setCurrentRoomId)}
         />
     );
 };

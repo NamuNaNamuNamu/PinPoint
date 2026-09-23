@@ -30,9 +30,9 @@ export class UserState {
     }
 
     /**
-     * TODO: あとで追加する。
+     * 指定した Socket ID に一致するユーザーを取得する。
      *
-     * @param id 取得対象のユーザーID
+     * @param socketId 取得対象の Socket ID
      * @returns 一致するユーザー。存在しない場合は undefined
      */
     public getUserBySocketId(socketId: string): User | undefined {

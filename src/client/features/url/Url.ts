@@ -24,6 +24,20 @@ class Url {
         url.searchParams.set("room", roomId);
         return url.toString();
     };
+
+    /**
+     * 現在のURLに room パラメータを設定する。
+     *
+     * ブラウザの履歴を追加せず、現在のURLを置き換える。
+     *
+     * 例:
+     * http://localhost:5173/ → http://localhost:5173/?room=abc123
+     *
+     * @param roomId 設定するルームID
+     */
+    public replaceRoomUrl = (roomId: string): void => {
+        window.history.replaceState(null, "", this.createRoomUrl(roomId));
+    };
 }
 
 export const url = new Url();

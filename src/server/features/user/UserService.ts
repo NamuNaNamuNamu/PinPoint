@@ -48,7 +48,13 @@ export class UserService {
     }
 
     /**
-     * TODO: あとで追加する。
+     * 指定した Socket ID に一致するユーザーを取得する。
+     *
+     * Socket ID が指定されていない場合、または一致するユーザーが
+     * 存在しない場合は undefined を返す。
+     *
+     * @param socketId 取得対象の Socket ID
+     * @returns 一致するユーザー。存在しない場合は undefined
      */
     public getUserBySocketId(socketId: string | undefined) {
         return socketId ? userState.getUserBySocketId(socketId) : undefined;
