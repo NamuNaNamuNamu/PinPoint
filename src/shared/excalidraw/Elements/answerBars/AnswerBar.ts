@@ -6,15 +6,22 @@ import { Text } from "../Text/Text";
 import { textSkeletonFactory } from "../Text/TextSkeletonFactory";
 
 /**
- * 回答欄を表す、長方形・可動線・名前テキストからなる複合要素を生成する。
+ * 回答欄そのもの。長方形、可動線、名前表示から構成される。
  */
 export class AnswerBar {
+    /** 回答欄の中央に配置する可動線。 */
     private readonly line: Line;
+
+    /** 回答欄の外枠となる長方形。 */
     private readonly rectangle: Rectangle;
+
+    /** 回答欄の下部に表示する名前テキスト。 */
     private readonly name: Text;
 
     /**
-     * @param params 回答欄のID、配置位置、寸法
+     * 指定した位置と大きさで回答欄を初期化する。
+     *
+     * @param params 回答欄の識別子、位置、幅、高さ。
      */
     constructor({ id, x, y, width, height }: Params) {
         this.line = new Line({
@@ -54,30 +61,38 @@ export class AnswerBar {
     }
 
     /**
-     * @returns 回答欄内で移動可能な線要素
+     * 回答欄の移動可能な線要素を取得する。
+     *
+     * @returns 回答欄の移動可能な線要素。
      */
     getLine() {
         return this.line;
     }
 
     /**
-     * 回答欄を構成する要素のスケルトンを、描画順に取得する。
+     * 回答欄を構成する全要素のスケルトンを取得する。
      *
-     * @returns 長方形、線、名前テキストのスケルトン配列
+     * @returns 長方形、線、名前テキストの順に並べたスケルトン。
      */
     getSkeleton() {
-        return [
-            this.rectangle.getSkeleton(),
-            this.line.getSkeleton(),
-            this.name.getSkeleton()
-        ];
+        return [this.rectangle.getSkeleton(), this.line.getSkeleton(), this.name.getSkeleton()];
     }
 }
 
+/** 回答欄の生成に必要なパラメータ。 */
 interface Params {
+    /** 回答欄の識別子。 */
     id: string;
+
+    /** 回答欄の左上の X 座標。 */
     x: number;
+
+    /** 回答欄の左上の Y 座標。 */
     y: number;
+
+    /** 回答欄の幅。 */
     width: number;
+
+    /** 回答欄の高さ。 */
     height: number;
 }
