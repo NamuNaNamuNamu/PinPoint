@@ -6,13 +6,22 @@ import { userController } from "../features/user/UserController";
 import type { User } from "../features/user/User";
 import type { UpdateSocketIdRequestType } from "../../client/socket/SocketController";
 
+/**
+ * 接続済みソケットのイベントハンドラーを登録する。
+ */
 export class SocketController {
     private socket: Socket;
-    
+
+    /**
+     * @param socket イベントを受信する接続済みソケット
+     */
     constructor(socket: Socket) {
         this.socket = socket;
     }
 
+    /**
+     * ユーザー操作、ルーム操作、Excalidraw要素同期のイベントを登録する。
+     */
     public register() {
         // 受信
         this.socket.on(SocketEvents.REGISTER_USER, (message, callback) => {
@@ -33,7 +42,7 @@ export class SocketController {
 
         this.socket.on(SocketEvents.UPDATE_SOCKET_ID, (message: UpdateSocketIdRequestType, callback) => {
             const userId = message.userId;
-            const socketId = message.socketId; 
+            const socketId = message.socketId;
             const user: User | undefined = userController.updateSocketId(userId, socketId);
 
             // レスポンス

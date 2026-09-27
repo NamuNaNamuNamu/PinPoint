@@ -1,5 +1,8 @@
 import { AnswerBar } from "./AnswerBar";
 
+/**
+ * 初期表示する回答欄の一覧。
+ */
 export const answerBars: AnswerBar[] = [
     new AnswerBar({
         id: "answer-bar1",
@@ -8,4 +11,4 @@ export const answerBars: AnswerBar[] = [
         width: 300,
         height: 100,
     }),
-]
+];

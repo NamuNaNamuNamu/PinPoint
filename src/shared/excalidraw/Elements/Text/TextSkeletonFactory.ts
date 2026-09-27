@@ -1,26 +1,35 @@
 import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/data/transform";
 
+/**
+ * Excalidrawのテキスト要素スケルトンを生成する。
+ */
 class TextSkeletonFactory {
+    /**
+     * 指定された配置・文字列でテキスト要素のスケルトンを生成する。
+     *
+     * @param textProps 可変のテキスト要素プロパティ
+     * @returns テキスト要素のスケルトン
+     */
     createWith(textProps: TextProps) {
         return {
             ...textProps,
-            ...textFixedProps
-        }
+            ...textFixedProps,
+        };
     }
 }
 
+/**
+ * テキスト要素スケルトンを生成するファクトリー。
+ */
 export const textSkeletonFactory = new TextSkeletonFactory();
 
-// ExcalidrawElementSkeleton から id、x、y、text だけを取り出した型
-export type TextProps = Pick<
-    TextSkeleton,
-    "id" | "x" | "y" | "text" | "locked"
->;
+/**
+ * テキスト要素の作成時に指定する可変プロパティ。
+ * ExcalidrawElementSkeleton から id、x、y、text、locked だけを取り出した型
+ */
+export type TextProps = Pick<TextSkeleton, "id" | "x" | "y" | "text" | "locked">;
 
-type TextSkeleton = Extract<
-    ExcalidrawElementSkeleton,
-    { type: "text" }
->;
+type TextSkeleton = Extract<ExcalidrawElementSkeleton, { type: "text" }>;
 
 const FONT_FAMILY = {
     Virgil: 1,
