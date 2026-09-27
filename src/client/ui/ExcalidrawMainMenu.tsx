@@ -1,4 +1,4 @@
-import { MainMenu } from "@excalidraw/excalidraw"
+import { MainMenu } from "@excalidraw/excalidraw";
 import { usersIcon } from "./icons";
 import { socketController } from "../socket/SocketController";
 import { useState } from "react";
@@ -13,33 +13,24 @@ function ExcalidrawMainMenu() {
         <>
             <MainMenu>
                 <MainMenu.Item
-                    icon = {usersIcon}
-                    onSelect = {async () => {
-                        // URL発行
-
-                        // 画面に出力する
-                        //   URL
-
-                        //   QRコード
-
+                    icon={usersIcon}
+                    onSelect={async () => {
                         // とりあえず画面を出すところから始めてみる
+                        // TODO: QRコードでも入室できるように
                         const roomId = await socketController.getRoomId();
                         setCurrentRoomId(roomId);
                         setIsDialogOpen(true);
                     }}
                 >
-                通信モード
+                    通信モード
                 </MainMenu.Item>
             </MainMenu>
 
             {isDialogOpen && (
-                <ShareDialog
-                    closeDialog = {() => setIsDialogOpen(false)}
-                    initCurrentRoomId = { currentRoomId }
-                />
+                <ShareDialog closeDialog={() => setIsDialogOpen(false)} initCurrentRoomId={currentRoomId} />
             )}
         </>
-    )
+    );
 }
 
 export default ExcalidrawMainMenu;

@@ -61,6 +61,21 @@ class SocketController {
         });
     }
 
+    public leaveRoom(roomId: string): Promise<string | null> {
+        console.log(`roomId: ${roomId} から退出しようとしています。\nsocketId: ${socket.id}`);
+
+        return new Promise((resolve, _reject) => {
+            socket.emit(
+                SocketEvents.LEAVE_ROOM,
+                roomId,
+                // 部屋退出に失敗したら null で返却
+                (response: string | null) => {
+                    resolve(response);
+                },
+            );
+        });
+    }
+
     public getRoomId(): Promise<string | undefined> {
         return new Promise((resolve, _reject) => {
             socket.emit(SocketEvents.GET_ROOM_ID, "", (response: string | undefined) => {

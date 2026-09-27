@@ -2,6 +2,7 @@ import type { Socket } from "socket.io";
 import { socketLogger } from "../../logging/SocketLogger";
 import { Room } from "./Room";
 import { roomService } from "./RoomService";
+import { userService } from "../user/UserService";
 
 /**
  * Socket を受け取り、ルームに関する操作を処理する。
@@ -46,6 +47,29 @@ class RoomController {
      */
     public getRoomId = (socket: Socket): string | undefined => {
         return roomService.getRoomIdBySocketId(socket.id);
+    };
+
+    /**
+     * ユーザーを指定したルームから退出させ、Socket.IO のルームからも退出させる。
+     *
+     * @param socket 退出するクライアントのソケット。
+     * @param roomId 退出するルーム ID。
+     * @returns 成功時はルーム ID、失敗時は `null`。
+     */
+    public leaveRoom = (socket: Socket, roomId: string): string | null => {
+        const user = userService.getUserBySocketId(socket.id);
+        if (!user) {
+            return null;
+        }
+        roomService.leave(user.getId());
+
+        socket.leave(roomId);
+        socketLogger.outputAllSockets({
+            event: `部屋退出 (roomId: ${roomId})`,
+            socketId: socket.id,
+        });
+
+        return roomId;
     };
 }
 

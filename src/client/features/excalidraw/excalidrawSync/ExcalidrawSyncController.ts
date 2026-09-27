@@ -8,7 +8,10 @@ import { excalidrawSyncState } from "./ExcalidrawSyncState";
  */
 class ExcalidrawSyncController {
     /**
-     * リモート要素とローカル要素を統合し、Excalidraw のシーンを更新する。
+     * リモートから受信した Excalidraw 要素をローカルのシーンへ同期する。
+     *
+     * Excalidraw API が利用可能な場合は、ローカル要素と統合してシーンを更新する。
+     * API を取得できない場合は、API 設定後に同期できるよう受信要素を一時保持する。
      *
      * @param elements リモートから受信した Excalidraw 要素。
      */

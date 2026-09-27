@@ -64,6 +64,13 @@ export class SocketController {
             callback(response);
         });
 
+        this.socket.on(SocketEvents.LEAVE_ROOM, (message, callback) => {
+            const roomId = message;
+            const response = roomController.leaveRoom(this.socket, roomId);
+
+            callback(response);
+        });
+
         this.socket.on(SocketEvents.GET_ROOM_ID, (_message, callback) => {
             const roomId = roomController.getRoomId(this.socket);
 

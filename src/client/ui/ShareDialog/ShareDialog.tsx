@@ -5,7 +5,7 @@ import { TextField } from "./TextField";
 import "./ShareDialog.scss";
 import { Dialog } from "./Dialog";
 import { FilledButton } from "./FilledButton";
-import { copyIcon, playerPlayIcon } from "../icons";
+import { copyIcon, playerPlayIcon, playerStopFilledIcon } from "../icons";
 import { useCopyStatus } from "../../hooks/useCopiedIndicator";
 import { copyTextToSystemClipboard } from "./clipboard";
 import { socketController } from "../../socket/SocketController";
@@ -18,6 +18,7 @@ type Props = {
 
 type RoomURLDialogProps = {
     currentRoomId: string;
+    closeDialog: () => void;
 };
 
 type ShareStartDialogProps = {
@@ -42,7 +43,7 @@ const startCollaborating = async (setCurrentRoomId: Dispatch<any>) => {
     }
 };
 
-function RoomURLDialog({ currentRoomId }: RoomURLDialogProps) {
+function RoomURLDialog({ currentRoomId, closeDialog }: RoomURLDialogProps) {
     const ref = useRef<HTMLInputElement>(null);
     const timerRef = useRef<number>(0);
     const [, setJustCopied] = useState(false);
@@ -75,13 +76,7 @@ function RoomURLDialog({ currentRoomId }: RoomURLDialogProps) {
             <h3 className="ShareDialog__active__header">通信モード</h3>
 
             <div className="ShareDialog__active__linkRow">
-                <TextField
-                    ref={ref}
-                    label="リンク"
-                    readonly
-                    fullWidth
-                    value={roomUrl}
-                />
+                <TextField ref={ref} label="リンク" readonly fullWidth value={roomUrl} />
                 <FilledButton
                     size="large"
                     label="リンクをコピー"
@@ -90,6 +85,20 @@ function RoomURLDialog({ currentRoomId }: RoomURLDialogProps) {
                     onClick={() => {
                         copyRoomLink();
                         onCopy();
+                    }}
+                />
+            </div>
+
+            <div className="ShareDialog__active__actions">
+                <FilledButton
+                    size="large"
+                    label="退出する"
+                    icon={playerStopFilledIcon}
+                    variant="outlined"
+                    color="danger"
+                    onClick={() => {
+                        socketController.leaveRoom(currentRoomId);
+                        closeDialog();
                     }}
                 />
             </div>
@@ -136,8 +145,8 @@ const ShareDialogInner = ({ closeDialog, currentRoomId, startCollaborating }: Sh
     return (
         <Dialog size="small" onCloseRequest={closeDialog} title={false}>
             <div className="ShareDialog">
-                {!!currentRoomId ? (
-                    <RoomURLDialog currentRoomId={currentRoomId} />
+                {currentRoomId ? (
+                    <RoomURLDialog currentRoomId={currentRoomId} closeDialog={closeDialog} />
                 ) : (
                     <ShareStartDialog startCollaborating={startCollaborating} />
                 )}

@@ -7,7 +7,7 @@ export class ExcalidrawSyncState {
     private remoteElements: readonly RemoteExcalidrawElement[];
 
     /**
-     * 空のリモートから受信した Excalidraw 要素状態を生成する。
+     * 空のリモート要素一覧で初期化する。
      */
     constructor() {
         this.remoteElements = [];

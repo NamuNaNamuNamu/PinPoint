@@ -12,6 +12,8 @@ export const SocketEvents = {
     CREATE_ROOM: "create-room",
     /** ルーム参加を要求するイベント。 */
     JOIN_ROOM: "join-room",
+    /** ルーム退出を要求するイベント。 */
+    LEAVE_ROOM: "leave-room",
     /** 接続中のソケットが所属するルーム ID を取得するイベント。 */
     GET_ROOM_ID: "get-room-id",
     /** Excalidraw 要素の同期を要求するイベント。 */
