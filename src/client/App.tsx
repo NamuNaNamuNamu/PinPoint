@@ -13,6 +13,7 @@ import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx";
 import { url } from "./features/url/Url.ts";
 import { joinRoom } from "./features/room/joinRoom.ts";
 import { userSessionStorage } from "./features/sessionStorage/sessionStorage.ts";
+import { registerExcalidrawSyncListener } from "./features/excalidraw/excalidrawSync/registerExcalidrawSyncListener.ts";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -27,7 +28,7 @@ function App() {
 
         const initialize = async () => {
             // サーバーからの受信開始
-            socketController.register();
+            registerExcalidrawSyncListener();
 
             const userId = userSessionStorage.getUserId();
             let user = await socketController.getUser(userId);

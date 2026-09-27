@@ -1,8 +1,6 @@
 import { io, Socket } from "socket.io-client";
 
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import { roomController } from "../features/room/RoomController";
-import { excalidrawSyncController } from "../features/excalidraw/excalidrawSync/ExcalidrawSyncController";
 import { SocketEvents } from "../../shared/SocketEvents";
 import type { UserParams } from "../../server/features/user/User";
 
@@ -11,19 +9,6 @@ class SocketController {
 
     constructor(socket: Socket) {
         this.socket = socket;
-    }
-
-    public register() {
-        // 受信
-        this.socket.on(SocketEvents.CREATE_ROOM, (message) => {
-            const consoleLog = message;
-            roomController.createRoom(consoleLog);
-        });
-
-        this.socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {
-            const elements = message;
-            excalidrawSyncController.syncElements(elements);
-        });
     }
 
     // 送信
