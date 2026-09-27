@@ -11,7 +11,6 @@ import { userSessionStorage } from "../../../../src/client/features/sessionStora
  * ユーザーIDの保存・取得に関する動作を確認する。
  */
 describe("UserSessionStorage", () => {
-
     /**
      * 各テストの実行前に sessionStorage を初期化する。
      *
