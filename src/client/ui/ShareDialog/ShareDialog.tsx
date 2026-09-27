@@ -11,26 +11,45 @@ import { copyTextToSystemClipboard } from "./clipboard";
 import { socketController } from "../../socket/SocketController";
 import { userSessionStorage } from "../../features/sessionStorage/sessionStorage";
 
+/**
+ * 共有ダイアログのプロパティ。
+ */
 type Props = {
     closeDialog: () => void;
     initCurrentRoomId: string | undefined;
 };
 
+/**
+ * 参加中のルーム URL を表示するダイアログのプロパティ。
+ */
 type RoomURLDialogProps = {
     currentRoomId: string;
     closeDialog: () => void;
 };
 
+/**
+ * 通信モードの開始画面のプロパティ。
+ */
 type ShareStartDialogProps = {
     startCollaborating: () => void;
 };
 
+/**
+ * 共有ダイアログの内部表示を切り替えるコンポーネントのプロパティ。
+ */
 type ShareDialogInnerProps = {
     closeDialog: () => void;
     currentRoomId: string | undefined;
     startCollaborating: () => void;
 };
 
+/**
+ * 新しいルームを作成し、現在のユーザーを参加させる。
+ *
+ * 作成と参加に成功した場合は、表示中のルーム ID と URL を更新する。
+ *
+ * @param setCurrentRoomId 現在のルーム ID を更新する State setter。
+ */
 const startCollaborating = async (setCurrentRoomId: Dispatch<any>) => {
     const userId = userSessionStorage.getUserId();
     const room = await socketController.createRoom();
@@ -43,12 +62,20 @@ const startCollaborating = async (setCurrentRoomId: Dispatch<any>) => {
     }
 };
 
+/**
+ * 参加中のルームの共有 URL と退出操作を表示する。
+ *
+ * @param props 表示するルーム ID とダイアログを閉じる関数。
+ */
 function RoomURLDialog({ currentRoomId, closeDialog }: RoomURLDialogProps) {
     const ref = useRef<HTMLInputElement>(null);
     const timerRef = useRef<number>(0);
     const [, setJustCopied] = useState(false);
     const { onCopy, copyStatus } = useCopyStatus();
 
+    /**
+     * ルーム URL をクリップボードへコピーし、コピー状態を一時的に表示する。
+     */
     const copyRoomLink = async () => {
         try {
             await copyTextToSystemClipboard(roomUrl);
@@ -106,6 +133,11 @@ function RoomURLDialog({ currentRoomId, closeDialog }: RoomURLDialogProps) {
     );
 }
 
+/**
+ * 通信モードを開始する前の画面を表示する。
+ *
+ * @param props 通信モードを開始する関数。
+ */
 const ShareStartDialog = ({ startCollaborating }: ShareStartDialogProps) => {
     //   const { t } = useI18n();
 
@@ -141,6 +173,11 @@ const ShareStartDialog = ({ startCollaborating }: ShareStartDialogProps) => {
     );
 };
 
+/**
+ * ルーム参加状態に応じて共有ダイアログの内容を切り替える。
+ *
+ * @param props ダイアログの表示状態を決めるプロパティ。
+ */
 const ShareDialogInner = ({ closeDialog, currentRoomId, startCollaborating }: ShareDialogInnerProps) => {
     return (
         <Dialog size="small" onCloseRequest={closeDialog} title={false}>
@@ -155,6 +192,11 @@ const ShareDialogInner = ({ closeDialog, currentRoomId, startCollaborating }: Sh
     );
 };
 
+/**
+ * 通信モードの開始、共有 URL の表示、およびルーム退出を行うダイアログ。
+ *
+ * @param props ダイアログを閉じる関数と初期ルーム ID。
+ */
 export const ShareDialog = ({ closeDialog, initCurrentRoomId }: Props) => {
     const [currentRoomId, setCurrentRoomId] = useState(initCurrentRoomId);
 

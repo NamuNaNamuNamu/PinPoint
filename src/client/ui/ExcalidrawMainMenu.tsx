@@ -5,6 +5,9 @@ import { useState } from "react";
 
 import { ShareDialog } from "./ShareDialog/ShareDialog";
 
+/**
+ * 通信モードの開始と共有ダイアログの表示を行う Excalidraw のメインメニュー。
+ */
 function ExcalidrawMainMenu() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [currentRoomId, setCurrentRoomId] = useState<string | undefined>();

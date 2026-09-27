@@ -25,6 +25,13 @@ const modifiedTablerIconProps: Opts = {
     strokeLinejoin: "round",
 } as const;
 
+/**
+ * SVG のパスまたは React ノードからアイコン要素を生成する。
+ *
+ * @param d アイコンを構成する SVG パス文字列または React ノード。
+ * @param opts 表示サイズと SVG 属性。数値を指定した場合は幅として使用する。
+ * @returns 生成した SVG アイコン要素。
+ */
 const createIcon = (d: string | React.ReactNode, opts: number | Opts = 512) => {
     const {
         width = 512,

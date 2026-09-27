@@ -13,7 +13,9 @@ export class SocketController {
     private socket: Socket;
 
     /**
-     * @param socket イベントを受信する接続済みソケット
+     * 接続済みソケットを保持する。
+     *
+     * @param socket イベントを受信する接続済みソケット。
      */
     constructor(socket: Socket) {
         this.socket = socket;

@@ -54,7 +54,7 @@ class RoomController {
      *
      * @param socket 退出するクライアントのソケット。
      * @param roomId 退出するルーム ID。
-     * @returns 成功時はルーム ID、失敗時は `null`。
+     * @returns 成功時はルーム ID、ユーザーが見つからない場合は `null`。
      */
     public leaveRoom = (socket: Socket, roomId: string): string | null => {
         const user = userService.getUserBySocketId(socket.id);
