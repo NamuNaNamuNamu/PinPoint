@@ -3,12 +3,27 @@ import { userService } from "../user/UserService";
 import { Room } from "./Room";
 import { roomState } from "./RoomState";
 
+/**
+ * ルームの作成、参加、退出に関するユースケースを提供する。
+ */
 export class RoomService {
+    /**
+     * 新しいルームを作成する。
+     *
+     * @returns 作成したルーム。
+     */
     public createRoom(): Room {
         const room: Room = roomState.addRoom();
         return room;
     }
 
+    /**
+     * ユーザーを指定したルームへ参加させ、成功時にログを出力する。
+     *
+     * @param userId 参加するユーザー ID。
+     * @param roomId 参加先のルーム ID。
+     * @returns 参加に成功した場合は `true`。
+     */
     public joinRoom(userId: number, roomId: string): boolean {
         const success = roomState.join(userId, roomId);
 
@@ -25,10 +40,21 @@ export class RoomService {
         return success;
     }
 
+    /**
+     * ソケット ID に対応するルーム ID を取得する。
+     *
+     * @param socketId 検索するソケット ID。
+     * @returns ルーム ID。該当するルームがない場合は `undefined`。
+     */
     public getRoomIdBySocketId(socketId: string): string | undefined {
         return roomState.getRoomIdBySocketId(socketId);
     }
 
+    /**
+     * ユーザーをルームから退出させ、退出ログを出力する。
+     *
+     * @param userId 退出するユーザー ID。
+     */
     public leave(userId: number): void {
         roomState.leave(userId);
 
