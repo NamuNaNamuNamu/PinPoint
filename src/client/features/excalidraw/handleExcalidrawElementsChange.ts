@@ -10,14 +10,14 @@ import { AnswerBar } from "../../../shared/excalidraw/Elements/answerBars/Answer
  *
  * @param elements 変更後の Excalidraw 要素。
  */
-export function handleChange(elements: readonly ExcalidrawElement[]): void {
+export function handleExcalidrawElementsChange(elements: readonly ExcalidrawElement[]): void {
     lines.forEach((line: Line) => {
         line.onChange();
     });
 
     answerBars.forEach((answerBar: AnswerBar) => {
         answerBar.getLine().onChange();
-    })
+    });
 
     socketController.syncElements(elements);
 }

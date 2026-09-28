@@ -1,5 +1,6 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { SocketEvents } from "../../shared/SocketEvents";
+import type { Cursor } from "../../shared/excalidraw/Cursor";
 import type { UserParams } from "../../server/features/user/User";
 import { socket } from "./socket";
 
@@ -136,6 +137,15 @@ class SocketController {
     public syncElements(elements: readonly ExcalidrawElement[]) {
         const message = elements;
         socket.emit(SocketEvents.SYNC_ELEMENTS, message);
+    }
+
+    /**
+     * 現在のカーソルをサーバーへ送信する。
+     *
+     * @param cursor 座標とボタン状態。接続 ID と表示名はサーバーが付加する。
+     */
+    public syncCursor(cursor: Cursor): void {
+        socket.emit(SocketEvents.SYNC_CURSOR, cursor);
     }
 }
 

@@ -18,4 +18,8 @@ export const SocketEvents = {
     GET_ROOM_ID: "get-room-id",
     /** Excalidraw 要素の同期を要求するイベント。 */
     SYNC_ELEMENTS: "send-elements",
+    /** カーソル位置の同期を要求・通知するイベント。 */
+    SYNC_CURSOR: "sync-cursor",
+    /** カーソルの削除を通知するイベント。 */
+    REMOVE_CURSOR: "remove-cursor",
 } as const;

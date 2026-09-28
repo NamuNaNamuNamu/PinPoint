@@ -1,6 +1,8 @@
 import { Socket } from "socket.io";
 import { SocketEvents } from "../../shared/SocketEvents";
+import type { Cursor } from "../../shared/excalidraw/Cursor";
 import { roomController } from "../features/room/RoomController";
+import { excalidrawCursorSyncController } from "../features/excalidrawCursor/ExcalidrawCursorSyncController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
 import { userController } from "../features/user/UserController";
 import type { User } from "../features/user/User";
@@ -68,6 +70,7 @@ export class SocketController {
 
         this.socket.on(SocketEvents.LEAVE_ROOM, (message, callback) => {
             const roomId = message;
+            excalidrawCursorSyncController.remove(this.socket);
             const response = roomController.leaveRoom(this.socket, roomId);
 
             callback(response);
@@ -83,6 +86,16 @@ export class SocketController {
         this.socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {
             const elements = message;
             excalidrawSyncController.send(this.socket, elements);
+        });
+
+        this.socket.on(SocketEvents.SYNC_CURSOR, (message: Cursor) => {
+            const cursor = message;
+            excalidrawCursorSyncController.send(this.socket, cursor);
+        });
+
+        // disconnecting は Socket.IO が socket.rooms を空にする前に発火する。
+        this.socket.on("disconnecting", () => {
+            excalidrawCursorSyncController.remove(this.socket);
         });
     }
 }

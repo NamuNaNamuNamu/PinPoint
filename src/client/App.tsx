@@ -3,7 +3,7 @@ import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useEffect, useState } from "react";
 import { onExcalidrawElementsInitialized } from "./features/excalidraw/onExcalidrawElementsInitialized";
-import { handleChange } from "./features/excalidraw/handleChange";
+import { handleExcalidrawElementsChange } from "./features/excalidraw/handleExcalidrawElementsChange.ts";
 import { getInitialElements } from "./features/excalidraw/getInitialElements";
 import { socketController } from "./socket/SocketController";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
@@ -15,6 +15,7 @@ import { joinRoom } from "./features/room/joinRoom.ts";
 import { userSessionStorage } from "./features/sessionStorage/sessionStorage.ts";
 import { excalidrawSyncController } from "./features/excalidraw/excalidrawSync/ExcalidrawSyncController.ts";
 import { excalidrawSyncState } from "./features/excalidraw/excalidrawSync/ExcalidrawSyncState";
+import { handlePointerChange } from "./features/excalidraw/handlePointerChange.ts";
 
 function App() {
     // excalidrawAPI を React の state に保存する準備
@@ -57,7 +58,7 @@ function App() {
             // 初期 elements を投入後、実行する
             onExcalidrawElementsInitialized();
             excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
-                handleChange(elements);
+                handleExcalidrawElementsChange(elements);
             });
         };
         initialize();
@@ -70,6 +71,10 @@ function App() {
                     setExcalidrawAPI(api);
                     excalidrawAPIHolder.setApi(api);
                     excalidrawSyncController.syncElements(excalidrawSyncState.getRemoteElements());
+                }}
+
+                onPointerUpdate={(payload) => {
+                    handlePointerChange(payload);
                 }}
 
                 zenModeEnabled={true}
