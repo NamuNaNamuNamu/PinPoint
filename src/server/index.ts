@@ -1,13 +1,14 @@
 import express from "express";
 import { createServer } from "http";
-import { Server, Socket, type DisconnectReason } from "socket.io";
-import { SocketController } from "./socket/SocketController";
-import { socketLogger } from "./logging/SocketLogger";
 import path from "path";
+import { type DisconnectReason, Server, Socket } from "socket.io";
 import { fileURLToPath } from "url";
-import { getLocalIPAddress } from "./network/getLocalIPAddress";
+
 import { roomService } from "./features/room/RoomService";
 import { userService } from "./features/user/UserService";
+import { socketLogger } from "./logging/SocketLogger";
+import { getLocalIPAddress } from "./network/getLocalIPAddress";
+import { SocketController } from "./socket/SocketController";
 
 const { app, io, httpServer } = createServerEntryPoint();
 

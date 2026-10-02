@@ -1,15 +1,18 @@
-import { useRef, useState, type Dispatch } from "react";
-import { url } from "../../features/url/Url";
-import { TextField } from "./TextField";
-
 import "./ShareDialog.scss";
+
+import { type Dispatch, useRef, useState } from "react";
+
+import { answerBarSceneController } from "../../features/answerBar/AnswerBarSceneController";
+import { excalidrawCursorSyncController } from "../../features/excalidraw/excalidrawCursor/ExcalidrawCursorSyncController";
+import { userSessionStorage } from "../../features/sessionStorage/sessionStorage";
+import { url } from "../../features/url/Url";
+import { useCopyStatus } from "../../hooks/useCopiedIndicator";
+import { socketController } from "../../socket/SocketController";
+import { copyIcon, playerPlayIcon, playerStopFilledIcon } from "../icons";
+import { copyTextToSystemClipboard } from "./clipboard";
 import { Dialog } from "./Dialog";
 import { FilledButton } from "./FilledButton";
-import { copyIcon, playerPlayIcon, playerStopFilledIcon } from "../icons";
-import { useCopyStatus } from "../../hooks/useCopiedIndicator";
-import { copyTextToSystemClipboard } from "./clipboard";
-import { socketController } from "../../socket/SocketController";
-import { userSessionStorage } from "../../features/sessionStorage/sessionStorage";
+import { TextField } from "./TextField";
 
 /**
  * 共有ダイアログのプロパティ。
@@ -96,6 +99,20 @@ function RoomURLDialog({ currentRoomId, closeDialog }: RoomURLDialogProps) {
         ref.current?.select();
     };
 
+    /**
+     * ルームから退出し、共同編集用のローカル表示状態を消去する。
+     */
+    const leaveRoom = async () => {
+        const response = await socketController.leaveRoom(currentRoomId);
+        if (!response) {
+            return;
+        }
+
+        excalidrawCursorSyncController.clear();
+        answerBarSceneController.clear();
+        closeDialog();
+    };
+
     const roomUrl = url.createRoomUrl(currentRoomId);
 
     return (
@@ -124,8 +141,7 @@ function RoomURLDialog({ currentRoomId, closeDialog }: RoomURLDialogProps) {
                     variant="outlined"
                     color="danger"
                     onClick={() => {
-                        socketController.leaveRoom(currentRoomId);
-                        closeDialog();
+                        leaveRoom();
                     }}
                 />
             </div>

@@ -53,4 +53,19 @@ describe("ExcalidrawCursorSyncController", () => {
             ]),
         });
     });
+
+    test("退出時は保持中の共同編集者カーソルをすべて削除すること", () => {
+        excalidrawCursorSyncController.updateCursor({
+            socketId: "socket-1",
+            username: "Alice",
+            pointer: { x: 10, y: 20, tool: "pointer" },
+            button: "up",
+        });
+
+        excalidrawCursorSyncController.clear();
+
+        expect(updateScene).toHaveBeenLastCalledWith({
+            collaborators: new Map(),
+        });
+    });
 });

@@ -41,10 +41,9 @@ export const lineSkeletonFactory = new LineSkeletonFactory();
  * 線要素の作成時に指定する可変プロパティ。
  * ExcalidrawElementSkeleton から id、x、y、isLocked だけを取り出した型
  */
-export type LineProps = Pick<ExcalidrawElementSkeleton, "id" | "x" | "y" | "width" | "locked">;
+export type LineProps = Pick<ExcalidrawElementSkeleton, "id" | "x" | "y" | "width" | "strokeColor" | "locked">;
 
 const linefixedProps = {
     type: "line",
-    strokeColor: "#0000ff",
     strokeWidth: 2,
 } satisfies Partial<ExcalidrawElementSkeleton>;

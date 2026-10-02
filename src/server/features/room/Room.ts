@@ -31,6 +31,10 @@ export class Room {
      * @param user 追加するユーザー。
      */
     public addUser(user: User): void {
+        if (this.hasUser(user.getId())) {
+            return;
+        }
+
         this.users.push(user);
     }
 
@@ -50,6 +54,16 @@ export class Room {
      */
     public getSocketIds(): string[] {
         return this.users.map((user) => user.getSocketId());
+    }
+
+    /**
+     * 指定した ID のユーザーが参加しているかを判定する。
+     *
+     * @param userId 検索するユーザー ID。
+     * @returns ユーザーが参加している場合は `true`。
+     */
+    public hasUser(userId: number): boolean {
+        return this.users.some((user) => user.getId() === userId);
     }
 
     /**

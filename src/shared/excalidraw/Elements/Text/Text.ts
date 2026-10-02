@@ -4,7 +4,9 @@ import { ElementCommon } from "../../ElementCommon";
  * Excalidraw のテキスト要素を管理する。
  */
 export class Text {
-    /** Excalidraw 要素に共通する操作を提供するオブジェクト。 */
+    /**
+     * Excalidraw 要素に共通する操作を提供するオブジェクト。
+     */
     private readonly elementCommon;
 
     /**
@@ -35,8 +37,12 @@ export class Text {
     }
 }
 
-/** テキスト要素の生成に必要なパラメータ。 */
+/**
+ * テキスト要素の生成に必要なパラメータ。
+ */
 interface Params {
-    /** テキスト要素のスケルトン。 */
+    /**
+     * テキスト要素のスケルトン。
+     */
     skeleton: any;
 }

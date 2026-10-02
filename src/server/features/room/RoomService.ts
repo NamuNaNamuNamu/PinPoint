@@ -51,6 +51,16 @@ export class RoomService {
     }
 
     /**
+     * ユーザー ID に対応するルーム ID を取得する。
+     *
+     * @param userId 検索するユーザー ID。
+     * @returns ルーム ID。該当するルームがない場合は `undefined`。
+     */
+    public getRoomIdByUserId(userId: number): string | undefined {
+        return roomState.getRoomIdByUserId(userId);
+    }
+
+    /**
      * ユーザーをルームから退出させ、退出ログを出力する。
      *
      * @param userId 退出するユーザー ID。

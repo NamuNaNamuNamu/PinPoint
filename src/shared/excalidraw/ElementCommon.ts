@@ -7,7 +7,9 @@ export class ElementCommon {
     private readonly skeleton;
 
     /**
-     * @param params 要素スケルトン
+     * Excalidraw 要素のスケルトンを設定して共通処理を初期化する。
+     *
+     * @param params 要素スケルトン。
      */
     constructor({ skeleton }: Params) {
         this.skeleton = skeleton;
@@ -22,9 +24,7 @@ export class ElementCommon {
     getExcalidrawElement() {
         const api = excalidrawAPIHolder.getApi();
 
-        const element = api
-            .getSceneElements()
-            .find(e => e.id === this.getId());
+        const element = api.getSceneElements().find((e) => e.id === this.getId());
 
         if (!element) {
             throw new Error("Excalidraw 要素が見つかりませんでした");
@@ -34,20 +34,27 @@ export class ElementCommon {
     }
 
     /**
-     * @returns この要素を生成するためのスケルトン
+     * この要素を生成するためのスケルトンを取得する。
+     *
+     * @returns この要素を生成するためのスケルトン。
      */
     getSkeleton() {
         return this.skeleton;
     }
 
     /**
-     * @returns スケルトンに設定された要素ID
+     * スケルトンに設定された要素 ID を取得する。
+     *
+     * @returns スケルトンに設定された要素 ID。
      */
     getId() {
         return this.skeleton.id;
     }
 }
 
+/**
+ * ElementCommon の初期化に必要なパラメータ。
+ */
 interface Params {
     skeleton: any;
 }

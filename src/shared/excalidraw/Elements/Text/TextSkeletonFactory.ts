@@ -29,8 +29,14 @@ export const textSkeletonFactory = new TextSkeletonFactory();
  */
 export type TextProps = Pick<TextSkeleton, "id" | "x" | "y" | "text" | "locked">;
 
+/**
+ * Excalidraw のテキスト要素を表すスケルトン型。
+ */
 type TextSkeleton = Extract<ExcalidrawElementSkeleton, { type: "text" }>;
 
+/**
+ * Excalidraw で使用するフォントファミリーの識別子。
+ */
 const FONT_FAMILY = {
     Virgil: 1,
     Helvetica: 2,
@@ -44,6 +50,9 @@ const FONT_FAMILY = {
     Assistant: 10,
 };
 
+/**
+ * テキスト要素スケルトンに共通で設定する固定プロパティ。
+ */
 const textFixedProps = {
     type: "text",
     fontSize: 20,

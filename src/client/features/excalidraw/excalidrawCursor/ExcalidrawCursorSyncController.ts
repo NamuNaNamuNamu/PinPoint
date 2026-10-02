@@ -1,4 +1,5 @@
 import type { Collaborator, SocketId } from "@excalidraw/excalidraw/types";
+
 import type { RemoteCursor } from "../../../../shared/excalidraw/Cursor";
 import { excalidrawAPIHolder } from "../ExcalidrawAPIHolder";
 
@@ -38,6 +39,19 @@ class ExcalidrawCursorSyncController {
         this.updateScene();
     }
 
+    /**
+     * 保持中の共同編集者カーソルをすべて削除する。
+     */
+    public clear(): void {
+        this.collaborators = new Map<SocketId, Collaborator>();
+        this.updateScene();
+    }
+
+    /**
+     * 保持中の共同編集者カーソルを Excalidraw のシーンへ反映する。
+     *
+     * @returns 戻り値はない。
+     */
     private updateScene(): void {
         excalidrawAPIHolder.getApi().updateScene({
             collaborators: this.collaborators,

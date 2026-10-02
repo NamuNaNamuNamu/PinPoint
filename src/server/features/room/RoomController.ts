@@ -1,8 +1,9 @@
 import type { Socket } from "socket.io";
+
 import { socketLogger } from "../../logging/SocketLogger";
+import { userService } from "../user/UserService";
 import { Room } from "./Room";
 import { roomService } from "./RoomService";
-import { userService } from "../user/UserService";
 
 /**
  * Socket を受け取り、ルームに関する操作を処理する。
@@ -50,6 +51,27 @@ class RoomController {
     };
 
     /**
+     * ユーザー ID に対応するルーム ID を取得する。
+     *
+     * @param userId 検索するユーザー ID。
+     * @returns ルーム ID。所属していない場合は `undefined`。
+     */
+    public getRoomIdByUserId = (userId: number): string | undefined => {
+        return roomService.getRoomIdByUserId(userId);
+    };
+
+    /**
+     * ユーザーをルームから退出させる。
+     *
+     * Socket.IO の退出操作を伴わない切断猶予期限の処理から使用する。
+     *
+     * @param userId 退出するユーザー ID。
+     */
+    public leaveUser = (userId: number): void => {
+        roomService.leave(userId);
+    };
+
+    /**
      * ユーザーを指定したルームから退出させ、Socket.IO のルームからも退出させる。
      *
      * @param socket 退出するクライアントのソケット。
@@ -61,8 +83,8 @@ class RoomController {
         if (!user) {
             return null;
         }
-        roomService.leave(user.getId());
 
+        roomService.leave(user.getId());
         socket.leave(roomId);
         socketLogger.outputAllSockets({
             event: `部屋退出 (roomId: ${roomId})`,

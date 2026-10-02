@@ -1,8 +1,8 @@
 import { MainMenu } from "@excalidraw/excalidraw";
-import { usersIcon } from "./icons";
-import { socketController } from "../socket/SocketController";
 import { useState } from "react";
 
+import { socketController } from "../socket/SocketController";
+import { usersIcon } from "./icons";
 import { ShareDialog } from "./ShareDialog/ShareDialog";
 
 /**

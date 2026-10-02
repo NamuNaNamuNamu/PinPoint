@@ -13,7 +13,8 @@ import { sliders } from "../../../shared/Slider/Sliders";
 /**
  * 共有されている図形のスケルトンから、初期表示用の Excalidraw 要素を生成する。
  *
- * @returns ID を再生成せずに変換した、順序付きの Excalidraw 要素。
+ * listener により追加済みの AnswerBar を含め、ID を再生成せずに変換した
+ * 順序付きの Excalidraw 要素を返す。
  */
 export function getInitialElements(): OrderedExcalidrawElement[] {
     return convertToExcalidrawElements(

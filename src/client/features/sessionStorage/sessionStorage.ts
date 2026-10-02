@@ -6,26 +6,34 @@
  * 保存・取得のみを行う。
  *
  * sessionStorage とユーザーIDの関係:
- * - ページリロード               : 保持される → 同一ユーザー
- * - 同じタブ内でのページ遷移     : 保持される → 同一ユーザー
- * - タブを閉じる                 : 破棄される
- * - 新しくサイトへアクセス       : IDなし → サーバー側で新規ユーザーを生成
+ * - 同じタブのページリロード・ページ遷移 : 保持される → 同一ユーザー
+ * - 新しいタブ                         : 新規ユーザー
+ * - タブを閉じる                       : 破棄される
  */
 class UserSessionStorage {
     private static readonly USER_ID_KEY = "userId";
 
     /**
-     * sessionStorage からユーザーIDを取得する。
+     * 現在のタブに保存されたユーザーIDを取得する。
      *
-     * ユーザーIDが保存されていない場合、
-     * または保存されている値を数値に変換できない場合は undefined を返す。
+     * 同じタブ内で URL を変更してページ遷移した場合も、保存済みのユーザーを使用する。
      *
-     * @returns ユーザーID。取得できない場合は undefined。
+     * @returns ユーザーID。取得できない場合は `undefined`。
+     */
+    public getUserIdForCurrentNavigation(): number | undefined {
+        return this.getUserId();
+    }
+
+    /**
+     * sessionStorage から保存済みのユーザーIDを取得する。
+     *
+     * ナビゲーション種別による破棄は行わないため、同一ページ内で
+     * すでに登録済みのユーザーを使う操作に利用する。
+     *
+     * @returns ユーザーID。保存されていない、または不正な値の場合は `undefined`。
      */
     public getUserId(): number | undefined {
-        const storedUserId = sessionStorage.getItem(
-            UserSessionStorage.USER_ID_KEY
-        );
+        const storedUserId = sessionStorage.getItem(UserSessionStorage.USER_ID_KEY);
 
         if (storedUserId === null) {
             return undefined;
@@ -33,9 +41,7 @@ class UserSessionStorage {
 
         const userId = Number(storedUserId);
 
-        return Number.isNaN(userId)
-            ? undefined
-            : userId;
+        return Number.isInteger(userId) && userId > 0 ? userId : undefined;
     }
 
     /**
@@ -47,10 +53,7 @@ class UserSessionStorage {
      * @param userId 保存するユーザーID。
      */
     public setUserId(userId: number): void {
-        sessionStorage.setItem(
-            UserSessionStorage.USER_ID_KEY,
-            String(userId)
-        );
+        sessionStorage.setItem(UserSessionStorage.USER_ID_KEY, String(userId));
     }
 }
 

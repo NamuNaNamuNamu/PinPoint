@@ -1,6 +1,7 @@
 import type { Socket } from "socket.io";
-import { SocketEvents } from "../../../shared/SocketEvents";
+
 import type { Cursor, RemoteCursor } from "../../../shared/excalidraw/Cursor";
+import { SocketEvents } from "../../../shared/SocketEvents";
 import { userService } from "../user/UserService";
 
 /**
@@ -49,6 +50,12 @@ class ExcalidrawCursorSyncController {
         socket.to(roomId).emit(SocketEvents.REMOVE_CURSOR, socket.id);
     }
 
+    /**
+     * Socket.IO 接続が所属するアプリケーションのルーム ID を取得する。
+     *
+     * @param socket ルーム ID を取得する Socket.IO 接続。
+     * @returns 接続先がちょうど1ルームの場合はその ID。それ以外は `undefined`。
+     */
     private getRoomId(socket: Socket): string | undefined {
         const roomIds = [...socket.rooms].filter((roomId) => roomId !== socket.id);
 

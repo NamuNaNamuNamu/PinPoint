@@ -22,4 +22,8 @@ export const SocketEvents = {
     SYNC_CURSOR: "sync-cursor",
     /** カーソルの削除を通知するイベント。 */
     REMOVE_CURSOR: "remove-cursor",
+    /** AnswerBar の追加を通知するイベント。 */
+    ANSWER_BAR_ADDED: "answer-bar-added",
+    /** AnswerBar の削除を通知するイベント。 */
+    ANSWER_BAR_REMOVED: "answer-bar-removed",
 } as const;

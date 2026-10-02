@@ -1,7 +1,8 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import { SocketEvents } from "../../shared/SocketEvents";
-import type { Cursor } from "../../shared/excalidraw/Cursor";
+
 import type { UserParams } from "../../server/features/user/User";
+import type { Cursor } from "../../shared/excalidraw/Cursor";
+import { SocketEvents } from "../../shared/SocketEvents";
 import { socket } from "./socket";
 
 /**
@@ -46,10 +47,7 @@ class SocketController {
         return new Promise((resolve, _reject) => {
             socket.emit(
                 SocketEvents.UPDATE_SOCKET_ID,
-                {
-                    userId: userId,
-                    socketId: socket.id,
-                },
+                { userId: userId, socketId: socket.id },
                 (response: UserParams | undefined) => {
                     resolve(response);
                 },
@@ -79,19 +77,10 @@ class SocketController {
      */
     public joinRoom(userId: number, roomId: string): Promise<string | null> {
         console.log(`roomId: ${roomId} に参加しようとしています。\nsocketId: ${socket.id}`);
-
         return new Promise((resolve, _reject) => {
-            socket.emit(
-                SocketEvents.JOIN_ROOM,
-                {
-                    userId: userId,
-                    roomId: roomId,
-                },
-                // 部屋参加に失敗したら null で返却
-                (response: string | null) => {
-                    resolve(response);
-                },
-            );
+            socket.emit(SocketEvents.JOIN_ROOM, { userId: userId, roomId: roomId }, (response: string | null) => {
+                resolve(response);
+            });
         });
     }
 
@@ -103,16 +92,10 @@ class SocketController {
      */
     public leaveRoom(roomId: string): Promise<string | null> {
         console.log(`roomId: ${roomId} から退出しようとしています。\nsocketId: ${socket.id}`);
-
         return new Promise((resolve, _reject) => {
-            socket.emit(
-                SocketEvents.LEAVE_ROOM,
-                roomId,
-                // 部屋退出に失敗したら null で返却
-                (response: string | null) => {
-                    resolve(response);
-                },
-            );
+            socket.emit(SocketEvents.LEAVE_ROOM, roomId, (response: string | null) => {
+                resolve(response);
+            });
         });
     }
 
@@ -135,8 +118,7 @@ class SocketController {
      * @param elements 同期する Excalidraw 要素。
      */
     public syncElements(elements: readonly ExcalidrawElement[]) {
-        const message = elements;
-        socket.emit(SocketEvents.SYNC_ELEMENTS, message);
+        socket.emit(SocketEvents.SYNC_ELEMENTS, elements);
     }
 
     /**
@@ -152,9 +134,6 @@ class SocketController {
 /**
  * Socket.IO 接続 ID を更新するリクエスト。
  */
-export type UpdateSocketIdRequestType = {
-    userId: number | undefined;
-    socketId: string;
-};
+export type UpdateSocketIdRequestType = { userId: number | undefined; socketId: string };
 
 export const socketController = new SocketController();
