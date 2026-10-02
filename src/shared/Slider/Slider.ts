@@ -1,14 +1,14 @@
-import { Line } from "../Line/Line";
-import { lineSkeletonFactory } from "../Line/LineSkeletonFactory";
-import { Rectangle } from "../Rectangle/Rectangle";
-import { rectangleSkeletonFactory } from "../Rectangle/RectangleSkeletonFactory";
-import { Text } from "../Text/Text";
-import { textSkeletonFactory } from "../Text/TextSkeletonFactory";
+import { Line } from "../excalidraw/Elements/Line/Line";
+import { lineSkeletonFactory } from "../excalidraw/Elements/Line/LineSkeletonFactory";
+import { Rectangle } from "../excalidraw/Elements/Rectangle/Rectangle";
+import { rectangleSkeletonFactory } from "../excalidraw/Elements/Rectangle/RectangleSkeletonFactory";
+import { Text } from "../excalidraw/Elements/Text/Text";
+import { textSkeletonFactory } from "../excalidraw/Elements/Text/TextSkeletonFactory";
 
 /**
  * 回答欄そのもの。長方形、可動線、名前表示から構成される。
  */
-export class AnswerBar {
+export class Slider {
     /** 回答欄の中央に配置する可動線。 */
     private readonly line: Line;
 
