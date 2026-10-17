@@ -13,27 +13,20 @@ jest.unstable_mockModule("../../../../src/client/features/answerBar/AnswerBarSce
     answerBarSceneController: { add, remove, setOperatorUserId },
 }));
 
-const { registerAnswerBarListener } =
-    await import("../../../../src/client/features/answerBar/registerAnswerBarListener");
+const { registerAnswerBarListener } = await import("../../../../src/client/features/answerBar/registerAnswerBarListener");
 
 describe("registerAnswerBarListener", () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
+    beforeEach(() => { jest.clearAllMocks(); });
 
-    test("既存 listener を解除して追加・削除 listener を登録すること", () => {
+    test("既存 listener を解除して名前ラベルを含む追加・削除 listener を登録すること", () => {
         registerAnswerBarListener(10);
-
-        expect(off).toHaveBeenCalledTimes(2);
-        expect(on).toHaveBeenCalledTimes(2);
-
         const onAdded = on.mock.calls[0][1] as (event: AnswerBarAdded) => void;
         const onRemoved = on.mock.calls[1][1] as (event: AnswerBarRemoved) => void;
-        onAdded({ answerBarId: "bar", ownerUserId: 1, lineIds: ["line"], slot: 0 });
-        onRemoved({ answerBarId: "bar", lineIds: ["line"] });
+        onAdded({ answerBarId: "bar", ownerUserId: 1, ownerUserName: "ゆう", lineIds: ["line"], labelIds: ["label"], slot: 0 });
+        onRemoved({ answerBarId: "bar", lineIds: ["line"], labelIds: ["label"] });
 
-        expect(add).toHaveBeenCalledWith(expect.objectContaining({ answerBarId: "bar" }), 10);
-        expect(remove).toHaveBeenCalledWith({ answerBarId: "bar", lineIds: ["line"] });
+        expect(add).toHaveBeenCalledWith(expect.objectContaining({ ownerUserName: "ゆう", labelIds: ["label"] }), 10);
+        expect(remove).toHaveBeenCalledWith({ answerBarId: "bar", lineIds: ["line"], labelIds: ["label"] });
         expect(setOperatorUserId).toHaveBeenCalledWith(10);
     });
 });

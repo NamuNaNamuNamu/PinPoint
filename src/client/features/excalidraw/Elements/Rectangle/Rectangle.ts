@@ -1,4 +1,4 @@
-import { ElementCommon } from "../../ElementCommon";
+import { ElementCommon } from "../ElementCommon";
 
 /**
  * Excalidraw の長方形要素を管理する。

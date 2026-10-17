@@ -6,9 +6,27 @@ import { SocketEvents } from "../../shared/SocketEvents";
 import { socket } from "./socket";
 
 /**
+ * 要素同期を送信する最大頻度。
+ */
+const SYNC_ELEMENTS_INTERVAL_MS = 1000 / 30;
+
+/**
  * クライアントから Socket.IO のイベントを送信する。
  */
 class SocketController {
+    /**
+     * 次回の要素同期で送信する、最新の Excalidraw 要素。
+     */
+    private pendingSyncElements: readonly ExcalidrawElement[] | undefined;
+    /**
+     * 要素同期を最後に送信した時刻。
+     */
+    private lastSyncElementsSentAt: number | undefined;
+    /**
+     * 次回の要素同期を予約するタイマー。
+     */
+    private syncElementsTimer: ReturnType<typeof setTimeout> | undefined;
+
     /**
      * ユーザー登録を要求する。
      *
@@ -113,11 +131,55 @@ class SocketController {
     }
 
     /**
-     * Excalidraw 要素を他のクライアントへ同期する。
+     * Excalidraw 要素を最大毎秒 30 回で他のクライアントへ同期する。
+     *
+     * 送信間隔内に複数回呼び出された場合は、最後に受け取った要素だけを送信する。
      *
      * @param elements 同期する Excalidraw 要素。
      */
-    public syncElements(elements: readonly ExcalidrawElement[]) {
+    public syncElements(elements: readonly ExcalidrawElement[]): void {
+        this.pendingSyncElements = elements;
+
+        const delay = this.getSyncElementsDelay();
+        if (delay === 0) {
+            this.sendPendingSyncElements();
+            return;
+        }
+
+        if (this.syncElementsTimer !== undefined) {
+            return;
+        }
+
+        this.syncElementsTimer = setTimeout(() => {
+            this.syncElementsTimer = undefined;
+            this.sendPendingSyncElements();
+        }, delay);
+    }
+
+    /**
+     * 次回の要素同期を送信できるまでの待ち時間を取得する。
+     *
+     * @returns 待ち時間（ミリ秒）。直ちに送信できる場合は `0`。
+     */
+    private getSyncElementsDelay(): number {
+        if (this.lastSyncElementsSentAt === undefined) {
+            return 0;
+        }
+
+        return Math.max(0, SYNC_ELEMENTS_INTERVAL_MS - (performance.now() - this.lastSyncElementsSentAt));
+    }
+
+    /**
+     * 保持している最新の要素同期を送信する。
+     */
+    private sendPendingSyncElements(): void {
+        const elements = this.pendingSyncElements;
+        if (!elements) {
+            return;
+        }
+
+        this.pendingSyncElements = undefined;
+        this.lastSyncElementsSentAt = performance.now();
         socket.emit(SocketEvents.SYNC_ELEMENTS, elements);
     }
 

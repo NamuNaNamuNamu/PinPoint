@@ -1,10 +1,10 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
-import type { Line } from "../../../shared/excalidraw/Elements/Line/Line";
-import { lines } from "../../../shared/excalidraw/Elements/Line/lines";
-import type { Slider } from "../../../shared/Slider/Slider";
-import { sliders } from "../../../shared/Slider/Sliders";
+import type { Slider } from "./Slider/Slider";
+import { sliders } from "./Slider/Sliders";
 import { socketController } from "../../socket/SocketController";
+import type { Line } from "./Elements/Line/Line";
+import { lines } from "./Elements/Line/lines";
 import { excalidrawAPIHolder } from "./ExcalidrawAPIHolder";
 import { excalidrawSyncController } from "./excalidrawSync/ExcalidrawSyncController";
 
@@ -13,10 +13,7 @@ import { excalidrawSyncController } from "./excalidrawSync/ExcalidrawSyncControl
  *
  * @param elements 変更後の Excalidraw 要素。
  */
-export function handleExcalidrawElementsChange(
-    _elements: readonly ExcalidrawElement[],
-    operatorUserId: number,
-): void {
+export function handleExcalidrawElementsChange(_elements: readonly ExcalidrawElement[], operatorUserId: number): void {
     if (excalidrawSyncController.isRemoteApplying()) {
         return;
     }

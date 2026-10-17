@@ -1,14 +1,14 @@
 import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
-import type { Line } from "../../../shared/excalidraw/Elements/Line/Line";
-import { lines } from "../../../shared/excalidraw/Elements/Line/lines";
-import type { Rectangle } from "../../../shared/excalidraw/Elements/Rectangle/Rectangle";
-import { rectangles } from "../../../shared/excalidraw/Elements/Rectangle/rectangles";
-import type { Text } from "../../../shared/excalidraw/Elements/Text/Text";
-import { texts } from "../../../shared/excalidraw/Elements/Text/texts";
-import type { Slider } from "../../../shared/Slider/Slider";
-import { sliders } from "../../../shared/Slider/Sliders";
+import type { Slider } from "./Slider/Slider";
+import { sliders } from "./Slider/Sliders";
+import type { Line } from "./Elements/Line/Line";
+import { lines } from "./Elements/Line/lines";
+import type { Rectangle } from "./Elements/Rectangle/Rectangle";
+import { rectangles } from "./Elements/Rectangle/rectangles";
+import type { Text } from "./Elements/Text/Text";
+import { texts } from "./Elements/Text/texts";
 
 /**
  * 共有されている図形のスケルトンから、初期表示用の Excalidraw 要素を生成する。

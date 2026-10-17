@@ -1,12 +1,15 @@
 import type { Socket } from "socket.io";
 
-import { sliders } from "../../../shared/Slider/Sliders";
+import { sliderDefinitions } from "../../../shared/Slider/sliderDefinitions";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { excalidrawCursorSyncController } from "../excalidrawCursor/ExcalidrawCursorSyncController";
 import { roomController } from "../room/RoomController";
+import { userService } from "../user/UserService";
 import { answerBarAssignmentState } from "./AnswerBarAssignmentState";
 
-/** AnswerBar の入室時割当、退出、切断猶予を処理する。 */
+/**
+ * AnswerBar の入室時割当、退出、切断猶予を処理する。
+ */
 export class AnswerBarController {
     /**
      * ユーザーをルームへ参加させ、AnswerBar を割り当てる。
@@ -17,6 +20,11 @@ export class AnswerBarController {
      * @returns 成功時はルーム ID、失敗時は `null`。
      */
     public joinRoom(socket: Socket, userId: number, roomId: string): string | null {
+        const ownerUser = userService.getUser(userId);
+        if (!ownerUser) {
+            return null;
+        }
+
         const response = roomController.joinRoom(socket, userId, roomId);
         if (!response) {
             return null;
@@ -26,7 +34,12 @@ export class AnswerBarController {
             socket.emit(SocketEvents.ANSWER_BAR_ADDED, assignment);
         });
 
-        const { assignment, isNew } = answerBarAssignmentState.getOrCreate(roomId, userId, sliders.length);
+        const { assignment, isNew } = answerBarAssignmentState.getOrCreate(
+            roomId,
+            userId,
+            ownerUser.getName(),
+            sliderDefinitions.length,
+        );
         if (isNew) {
             socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_ADDED, assignment);
         }
@@ -65,7 +78,6 @@ export class AnswerBarController {
         if (userId === undefined) {
             return;
         }
-
         const roomId = roomController.getRoomIdByUserId(userId);
         if (!roomId) {
             return;

@@ -1,5 +1,5 @@
-import { excalidrawAPIHolder } from "../../../../client/features/excalidraw/ExcalidrawAPIHolder";
-import { ElementCommon } from "../../ElementCommon";
+import { excalidrawAPIHolder } from "../../ExcalidrawAPIHolder";
+import { ElementCommon } from "../ElementCommon";
 import type { MoveRange } from "./MoveRange";
 
 /**
@@ -64,7 +64,7 @@ export class Line {
      *
      * @returns 線要素の X 座標。
      */
-    private getX() {
+    public getX() {
         return this.getExcalidrawElement().x;
     }
 

@@ -3,7 +3,7 @@ import type { RemoteExcalidrawElement } from "@excalidraw/excalidraw/data/reconc
 import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import type { AnswerBarAdded, AnswerBarRemoved } from "../../../shared/answerBar/AnswerBarEvents";
-import { sliders } from "../../../shared/Slider/Sliders";
+import { sliders } from "../excalidraw/Slider/Sliders";
 import { excalidrawAPIHolder } from "../excalidraw/ExcalidrawAPIHolder";
 
 /**
@@ -15,9 +15,9 @@ class AnswerBarSceneController {
      */
     private operatorUserId: number | undefined;
     /**
-     * 削除通知済みの line ID。古い全量同期による再出現を防ぐ。
+     * 削除通知済みの AnswerBar 要素 ID。古い全量同期による再出現を防ぐ。
      */
-    private readonly removedLineIds = new Set<string>();
+    private readonly removedElementIds = new Set<string>();
 
     /**
      * 現在のブラウザの操作ユーザーを設定する。
@@ -31,31 +31,30 @@ class AnswerBarSceneController {
     }
 
     /**
-     * AnswerBar を全 Slider と scene に追加する。
+     * AnswerBar と名前ラベルを全 Slider と scene に追加する。
      *
      * @param payload サーバーが発行した AnswerBar の割当情報。
      * @param operatorUserId 現在操作しているユーザー ID。
      */
     public add(payload: AnswerBarAdded, operatorUserId: number): void {
         const additions: OrderedExcalidrawElement[] = [];
-
         payload.lineIds.forEach((lineId, index) => {
             const slider = sliders[index];
-            if (!slider) {
+            const labelId = payload.labelIds[index];
+            if (!slider || !labelId) {
                 return;
             }
-
-            // UUID は再利用しないが、再接続時の有効な再通知を許容する。
-            this.removedLineIds.delete(lineId);
-            const answerBar = slider.addAnswerBar({ ...payload, lineId, operatorUserId });
+            this.removedElementIds.delete(lineId);
+            this.removedElementIds.delete(labelId);
+            const answerBar = slider.addAnswerBar({ ...payload, lineId, labelId, operatorUserId });
             if (answerBar) {
-                additions.push(...convertToExcalidrawElements([answerBar.getSkeleton()], { regenerateIds: false }));
+                const elements = convertToExcalidrawElements(answerBar.getSkeletons(), { regenerateIds: false });
+                additions.push(...answerBar.centerLabelInElements(elements));
             }
         });
         if (additions.length === 0) {
             return;
         }
-
         const api = excalidrawAPIHolder.getApi();
         api.updateScene({ elements: [...api.getSceneElements(), ...additions] });
     }
@@ -64,15 +63,14 @@ class AnswerBarSceneController {
      * AnswerBar と対応する scene 要素を削除する。
      *
      * 削除済み ID を保持するため、削除イベントより遅れて届いた古い `SYNC_ELEMENTS` が
-     * AnswerBar を scene に復活させることはない。
+     * AnswerBar と名前ラベルを scene に復活させることはない。
      *
      * @param payload サーバーが発行した削除対象の情報。
      */
     public remove(payload: AnswerBarRemoved): void {
-        payload.lineIds.forEach((lineId) => this.removedLineIds.add(lineId));
+        const ids = new Set([...payload.lineIds, ...payload.labelIds]);
+        ids.forEach((id) => this.removedElementIds.add(id));
         sliders.forEach((slider) => slider.removeAnswerBar(payload.answerBarId));
-
-        const ids = new Set(payload.lineIds);
         const api = excalidrawAPIHolder.getApi();
         api.updateScene({ elements: api.getSceneElements().filter((element) => !ids.has(element.id)) });
     }
@@ -80,26 +78,23 @@ class AnswerBarSceneController {
     /**
      * 保持中の全 AnswerBar と対応する scene 要素を削除する。
      *
-     * 退出後に古い `SYNC_ELEMENTS` が到着しても AnswerBar を復活させないよう、
-     * 削除した line ID を保持する。
+     * 退出後に古い `SYNC_ELEMENTS` が到着しても AnswerBar と名前ラベルを復活させないよう、
+     * 削除した要素 ID を保持する。
      */
     public clear(): void {
         const answerBarIds = new Set<string>();
-        const lineIds = new Set<string>();
-
-        sliders.forEach((slider) => {
+        const elementIds = new Set<string>();
+        sliders.forEach((slider) =>
             slider.forEachAnswerBar((answerBar) => {
                 answerBarIds.add(answerBar.getAnswerBarId());
-                lineIds.add(answerBar.getLineId());
-            });
-        });
-        lineIds.forEach((lineId) => this.removedLineIds.add(lineId));
-        answerBarIds.forEach((answerBarId) => {
-            sliders.forEach((slider) => slider.removeAnswerBar(answerBarId));
-        });
-
+                elementIds.add(answerBar.getLineId());
+                elementIds.add(answerBar.getLabelId());
+            }),
+        );
+        elementIds.forEach((id) => this.removedElementIds.add(id));
+        answerBarIds.forEach((answerBarId) => sliders.forEach((slider) => slider.removeAnswerBar(answerBarId)));
         const api = excalidrawAPIHolder.getApi();
-        api.updateScene({ elements: api.getSceneElements().filter((element) => !lineIds.has(element.id)) });
+        api.updateScene({ elements: api.getSceneElements().filter((element) => !elementIds.has(element.id)) });
     }
 
     /**
@@ -110,9 +105,8 @@ class AnswerBarSceneController {
      */
     public normalizeRemoteElements(elements: readonly RemoteExcalidrawElement[]): readonly RemoteExcalidrawElement[] {
         const lockedByLineId = this.getLockedByLineId();
-
         return elements
-            .filter((element) => !this.removedLineIds.has(element.id))
+            .filter((element) => !this.removedElementIds.has(element.id))
             .map((element) => {
                 const locked = lockedByLineId.get(element.id);
                 return locked === undefined ? element : { ...element, locked };
@@ -121,6 +115,8 @@ class AnswerBarSceneController {
 
     /**
      * AnswerBar の line ID ごとに、このクライアントでの操作可否を求める。
+     *
+     * @returns line ID をキーとしたロック状態。
      */
     private getLockedByLineId(): ReadonlyMap<string, boolean> {
         const lockedByLineId = new Map<string, boolean>();

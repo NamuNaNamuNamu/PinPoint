@@ -1,4 +1,4 @@
-import { excalidrawAPIHolder } from "../../client/features/excalidraw/ExcalidrawAPIHolder";
+import { excalidrawAPIHolder } from "../ExcalidrawAPIHolder";
 
 /**
  * Excalidraw要素のスケルトンと、シーン上の対応要素を扱う共通処理を提供する。

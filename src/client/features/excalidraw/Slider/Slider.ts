@@ -1,9 +1,9 @@
-import type { AnswerBarAdded } from "../answerBar/AnswerBarEvents";
-import type { MoveRange } from "../excalidraw/Elements/Line/MoveRange";
-import { Rectangle } from "../excalidraw/Elements/Rectangle/Rectangle";
-import { rectangleSkeletonFactory } from "../excalidraw/Elements/Rectangle/RectangleSkeletonFactory";
-import { Text } from "../excalidraw/Elements/Text/Text";
-import { textSkeletonFactory } from "../excalidraw/Elements/Text/TextSkeletonFactory";
+import type { AnswerBarAdded } from "../../../../shared/answerBar/AnswerBarEvents";
+import type { MoveRange } from "../Elements/Line/MoveRange";
+import { Rectangle } from "../Elements/Rectangle/Rectangle";
+import { rectangleSkeletonFactory } from "../Elements/Rectangle/RectangleSkeletonFactory";
+import { Text } from "../Elements/Text/Text";
+import { textSkeletonFactory } from "../Elements/Text/TextSkeletonFactory";
 import { AnswerBar } from "./AnswerBar";
 
 /**
@@ -34,9 +34,6 @@ export class Slider {
      * 回答欄の幅。
      */
     private readonly width: number;
-    /**
-     * 回答欄の左上の Y 座標。
-     */
     private readonly y: number;
     /**
      * 回答欄の高さ。
@@ -64,6 +61,7 @@ export class Slider {
                 y: y + height * 1.1,
                 text: "名前",
                 locked: true,
+                opacity: 100,
             }),
         });
     }
@@ -71,14 +69,19 @@ export class Slider {
     /**
      * AnswerBar を追加する。
      *
-     * 同じ AnswerBar または line ID が存在する場合は何もしない。
+     * 同じ AnswerBar、line ID、label ID が存在する場合は何もしない。
      *
-     * @param params AnswerBar の割当情報、この Slider 用の line ID、および操作ユーザー ID。
+     * @param params AnswerBar の割当情報、この Slider 用の要素 ID、および操作ユーザー ID。
      * @returns 追加した AnswerBar。重複時は `undefined`。
      */
-    public addAnswerBar(params: AnswerBarAdded & { lineId: string; operatorUserId: number }): AnswerBar | undefined {
+    public addAnswerBar(
+        params: AnswerBarAdded & { lineId: string; labelId: string; operatorUserId: number },
+    ): AnswerBar | undefined {
         const alreadyExists = this.answerBars.some(
-            (answerBar) => answerBar.getAnswerBarId() === params.answerBarId || answerBar.getLineId() === params.lineId,
+            (answerBar) =>
+                answerBar.getAnswerBarId() === params.answerBarId ||
+                answerBar.getLineId() === params.lineId ||
+                answerBar.getLabelId() === params.labelId,
         );
         if (alreadyExists) {
             return undefined;
@@ -86,10 +89,13 @@ export class Slider {
         const answerBar = new AnswerBar({
             answerBarId: params.answerBarId,
             ownerUserId: params.ownerUserId,
+            ownerUserName: params.ownerUserName,
             operatorUserId: params.operatorUserId,
             lineId: params.lineId,
+            labelId: params.labelId,
             x: this.getInitialX(params.slot),
             y: this.y,
+            labelY: this.getInitialLabelY(params.slot),
             height: this.height,
             moveRange: this.getMoveRange(),
             slot: params.slot,
@@ -106,11 +112,9 @@ export class Slider {
      */
     public removeAnswerBar(answerBarId: string): AnswerBar | undefined {
         const index = this.answerBars.findIndex((answerBar) => answerBar.getAnswerBarId() === answerBarId);
-        if (index === -1) {
-            return undefined;
-        }
-        return this.answerBars.splice(index, 1)[0];
+        return index === -1 ? undefined : this.answerBars.splice(index, 1)[0];
     }
+
     /**
      * 登録済み AnswerBar ごとに処理を実行する。
      *
@@ -130,20 +134,37 @@ export class Slider {
     }
 
     /**
+     * slot に対応する、二分割を段階的に細分化した比率を取得する。
+     *
+     * @param slot 中央、四分割、八分割の順に割り当てる論理スロット。
+     * @returns 領域の始点から終点までの比率。
+     */
+    private getSlotRatio(slot: number): number {
+        const level = Math.floor(Math.log2(slot + 1));
+        const firstSlotInLevel = 2 ** level - 1;
+        const numerator = 2 * (slot - firstSlotInLevel) + 1;
+        const denominator = 2 ** (level + 1);
+        return numerator / denominator;
+    }
+
+    /**
      * slot に対応する AnswerBar の初期 X 座標を取得する。
      *
-     * `0` を中央とし、以降は左・右へ交互に配置する。
-     *
-     * @param slot 中央、左、右の順で割り当てる論理スロット。
-     * @returns この Slider 内での初期 X 座標。
+     * @param slot AnswerBar の論理スロット。
+     * @returns Slider 内での初期 X 座標。
      */
     private getInitialX(slot: number): number {
-        if (slot === 0) {
-            return this.x + this.width / 2;
-        }
-        const level = Math.ceil(slot / 2);
-        const direction = slot % 2 === 1 ? -1 : 1;
-        return this.x + this.width / 2 + direction * (this.width / 2 ** (level + 1));
+        return this.x + this.width * this.getSlotRatio(slot);
+    }
+
+    /**
+     * slot に対応する名前ラベルの固定 Y 座標を取得する。
+     *
+     * @param slot AnswerBar の論理スロット。
+     * @returns Slider 内での名前ラベルの Y 座標。
+     */
+    private getInitialLabelY(slot: number): number {
+        return this.y + this.height * this.getSlotRatio(slot);
     }
 
     /**
@@ -155,7 +176,7 @@ export class Slider {
         return [
             this.rectangle.getSkeleton(),
             this.name.getSkeleton(),
-            ...this.answerBars.map((answerBar) => answerBar.getSkeleton()),
+            ...this.answerBars.flatMap((answerBar) => answerBar.getSkeletons()),
         ];
     }
 }

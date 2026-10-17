@@ -21,8 +21,10 @@ type AnswerBarSlot = number;
 type AnswerBarAssignment = {
     answerBarId: string;
     ownerUserId: OwnerUserId;
+    ownerUserName: string;
     slot: AnswerBarSlot;
     lineIds: readonly string[];
+    labelIds: readonly string[];
     disconnectedAt: number | null;
     disconnectedToken: string | null;
 };
@@ -34,13 +36,18 @@ class RoomAssignments {
     private readonly assignmentsByOwnerUserId = new Map<OwnerUserId, AnswerBarAssignment>();
 
     /**
+     * 所有ユーザー ID に対応する割当を取得する。
+     *
      * @param ownerUserId 検索する所有ユーザー ID。
+     * @returns 割当。存在しない場合は `undefined`。
      */
     public getByOwnerUserId(ownerUserId: OwnerUserId): AnswerBarAssignment | undefined {
         return this.assignmentsByOwnerUserId.get(ownerUserId);
     }
 
     /**
+     * 割当を保存する。
+     *
      * @param assignment 保存する割当。
      */
     public set(assignment: AnswerBarAssignment): void {
@@ -48,6 +55,8 @@ class RoomAssignments {
     }
 
     /**
+     * 所有ユーザー ID に対応する割当を削除する。
+     *
      * @param ownerUserId 削除する所有ユーザー ID。
      */
     public deleteByOwnerUserId(ownerUserId: OwnerUserId): void {
@@ -55,6 +64,8 @@ class RoomAssignments {
     }
 
     /**
+     * このルームにある全割当を取得する。
+     *
      * @returns このルームにある全割当。
      */
     public getAll(): readonly AnswerBarAssignment[] {
@@ -62,6 +73,8 @@ class RoomAssignments {
     }
 
     /**
+     * 既存割当が使用している slot の一覧を取得する。
+     *
      * @returns 既存割当が使用している slot の一覧。
      */
     public getUsedSlots(): ReadonlySet<AnswerBarSlot> {
@@ -74,9 +87,17 @@ class RoomAssignments {
  */
 export class AnswerBarAssignmentState {
     private readonly assignmentsByRoomId = new Map<RoomId, RoomAssignments>();
-    /** 一度でも AnswerBar に割り当てた line ID。削除後の古い scene 同期を識別する。 */
-    private readonly knownLineIdsByRoomId = new Map<RoomId, Set<string>>();
+    /**
+     * 一度でも AnswerBar に割り当てた scene 要素 ID。削除後の古い scene 同期を識別する。
+     */
+    private readonly knownElementIdsByRoomId = new Map<RoomId, Set<string>>();
 
+    /**
+     * ルーム内のすべての公開割当を取得する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @returns 追加通知用の公開割当。
+     */
     public getAll(roomId: RoomId): readonly AnswerBarAdded[] {
         return (this.assignmentsByRoomId.get(roomId)?.getAll() ?? []).map((assignment) =>
             this.toAddedEvent(assignment),
@@ -88,12 +109,14 @@ export class AnswerBarAssignmentState {
      *
      * @param roomId 割当先のルーム ID。
      * @param ownerUserId AnswerBar の所有者 ID。
+     * @param ownerUserName AnswerBar のそばに表示する所有者名。
      * @param sliderCount 割り当てる Slider の件数。
      * @returns 割当と、新規に作成したかどうか。
      */
     public getOrCreate(
         roomId: RoomId,
         ownerUserId: OwnerUserId,
+        ownerUserName: string,
         sliderCount: number,
     ): { assignment: AnswerBarAdded; isNew: boolean } {
         const roomAssignments = this.getOrCreateRoomAssignments(roomId);
@@ -107,14 +130,17 @@ export class AnswerBarAssignmentState {
         const assignment: AnswerBarAssignment = {
             answerBarId: randomUUID(),
             ownerUserId,
+            ownerUserName,
             slot: this.getSmallestUnusedSlot(roomAssignments.getUsedSlots()),
             lineIds: Array.from({ length: sliderCount }, () => randomUUID()),
+            labelIds: Array.from({ length: sliderCount }, () => randomUUID()),
             disconnectedAt: null,
             disconnectedToken: null,
         };
         roomAssignments.set(assignment);
-        const knownLineIds = this.getOrCreateKnownLineIds(roomId);
-        assignment.lineIds.forEach((lineId) => knownLineIds.add(lineId));
+        const knownElementIds = this.getOrCreateKnownElementIds(roomId);
+        assignment.lineIds.forEach((id) => knownElementIds.add(id));
+        assignment.labelIds.forEach((id) => knownElementIds.add(id));
         return { assignment: this.toAddedEvent(assignment), isNew: true };
     }
 
@@ -176,10 +202,10 @@ export class AnswerBarAssignmentState {
     }
 
     /**
-     * AnswerBar として既知だが、現在の割当に存在しない line を scene 同期から除外する。
+     * AnswerBar として既知だが、現在の割当に存在しない要素を scene 同期から除外する。
      *
      * 削除通知より前に生成された古い `SYNC_ELEMENTS` を別のクライアントが送っても、
-     * 退出済み AnswerBar が再生成されないようにする。
+     * 退出済み AnswerBar と名前ラベルが再生成されないようにする。
      *
      * @param roomId 対象ルーム ID。
      * @param elements 同期対象の要素。
@@ -188,13 +214,15 @@ export class AnswerBarAssignmentState {
         roomId: RoomId,
         elements: readonly T[],
     ): readonly T[] {
-        const knownLineIds = this.knownLineIdsByRoomId.get(roomId);
-        if (!knownLineIds) {
+        const knownElementIds = this.knownElementIdsByRoomId.get(roomId);
+        if (!knownElementIds) {
             return elements;
         }
 
-        const activeLineIds = new Set(this.getAll(roomId).flatMap((assignment) => assignment.lineIds));
-        return elements.filter((element) => !knownLineIds.has(element.id) || activeLineIds.has(element.id));
+        const activeElementIds = new Set(
+            this.getAll(roomId).flatMap((assignment) => [...assignment.lineIds, ...assignment.labelIds]),
+        );
+        return elements.filter((element) => !knownElementIds.has(element.id) || activeElementIds.has(element.id));
     }
 
     /**
@@ -215,20 +243,20 @@ export class AnswerBarAssignmentState {
     }
 
     /**
-     * 指定したルームで既知の AnswerBar line ID 集合を取得し、存在しない場合は新規作成する。
+     * 指定したルームで既知の AnswerBar 要素 ID 集合を取得し、存在しない場合は新規作成する。
      *
      * @param roomId 対象ルーム ID。
-     * @returns 指定ルームで既知の AnswerBar line ID 集合。
+     * @returns 指定ルームで既知の AnswerBar 要素 ID 集合。
      */
-    private getOrCreateKnownLineIds(roomId: RoomId): Set<string> {
-        const existing = this.knownLineIdsByRoomId.get(roomId);
+    private getOrCreateKnownElementIds(roomId: RoomId): Set<string> {
+        const existing = this.knownElementIdsByRoomId.get(roomId);
         if (existing) {
             return existing;
         }
 
-        const knownLineIds = new Set<string>();
-        this.knownLineIdsByRoomId.set(roomId, knownLineIds);
-        return knownLineIds;
+        const knownElementIds = new Set<string>();
+        this.knownElementIdsByRoomId.set(roomId, knownElementIds);
+        return knownElementIds;
     }
 
     /**
@@ -263,7 +291,11 @@ export class AnswerBarAssignmentState {
      * @returns 削除通知用の公開ペイロード。
      */
     private toRemovedEvent(assignment: AnswerBarAssignment): AnswerBarRemoved {
-        return { answerBarId: assignment.answerBarId, lineIds: assignment.lineIds };
+        return {
+            answerBarId: assignment.answerBarId,
+            lineIds: assignment.lineIds,
+            labelIds: assignment.labelIds,
+        };
     }
 }
 

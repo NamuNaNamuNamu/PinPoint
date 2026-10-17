@@ -14,6 +14,7 @@ class TextSkeletonFactory {
         return {
             ...textProps,
             ...textFixedProps,
+            strokeColor: textProps.strokeColor ?? textFixedProps.strokeColor,
         };
     }
 }
@@ -25,9 +26,12 @@ export const textSkeletonFactory = new TextSkeletonFactory();
 
 /**
  * テキスト要素の作成時に指定する可変プロパティ。
- * ExcalidrawElementSkeleton から id、x、y、text、locked だけを取り出した型
+ * ExcalidrawElementSkeleton から id、x、y、text、locked、opacity、strokeColor だけを取り出した型
  */
-export type TextProps = Pick<TextSkeleton, "id" | "x" | "y" | "text" | "locked">;
+export type TextProps = Pick<TextSkeleton, "id" | "x" | "y" | "text" | "locked"> & {
+    opacity?: TextSkeleton["opacity"];
+    strokeColor?: TextSkeleton["strokeColor"];
+};
 
 /**
  * Excalidraw のテキスト要素を表すスケルトン型。
