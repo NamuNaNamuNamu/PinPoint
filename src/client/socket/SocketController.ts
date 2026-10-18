@@ -28,6 +28,20 @@ class SocketController {
     private syncElementsTimer: ReturnType<typeof setTimeout> | undefined;
 
     /**
+     * Socket.IO の接続完了時に呼び出すリスナーを登録する。
+     *
+     * @param listener 接続完了時に実行する処理。
+     * @returns 登録したリスナーを解除する関数。
+     */
+    public onConnect(listener: () => void): () => void {
+        socket.on("connect", listener);
+
+        return () => {
+            socket.off("connect", listener);
+        };
+    }
+
+    /**
      * ユーザー登録を要求する。
      *
      * @param userName 登録するユーザー名。

@@ -3,9 +3,11 @@ import { jest } from "@jest/globals";
 
 import { SocketEvents } from "../../../src/shared/SocketEvents";
 
+const on = jest.fn();
+const off = jest.fn();
 const emit = jest.fn();
 
-jest.unstable_mockModule("../../../src/client/socket/socket", () => ({ socket: { emit } }));
+jest.unstable_mockModule("../../../src/client/socket/socket", () => ({ socket: { emit, on, off } }));
 
 const { socketController } = await import("../../../src/client/socket/SocketController");
 
@@ -36,5 +38,17 @@ describe("SocketController", () => {
 
         expect(emit).toHaveBeenCalledTimes(2);
         expect(emit).toHaveBeenLastCalledWith(SocketEvents.SYNC_ELEMENTS, latestElements);
+    });
+
+    test("接続完了リスナーを登録し、解除できること", () => {
+        const listener = jest.fn();
+
+        const removeListener = socketController.onConnect(listener);
+
+        expect(on).toHaveBeenCalledWith("connect", listener);
+
+        removeListener();
+
+        expect(off).toHaveBeenCalledWith("connect", listener);
     });
 });

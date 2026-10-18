@@ -34,7 +34,7 @@ function App() {
             return;
         }
 
-        const initialize = async () => {
+        const restoreConnection = async () => {
             const userId = userSessionStorage.getUserIdForCurrentNavigation();
             let user = await socketController.getUser(userId);
 
@@ -53,6 +53,16 @@ function App() {
                 await joinRoom(user.id, roomId);
             }
 
+            return user;
+        };
+
+        const removeConnectListener = socketController.onConnect(() => {
+            void restoreConnection();
+        });
+
+        const initialize = async () => {
+            const user = await restoreConnection();
+
             await document.fonts.ready;
             await document.fonts.load("20px Excalifont");
 
@@ -66,6 +76,10 @@ function App() {
             });
         };
         void initialize();
+
+        return () => {
+            removeConnectListener();
+        };
     }, [excalidrawAPI]);
 
     return (
