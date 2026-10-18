@@ -36,6 +36,17 @@ class UserController {
     public updateSocketId = (userId: number | undefined, socketId: string) => {
         return userService.updateSocketId(userId, socketId);
     }
+
+    /**
+     * ユーザー名を更新する。
+     *
+     * @param userId 更新対象のユーザー ID。
+     * @param userName 更新後の入力値。
+     * @returns 更新したユーザー。検証または検索に失敗した場合は `undefined`。
+     */
+    public updateUserName = (userId: number | undefined, userName: string) => {
+        return userService.updateUserName(userId, userName);
+    }
 }
 
 export const userController = new UserController();

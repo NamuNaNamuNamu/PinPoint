@@ -15,8 +15,9 @@ const newElementWith = jest.fn((element: any, updates: any) => ({
     version: element.version + 1,
     versionNonce: 100,
 }));
+const convertToExcalidrawElements = jest.fn();
 
-jest.unstable_mockModule("@excalidraw/excalidraw", () => ({ newElementWith }));
+jest.unstable_mockModule("@excalidraw/excalidraw", () => ({ convertToExcalidrawElements, newElementWith }));
 jest.unstable_mockModule("../../../../../../src/client/features/excalidraw/ExcalidrawAPIHolder", () => ({
     excalidrawAPIHolder: {
         getApi: () => ({ updateScene }),
@@ -81,6 +82,65 @@ describe("Text", () => {
 
         expect(updateScene).toHaveBeenCalledWith({
             elements: [{ id: "label-1", x: 60, y: 190, width: 80, height: 20, version: 2, versionNonce: 100 }],
+        });
+    });
+
+    test("scene 上のテキスト内容を更新すること", () => {
+        const elements = [
+            {
+                id: "label-1",
+                type: "text",
+                text: "変更前",
+                originalText: "変更前",
+                x: 10,
+                y: 20,
+                width: 40,
+                height: 20,
+                version: 1,
+            },
+        ];
+        getSceneElements.mockReturnValue(elements);
+        getSceneElementsIncludingDeleted.mockReturnValue(elements);
+        convertToExcalidrawElements.mockReturnValue([
+            {
+                id: "label-1",
+                type: "text",
+                text: "変更後",
+                originalText: "変更後",
+                width: 80,
+                height: 20,
+            },
+        ]);
+        const text = new Text({ skeleton: { id: "label-1", type: "text", text: "変更前" } });
+
+        text.setText("変更後");
+
+        expect(convertToExcalidrawElements).toHaveBeenCalledWith([{ id: "label-1", type: "text", text: "変更後" }], {
+            regenerateIds: false,
+        });
+        expect(newElementWith).toHaveBeenCalledWith(elements[0], {
+            text: "変更後",
+            originalText: "変更後",
+            width: 80,
+            height: 20,
+            x: -10,
+            y: 20,
+        });
+        expect(updateScene).toHaveBeenCalledWith({
+            elements: [
+                {
+                    id: "label-1",
+                    type: "text",
+                    text: "変更後",
+                    originalText: "変更後",
+                    x: -10,
+                    y: 20,
+                    width: 80,
+                    height: 20,
+                    version: 2,
+                    versionNonce: 100,
+                },
+            ],
         });
     });
 });

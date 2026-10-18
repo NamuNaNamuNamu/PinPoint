@@ -2,7 +2,7 @@ import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { RemoteExcalidrawElement } from "@excalidraw/excalidraw/data/reconcile";
 import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
-import type { AnswerBarAdded, AnswerBarRemoved } from "../../../shared/answerBar/AnswerBarEvents";
+import type { AnswerBarAdded, AnswerBarOwnerNameUpdated, AnswerBarRemoved } from "../../../shared/answerBar/AnswerBarEvents";
 import { sliders } from "../excalidraw/Slider/Sliders";
 import { excalidrawAPIHolder } from "../excalidraw/ExcalidrawAPIHolder";
 
@@ -83,6 +83,23 @@ class AnswerBarSceneController {
         api.updateScene({
             elements: excalidrawAPIHolder.getSceneElementsWithTombstones().filter((element) => !ids.has(element.id)),
         });
+    }
+
+    /**
+     * AnswerBar の所有者名ラベルを全 Slider の scene とスナップショットへ反映する。
+     *
+     * @param payload サーバーが発行した所有者名更新情報。
+     */
+    public updateOwnerName(payload: AnswerBarOwnerNameUpdated): void {
+        const labelIds = new Set(payload.labelIds);
+        sliders.forEach((slider) => {
+            slider.forEachAnswerBar((answerBar) => {
+                if (answerBar.getAnswerBarId() === payload.answerBarId && labelIds.has(answerBar.getLabelId())) {
+                    answerBar.setOwnerUserName(payload.ownerUserName);
+                }
+            });
+        });
+        this.rememberCurrentElements();
     }
 
     /**

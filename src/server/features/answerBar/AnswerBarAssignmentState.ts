@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { AnswerBarAdded, AnswerBarRemoved } from "../../../shared/answerBar/AnswerBarEvents";
+import type { AnswerBarAdded, AnswerBarOwnerNameUpdated, AnswerBarRemoved } from "../../../shared/answerBar/AnswerBarEvents";
 
 /**
  * AnswerBar の割当先となるルーム ID。
@@ -199,6 +199,32 @@ export class AnswerBarAssignmentState {
 
         roomAssignments?.deleteByOwnerUserId(userId);
         return this.toRemovedEvent(assignment);
+    }
+
+    /**
+     * 指定ユーザーの AnswerBar に表示する所有者名を更新する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param userId 更新対象のユーザー ID。
+     * @param ownerUserName 更新後の所有者名。
+     * @returns 更新通知用の情報。割当がない場合は `null`。
+     */
+    public updateOwnerUserName(
+        roomId: RoomId,
+        userId: OwnerUserId,
+        ownerUserName: string,
+    ): AnswerBarOwnerNameUpdated | null {
+        const assignment = this.assignmentsByRoomId.get(roomId)?.getByOwnerUserId(userId);
+        if (!assignment) {
+            return null;
+        }
+
+        assignment.ownerUserName = ownerUserName;
+        return {
+            answerBarId: assignment.answerBarId,
+            ownerUserName: assignment.ownerUserName,
+            labelIds: assignment.labelIds,
+        };
     }
 
     /**

@@ -8,6 +8,8 @@ export const SocketEvents = {
     GET_USER: "get-user",
     /** ユーザーの Socket.IO 接続 ID を更新するイベント。 */
     UPDATE_SOCKET_ID: "update-socket-id",
+    /** 接続中ユーザーの名前を更新するイベント。 */
+    UPDATE_USER_NAME: "update-user-name",
     /** ルーム作成を要求するイベント。 */
     CREATE_ROOM: "create-room",
     /** ルーム参加を要求するイベント。 */
@@ -26,4 +28,6 @@ export const SocketEvents = {
     ANSWER_BAR_ADDED: "answer-bar-added",
     /** AnswerBar の削除を通知するイベント。 */
     ANSWER_BAR_REMOVED: "answer-bar-removed",
+    /** AnswerBar の所有者名更新を通知するイベント。 */
+    ANSWER_BAR_OWNER_NAME_UPDATED: "answer-bar-owner-name-updated",
 } as const;

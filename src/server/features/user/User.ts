@@ -36,6 +36,15 @@ export class User {
     }
 
     /**
+     * ユーザー名を更新する。
+     *
+     * @param name 更新後のユーザー名。
+     */
+    public setName(name: string): void {
+        this.name = name;
+    }
+
+    /**
      * 接続中のソケット ID を取得する。
      *
      * @returns ソケット ID。

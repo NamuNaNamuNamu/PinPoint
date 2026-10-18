@@ -143,6 +143,15 @@ export class AnswerBar {
     }
 
     /**
+     * 所有者名ラベルを更新する。
+     *
+     * @param ownerUserName 更新後の所有者名。
+     */
+    public setOwnerUserName(ownerUserName: string): void {
+        this.label.setText(ownerUserName);
+    }
+
+    /**
      * 所有者だけに Line の座標・形状補正を委譲し、名前ラベルを補正後の X 座標へ追従させる。
      *
      * @param operatorUserId 操作するユーザー ID。

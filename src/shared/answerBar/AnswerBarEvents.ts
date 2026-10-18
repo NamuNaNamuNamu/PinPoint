@@ -45,3 +45,21 @@ export type AnswerBarRemoved = {
      */
     labelIds: readonly string[];
 };
+
+/**
+ * AnswerBar の所有者名を更新するための情報。
+ */
+export type AnswerBarOwnerNameUpdated = {
+    /**
+     * 更新対象の AnswerBar ID。
+     */
+    answerBarId: string;
+    /**
+     * 更新後の所有者名。
+     */
+    ownerUserName: string;
+    /**
+     * 更新する名前ラベル要素の ID。
+     */
+    labelIds: readonly string[];
+};

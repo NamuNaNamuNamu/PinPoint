@@ -4,13 +4,15 @@ const joinRoom = jest.fn();
 const getAll = jest.fn();
 const getOrCreate = jest.fn();
 const remove = jest.fn();
+const updateOwnerUserName = jest.fn();
 const getUser = jest.fn();
+const getRoomIdByUserId = jest.fn();
 
 jest.unstable_mockModule("../../../../src/server/features/room/RoomController", () => ({
-    roomController: { joinRoom, leaveRoom: jest.fn(), getRoomIdByUserId: jest.fn(), leaveUser: jest.fn() },
+    roomController: { joinRoom, leaveRoom: jest.fn(), getRoomIdByUserId, leaveUser: jest.fn() },
 }));
 jest.unstable_mockModule("../../../../src/server/features/answerBar/AnswerBarAssignmentState", () => ({
-    answerBarAssignmentState: { getAll, getOrCreate, remove, markDisconnected: jest.fn(), removeIfStillDisconnected: jest.fn() },
+    answerBarAssignmentState: { getAll, getOrCreate, remove, updateOwnerUserName, markDisconnected: jest.fn(), removeIfStillDisconnected: jest.fn() },
 }));
 jest.unstable_mockModule("../../../../src/server/features/user/UserService", () => ({ userService: { getUser } }));
 jest.unstable_mockModule("../../../../src/shared/Slider/sliderDefinitions", () => ({ sliderDefinitions: [{}, {}] }));
@@ -40,5 +42,26 @@ describe("AnswerBarController", () => {
         expect(new AnswerBarController().joinRoom(socket, 1, "room-1")).toBe("room-1");
         expect(getOrCreate).toHaveBeenCalledWith("room-1", 1, "ゆう", 2);
         expect(roomEmit).toHaveBeenCalledWith("answer-bar-added", expect.objectContaining({ ownerUserName: "ゆう", labelIds: ["label-1", "label-2"] }));
+    });
+
+    test("所有者名更新時に同じルームへ更新通知すること", () => {
+        const emit = jest.fn();
+        const roomEmit = jest.fn();
+        const socket = { emit, nsp: { to: jest.fn(() => ({ emit: roomEmit })) } } as any;
+        getRoomIdByUserId.mockReturnValue("room-1");
+        updateOwnerUserName.mockReturnValue({
+            answerBarId: "bar-1",
+            ownerUserName: "ゆうこ",
+            labelIds: ["label-1", "label-2"],
+        });
+
+        new AnswerBarController().updateOwnerUserName(socket, 1, "ゆうこ");
+
+        expect(updateOwnerUserName).toHaveBeenCalledWith("room-1", 1, "ゆうこ");
+        expect(roomEmit).toHaveBeenCalledWith("answer-bar-owner-name-updated", {
+            answerBarId: "bar-1",
+            ownerUserName: "ゆうこ",
+            labelIds: ["label-1", "label-2"],
+        });
     });
 });

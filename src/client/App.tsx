@@ -41,8 +41,7 @@ function App() {
             if (user) {
                 await socketController.updateSocketId(userId);
             } else {
-                const userName = prompt("名前を入力してね") ?? "名無し";
-                user = await socketController.registerUser(userName);
+                user = await socketController.registerUser("名無し");
                 userSessionStorage.setUserId(user.id);
             }
 

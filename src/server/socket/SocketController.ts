@@ -61,6 +61,16 @@ export class SocketController {
             callback(user);
         });
 
+        this.socket.on(SocketEvents.UPDATE_USER_NAME, (message, callback) => {
+            const userName: string = message;
+            const user = userController.updateUserName(this.activeUserId, userName);
+            if (user) {
+                answerBarController.updateOwnerUserName(this.socket, user.getId(), user.getName());
+            }
+
+            callback(user);
+        });
+
         this.socket.on(SocketEvents.CREATE_ROOM, (_message, callback) => {
             const room = roomController.createRoom();
 

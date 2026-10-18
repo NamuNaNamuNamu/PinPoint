@@ -88,6 +88,38 @@ export class UserService {
 
         return user;
     }
+
+    /**
+     * 指定したユーザーの名前を更新する。
+     *
+     * 受信した入力値を前後空白を除いた表示名へ正規化し、空文字および
+     * 12文字を超える名前は更新しない。
+     *
+     * @param userId 更新対象のユーザー ID。
+     * @param userName 更新前の入力値。
+     * @returns 更新したユーザー。検証または検索に失敗した場合は `undefined`。
+     */
+    public updateUserName(userId: number | undefined, userName: string): User | undefined {
+        if (userName.length > 12) {
+            return undefined;
+        }
+
+        const user = this.getUser(userId);
+        const normalizedUserName = userName.trim();
+        if (!user || !normalizedUserName) {
+            return undefined;
+        }
+
+        const userNameBefore = user.getName();
+        user.setName(normalizedUserName);
+        userState.updateUser(user);
+        userLogger.outputUserState({
+            event: `名前更新 (${userNameBefore} -> ${normalizedUserName})`,
+            userId: user.getId(),
+        });
+
+        return user;
+    }
 }
 
 export const userService = new UserService();

@@ -27,6 +27,7 @@ type TextFieldProps = {
   label?: string;
   className?: string;
   placeholder?: string;
+  maxLength?: number;
   isRedacted?: boolean;
   type?: "text" | "search";
 } & ({ value: string } | { defaultValue: string });
@@ -45,6 +46,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
       icon,
       className,
       type,
+      maxLength,
       ...rest
     },
     ref,
@@ -95,6 +97,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
               "defaultValue" in rest ? rest.defaultValue : undefined
             }
             placeholder={placeholder}
+            maxLength={maxLength}
             ref={innerRef}
             onChange={(event) => onChange?.(event.target.value)}
             onKeyDown={onKeyDown}

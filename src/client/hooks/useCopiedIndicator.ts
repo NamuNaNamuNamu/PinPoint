@@ -3,30 +3,30 @@ import { useCallback, useRef, useState } from "react";
 const TIMEOUT = 2000;
 
 /**
- * コピー成功状態を一定時間だけ保持するための state と操作関数を提供する。
+ * 一時的な成功状態を一定時間だけ保持するための state と操作関数を提供する。
  *
- * @returns コピー状態、成功状態を設定する関数、および状態をリセットする関数。
+ * @returns 成功状態、成功状態を設定する関数、および状態をリセットする関数。
  */
-export const useCopyStatus = () => {
-    const [copyStatus, setCopyStatus] = useState<"success" | null>(null);
+export const useSuccessStatus = () => {
+    const [successStatus, setSuccessStatus] = useState<"success" | null>(null);
     const timeoutRef = useRef<number>(0);
 
-    const onCopy = () => {
+    const onSuccess = () => {
         clearTimeout(timeoutRef.current);
-        setCopyStatus("success");
+        setSuccessStatus("success");
 
         timeoutRef.current = window.setTimeout(() => {
-            setCopyStatus(null);
+            setSuccessStatus(null);
         }, TIMEOUT);
     };
 
-    const resetCopyStatus = useCallback(() => {
-        setCopyStatus(null);
+    const resetSuccessStatus = useCallback(() => {
+        setSuccessStatus(null);
     }, []);
 
     return {
-        copyStatus,
-        resetCopyStatus,
-        onCopy,
+        successStatus,
+        resetSuccessStatus,
+        onSuccess,
     };
 };

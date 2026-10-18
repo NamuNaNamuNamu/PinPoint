@@ -37,6 +37,19 @@ describe("AnswerBarAssignmentState", () => {
         expect(third.assignment.slot).toBe(0);
     });
 
+    test("所有者名を更新すると既存の割当と更新通知用情報へ反映すること", () => {
+        const created = state.getOrCreate("room-1", 1, "ゆう", 2);
+
+        expect(state.updateOwnerUserName("room-1", 1, "ゆうこ")).toEqual({
+            answerBarId: created.assignment.answerBarId,
+            ownerUserName: "ゆうこ",
+            labelIds: created.assignment.labelIds,
+        });
+        expect(state.getAll("room-1")).toEqual([
+            expect.objectContaining({ ownerUserName: "ゆうこ" }),
+        ]);
+    });
+
     test("切断保留中の同じ世代だけを線と名前ラベルの削除イベントに変換すること", () => {
         const created = state.getOrCreate("room-1", 1, "ゆう", 2);
         const token = state.markDisconnected("room-1", 1);

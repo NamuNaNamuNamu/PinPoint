@@ -1,8 +1,9 @@
 import { jest } from "@jest/globals";
 
 const newElementWith = jest.fn();
+const convertToExcalidrawElements = jest.fn();
 
-jest.unstable_mockModule("@excalidraw/excalidraw", () => ({ newElementWith }));
+jest.unstable_mockModule("@excalidraw/excalidraw", () => ({ convertToExcalidrawElements, newElementWith }));
 
 const { Slider } = await import("../../../../../src/client/features/excalidraw/Slider/Slider");
 

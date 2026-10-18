@@ -88,6 +88,20 @@ class SocketController {
     }
 
     /**
+     * 接続中のユーザー名を更新する。
+     *
+     * @param userName 更新するユーザー名。
+     * @returns 更新後のユーザー情報。更新に失敗した場合は `undefined`。
+     */
+    public updateUserName(userName: string): Promise<UserParams | undefined> {
+        return new Promise((resolve, _reject) => {
+            socket.emit(SocketEvents.UPDATE_USER_NAME, userName, (response: UserParams | undefined) => {
+                resolve(response);
+            });
+        });
+    }
+
+    /**
      * 新しいルームの作成を要求する。
      *
      * @returns 作成されたルーム。

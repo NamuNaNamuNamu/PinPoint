@@ -1,14 +1,14 @@
 import "./ShareDialog.scss";
 
-import { type Dispatch, useRef, useState } from "react";
+import { type Dispatch, useEffect, useRef, useState } from "react";
 
 import { answerBarSceneController } from "../../features/answerBar/AnswerBarSceneController";
 import { excalidrawCursorSyncController } from "../../features/excalidraw/excalidrawCursor/ExcalidrawCursorSyncController";
 import { userSessionStorage } from "../../features/sessionStorage/sessionStorage";
 import { url } from "../../features/url/Url";
-import { useCopyStatus } from "../../hooks/useCopiedIndicator";
+import { useSuccessStatus } from "../../hooks/useCopiedIndicator";
 import { socketController } from "../../socket/SocketController";
-import { copyIcon, playerPlayIcon, playerStopFilledIcon } from "../icons";
+import { checkIcon, copyIcon, playerPlayIcon, playerStopFilledIcon } from "../icons";
 import { copyTextToSystemClipboard } from "./clipboard";
 import { Dialog } from "./Dialog";
 import { FilledButton } from "./FilledButton";
@@ -74,7 +74,26 @@ function RoomURLDialog({ currentRoomId, closeDialog }: RoomURLDialogProps) {
     const ref = useRef<HTMLInputElement>(null);
     const timerRef = useRef<number>(0);
     const [, setJustCopied] = useState(false);
-    const { onCopy, copyStatus } = useCopyStatus();
+    const [userName, setUserName] = useState("名無し");
+    const [userNameError, setUserNameError] = useState<string | null>(null);
+    const [isSavingUserName, setIsSavingUserName] = useState(false);
+    const { onSuccess: onCopySuccess, successStatus: copyStatus } = useSuccessStatus();
+    const {
+        onSuccess: onUserNameSaveSuccess,
+        resetSuccessStatus: resetUserNameSaveStatus,
+        successStatus: userNameSaveStatus,
+    } = useSuccessStatus();
+
+    useEffect(() => {
+        const loadUserName = async () => {
+            const user = await socketController.getUser(userSessionStorage.getUserId());
+            if (user) {
+                setUserName(user.name);
+            }
+        };
+
+        void loadUserName();
+    }, []);
 
     /**
      * ルーム URL をクリップボードへコピーし、コピー状態を一時的に表示する。
@@ -113,11 +132,74 @@ function RoomURLDialog({ currentRoomId, closeDialog }: RoomURLDialogProps) {
         closeDialog();
     };
 
+    /**
+     * ユーザー名を検証して保存し、成功時に一時的な成功状態を表示する。
+     */
+    const saveUserName = async () => {
+        if (isSavingUserName) {
+            return;
+        }
+
+        if (!userName.trim()) {
+            setUserNameError("ユーザー名を入力してください。");
+            return;
+        }
+
+        if (userName.length > 12) {
+            setUserNameError("ユーザー名は12文字以内で入力してください。");
+            return;
+        }
+
+        setIsSavingUserName(true);
+        const updatedUser = await socketController.updateUserName(userName);
+        setIsSavingUserName(false);
+
+        if (!updatedUser) {
+            setUserNameError("ユーザー名を保存できませんでした。");
+            return;
+        }
+
+        setUserName(updatedUser.name);
+        setUserNameError(null);
+        onUserNameSaveSuccess();
+    };
+
     const roomUrl = url.createRoomUrl(currentRoomId);
 
     return (
         <>
             <h3 className="ShareDialog__active__header">通信モード</h3>
+
+            <div className="ShareDialog__active__linkRow">
+                <div className="ShareDialog__active__userNameField">
+                    <TextField
+                        label="ユーザー名"
+                        fullWidth
+                        maxLength={12}
+                        value={userName}
+                        onChange={(value) => {
+                            setUserName(value);
+                            setUserNameError(null);
+                            resetUserNameSaveStatus();
+                        }}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                                event.preventDefault();
+                                void saveUserName();
+                            }
+                        }}
+                    />
+                    {userNameError && <p className="ShareDialog__active__validationError">{userNameError}</p>}
+                </div>
+                <FilledButton
+                    size="large"
+                    label="保存"
+                    icon={checkIcon}
+                    status={userNameSaveStatus}
+                    disabled={isSavingUserName}
+                    onClick={saveUserName}
+                />
+            </div>
 
             <div className="ShareDialog__active__linkRow">
                 <TextField ref={ref} label="リンク" readonly fullWidth value={roomUrl} />
@@ -128,7 +210,7 @@ function RoomURLDialog({ currentRoomId, closeDialog }: RoomURLDialogProps) {
                     status={copyStatus}
                     onClick={() => {
                         copyRoomLink();
-                        onCopy();
+                        onCopySuccess();
                     }}
                 />
             </div>

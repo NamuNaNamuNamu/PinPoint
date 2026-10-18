@@ -1,4 +1,4 @@
-import { newElementWith } from "@excalidraw/excalidraw";
+import { convertToExcalidrawElements, newElementWith } from "@excalidraw/excalidraw";
 import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import { excalidrawAPIHolder } from "../../ExcalidrawAPIHolder";
@@ -80,6 +80,48 @@ export class Text {
         }
 
         this.setPosition(centerX - text.width / 2, centerY - text.height / 2);
+    }
+
+    /**
+     * scene 上のテキスト内容を更新する。
+     *
+     * @param value 更新後のテキスト内容。
+     */
+    public setText(value: string): void {
+        const api = excalidrawAPIHolder.getApi();
+        const elements = excalidrawAPIHolder.getSceneElementsWithTombstones();
+        const text = excalidrawAPIHolder.findActiveElementById(this.getId());
+
+        if (!text || text.type !== "text" || text.text === value) {
+            return;
+        }
+
+        const [regeneratedText] = convertToExcalidrawElements([{ ...this.getSkeleton(), text: value }], {
+            regenerateIds: false,
+        });
+
+        if (!regeneratedText || regeneratedText.type !== "text") {
+            return;
+        }
+
+        const centerX = text.x + text.width / 2;
+        const centerY = text.y + text.height / 2;
+        api.updateScene({
+            elements: elements.map((element) => {
+                if (element.id !== this.getId() || element.type !== "text") {
+                    return element;
+                }
+
+                return newElementWith(element, {
+                    text: value,
+                    originalText: value,
+                    width: regeneratedText.width,
+                    height: regeneratedText.height,
+                    x: centerX - regeneratedText.width / 2,
+                    y: centerY - regeneratedText.height / 2,
+                });
+            }),
+        });
     }
 
     /**

@@ -12,8 +12,10 @@ const centerLabelInElements = jest.fn((elements: OrderedExcalidrawElement[]) =>
 );
 
 type AnswerBarForSceneController = {
+    getAnswerBarId(): string;
     getLineId(): string;
     getLabelId(): string;
+    setOwnerUserName(ownerUserName: string): void;
 };
 
 jest.unstable_mockModule("../../../../src/client/features/excalidraw/Slider/Sliders", () => ({
@@ -83,11 +85,34 @@ describe("AnswerBarSceneController", () => {
         expect(updateScene).toHaveBeenCalledWith({ elements: [{ id: "keep" }] });
     });
 
+    test("所有者名更新通知では対象 AnswerBar の名前ラベルを更新すること", () => {
+        const setOwnerUserName = jest.fn();
+        forEachAnswerBar.mockImplementation((callback) => {
+            callback({
+                getAnswerBarId: () => "answer-bar-1",
+                getLineId: () => "line-1",
+                getLabelId: () => "label-1",
+                setOwnerUserName,
+            });
+        });
+        getSceneElements.mockReturnValue([{ id: "line-1" }, { id: "label-1" }]);
+
+        answerBarSceneController.updateOwnerName({
+            answerBarId: "answer-bar-1",
+            ownerUserName: "ゆうこ",
+            labelIds: ["label-1"],
+        });
+
+        expect(setOwnerUserName).toHaveBeenCalledWith("ゆうこ");
+    });
+
     test("管理中 AnswerBar 要素が scene から消えた場合、直近の正常状態で復元すること", () => {
         forEachAnswerBar.mockImplementation((callback) => {
             callback({
+                getAnswerBarId: () => "answer-bar-1",
                 getLineId: () => "line-1",
                 getLabelId: () => "label-1",
+                setOwnerUserName: jest.fn(),
             });
         });
         getSceneElements

@@ -72,4 +72,27 @@ describe("UserService", () => {
         expect(mockUserState.updateUser).not.toHaveBeenCalled();
         expect(mockUserLogger.outputUserState).not.toHaveBeenCalled();
     });
+
+    test("updateUserName は前後空白を除いた名前へ更新する", () => {
+        const user = new User({ id: 10, name: "Alice", socketId: "socket-1" });
+        mockUserState.getUserById.mockReturnValue(user);
+
+        expect(userService.updateUserName(10, "  Bob  ")).toBe(user);
+        expect(user.getName()).toBe("Bob");
+        expect(mockUserState.updateUser).toHaveBeenCalledWith(user);
+        expect(mockUserLogger.outputUserState).toHaveBeenCalledWith({
+            event: "名前更新 (Alice -> Bob)",
+            userId: 10,
+        });
+    });
+
+    test.each(["", "   ", "1234567890123"])("updateUserName は無効な名前を更新しない: %s", (userName) => {
+        const user = new User({ id: 10, name: "Alice", socketId: "socket-1" });
+        mockUserState.getUserById.mockReturnValue(user);
+
+        expect(userService.updateUserName(10, userName)).toBeUndefined();
+        expect(user.getName()).toBe("Alice");
+        expect(mockUserState.updateUser).not.toHaveBeenCalled();
+        expect(mockUserLogger.outputUserState).not.toHaveBeenCalled();
+    });
 });

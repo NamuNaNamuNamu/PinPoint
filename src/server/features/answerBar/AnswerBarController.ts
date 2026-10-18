@@ -69,6 +69,25 @@ export class AnswerBarController {
     }
 
     /**
+     * 参加中ルームにある指定ユーザーの AnswerBar 所有者名を更新して通知する。
+     *
+     * @param socket 更新通知の送信元ソケット。
+     * @param userId 更新対象のユーザー ID。
+     * @param ownerUserName 更新後の所有者名。
+     */
+    public updateOwnerUserName(socket: Socket, userId: number, ownerUserName: string): void {
+        const roomId = roomController.getRoomIdByUserId(userId);
+        if (!roomId) {
+            return;
+        }
+
+        const updated = answerBarAssignmentState.updateOwnerUserName(roomId, userId, ownerUserName);
+        if (updated) {
+            socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_OWNER_NAME_UPDATED, updated);
+        }
+    }
+
+    /**
      * 切断したユーザーの AnswerBar を 30 秒間保留し、期限切れ時に削除する。
      *
      * @param socket 切断中の Socket.IO 接続。

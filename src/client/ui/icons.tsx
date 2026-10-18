@@ -55,6 +55,11 @@ const createIcon = (d: string | React.ReactNode, opts: number | Opts = 512) => {
     );
 };
 
+export const checkIcon = createIcon(<polyline fill="none" stroke="currentColor" points="20 6 9 17 4 12" />, {
+    width: 24,
+    height: 24,
+});
+
 export const usersIcon = createIcon(
     <g strokeWidth="1.5">
         <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
