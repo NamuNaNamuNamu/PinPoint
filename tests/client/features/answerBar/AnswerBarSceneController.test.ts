@@ -3,6 +3,7 @@ import { jest } from "@jest/globals";
 
 const updateScene = jest.fn();
 const getSceneElements = jest.fn();
+const getSceneElementsIncludingDeleted = jest.fn();
 const addAnswerBar = jest.fn();
 const removeAnswerBar = jest.fn();
 const forEachAnswerBar = jest.fn<(callback: (answerBar: AnswerBarForSceneController) => void) => void>();
@@ -22,7 +23,11 @@ jest.unstable_mockModule("../../../../src/client/features/excalidraw/Slider/Slid
     ],
 }));
 jest.unstable_mockModule("../../../../src/client/features/excalidraw/ExcalidrawAPIHolder", () => ({
-    excalidrawAPIHolder: { getApi: () => ({ getSceneElements, updateScene }) },
+    excalidrawAPIHolder: {
+        getApi: () => ({ updateScene }),
+        getActiveSceneElements: getSceneElements,
+        getSceneElementsWithTombstones: getSceneElementsIncludingDeleted,
+    },
 }));
 jest.unstable_mockModule("@excalidraw/excalidraw", () => ({
     convertToExcalidrawElements: jest.fn((elements) => elements),
@@ -34,7 +39,7 @@ const { answerBarSceneController } = await import("../../../../src/client/featur
 describe("AnswerBarSceneController", () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        getSceneElements.mockReturnValue([{ id: "existing" }]);
+        getSceneElementsIncludingDeleted.mockReturnValue([{ id: "existing" }]);
         addAnswerBar.mockReturnValue({
             getSkeletons: () => [{ id: "new-line" }, { id: "new-label" }],
             centerLabelInElements,
@@ -71,7 +76,7 @@ describe("AnswerBarSceneController", () => {
     });
 
     test("削除通知では対象 AnswerBar の line と名前ラベルを除去すること", () => {
-        getSceneElements.mockReturnValue([{ id: "keep" }, { id: "line-1" }, { id: "label-1" }]);
+        getSceneElementsIncludingDeleted.mockReturnValue([{ id: "keep" }, { id: "line-1" }, { id: "label-1" }]);
         answerBarSceneController.remove({ answerBarId: "answer-bar-1", lineIds: ["line-1"], labelIds: ["label-1"] });
 
         expect(removeAnswerBar).toHaveBeenCalledWith("answer-bar-1");
@@ -85,17 +90,23 @@ describe("AnswerBarSceneController", () => {
                 getLabelId: () => "label-1",
             });
         });
-        getSceneElements.mockReturnValueOnce([
-            { id: "line-1", x: 200 },
-            { id: "label-1", x: 200 },
-        ]);
+        getSceneElements
+            .mockReturnValueOnce([
+                { id: "line-1", x: 200 },
+                { id: "label-1", x: 200 },
+            ])
+            .mockReturnValue([{ id: "label-1", x: 200 }]);
         answerBarSceneController.rememberCurrentElements();
 
-        getSceneElements.mockReturnValue([{ id: "label-1", x: 200 }]);
+        getSceneElementsIncludingDeleted.mockReturnValue([
+            { id: "line-1", x: 200, isDeleted: true },
+            { id: "label-1", x: 200 },
+        ]);
 
         expect(answerBarSceneController.restoreMissingElements()).toBe(true);
         expect(updateScene).toHaveBeenLastCalledWith({
             elements: [
+                { id: "line-1", x: 200, isDeleted: true },
                 { id: "label-1", x: 200 },
                 { id: "line-1", x: 200 },
             ],

@@ -34,6 +34,34 @@ class ExcalidrawAPIHolder {
 
         return this.api;
     }
+
+    /**
+     * 削除済み要素を除いた、現在操作可能な scene 要素を取得する。
+     *
+     * @returns 削除済み要素を含まない scene 要素。
+     */
+    public getActiveSceneElements() {
+        return this.getApi().getSceneElements();
+    }
+
+    /**
+     * 削除済み要素を含む、同期用の scene 要素を取得する。
+     *
+     * @returns tombstone を含む scene 要素。
+     */
+    public getSceneElementsWithTombstones() {
+        return this.getApi().getSceneElementsIncludingDeleted();
+    }
+
+    /**
+     * 現在操作可能な scene 要素から、指定 ID の要素を取得する。
+     *
+     * @param id 取得する要素の ID。
+     * @returns 指定 ID の要素。存在しない場合は `undefined`。
+     */
+    public findActiveElementById(id: string) {
+        return this.getActiveSceneElements().find((element) => element.id === id);
+    }
 }
 
 export const excalidrawAPIHolder = new ExcalidrawAPIHolder();

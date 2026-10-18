@@ -1,6 +1,13 @@
 import { jest } from "@jest/globals";
 
-const getSceneElements = jest.fn();
+type SceneElementForTest = {
+    id: string;
+    [key: string]: unknown;
+};
+
+const getSceneElements = jest.fn<() => SceneElementForTest[]>();
+const getSceneElementsIncludingDeleted = jest.fn<() => SceneElementForTest[]>();
+const findActiveElementById = jest.fn((id: string) => getSceneElements().find((element) => element.id === id));
 const updateScene = jest.fn();
 const newElementWith = jest.fn((element: any, updates: any) => ({
     ...element,
@@ -11,7 +18,11 @@ const newElementWith = jest.fn((element: any, updates: any) => ({
 
 jest.unstable_mockModule("@excalidraw/excalidraw", () => ({ newElementWith }));
 jest.unstable_mockModule("../../../../../../src/client/features/excalidraw/ExcalidrawAPIHolder", () => ({
-    excalidrawAPIHolder: { getApi: () => ({ getSceneElements, updateScene }) },
+    excalidrawAPIHolder: {
+        getApi: () => ({ updateScene }),
+        getSceneElementsWithTombstones: getSceneElementsIncludingDeleted,
+        findActiveElementById,
+    },
 }));
 
 const { Text } = await import("../../../../../../src/client/features/excalidraw/Elements/Text/Text");
@@ -23,7 +34,7 @@ describe("Text", () => {
     });
 
     test("現在の座標と同じ座標を指定した場合は scene を更新しないこと", () => {
-        getSceneElements.mockReturnValue([{ id: "label-1", x: 100, y: 200 }]);
+        getSceneElementsIncludingDeleted.mockReturnValue([{ id: "label-1", x: 100, y: 200 }]);
         const text = new Text({ skeleton: { id: "label-1" } });
 
         text.setPosition(100, 200);
@@ -37,7 +48,7 @@ describe("Text", () => {
             { id: "other", x: 1, y: 2, version: 3, versionNonce: 30 },
             { id: "label-1", x: 100, y: 200, version: 4, versionNonce: 40 },
         ];
-        getSceneElements.mockReturnValue(elements);
+        getSceneElementsIncludingDeleted.mockReturnValue(elements);
         const text = new Text({ skeleton: { id: "label-1" } });
 
         text.setPosition(120, 200);
@@ -61,7 +72,9 @@ describe("Text", () => {
     });
 
     test("指定座標が外枠中心となるよう scene 上のテキストを移動すること", () => {
-        getSceneElements.mockReturnValue([{ id: "label-1", x: 0, y: 0, width: 80, height: 20, version: 1 }]);
+        const elements = [{ id: "label-1", x: 0, y: 0, width: 80, height: 20, version: 1 }];
+        getSceneElements.mockReturnValue(elements);
+        getSceneElementsIncludingDeleted.mockReturnValue(elements);
         const text = new Text({ skeleton: { id: "label-1" } });
 
         text.setCenterPosition(100, 200);

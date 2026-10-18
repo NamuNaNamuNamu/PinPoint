@@ -73,8 +73,7 @@ export class Text {
      * @param centerY 外枠中心の Y 座標。
      */
     public setCenterPosition(centerX: number, centerY: number): void {
-        const api = excalidrawAPIHolder.getApi();
-        const text = api.getSceneElements().find((element) => element.id === this.getId());
+        const text = excalidrawAPIHolder.findActiveElementById(this.getId());
 
         if (!text) {
             return;
@@ -93,7 +92,7 @@ export class Text {
      */
     public setPosition(x: number, y: number): void {
         const api = excalidrawAPIHolder.getApi();
-        const elements = api.getSceneElements();
+        const elements = excalidrawAPIHolder.getSceneElementsWithTombstones();
         const text = elements.find((element) => element.id === this.getId());
 
         if (!text || (text.x === x && text.y === y)) {

@@ -24,7 +24,7 @@ class ExcalidrawSyncController {
             const api = excalidrawAPIHolder.getApi();
             const normalizedRemoteElements = answerBarSceneController.normalizeRemoteElements(remoteElements);
             const merged: ReconciledExcalidrawElement[] = reconcileElements(
-                api.getSceneElements(),
+                excalidrawAPIHolder.getSceneElementsWithTombstones(),
                 normalizedRemoteElements,
                 api.getAppState(),
             );

@@ -222,7 +222,12 @@ export class AnswerBarAssignmentState {
         const activeElementIds = new Set(
             this.getAll(roomId).flatMap((assignment) => [...assignment.lineIds, ...assignment.labelIds]),
         );
-        return elements.filter((element) => !knownElementIds.has(element.id) || activeElementIds.has(element.id));
+        return elements.filter((element) => {
+            if (!knownElementIds.has(element.id)) {
+                return true;
+            }
+            return activeElementIds.has(element.id) && !("isDeleted" in element && element.isDeleted === true);
+        });
     }
 
     /**

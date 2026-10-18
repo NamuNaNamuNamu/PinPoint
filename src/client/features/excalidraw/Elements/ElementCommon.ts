@@ -22,9 +22,7 @@ export class ElementCommon {
      * @throws 対応する要素がシーンに存在しない場合
      */
     getExcalidrawElement() {
-        const api = excalidrawAPIHolder.getApi();
-
-        const element = api.getSceneElements().find((e) => e.id === this.getId());
+        const element = excalidrawAPIHolder.findActiveElementById(this.getId());
 
         if (!element) {
             throw new Error("Excalidraw 要素が見つかりませんでした");

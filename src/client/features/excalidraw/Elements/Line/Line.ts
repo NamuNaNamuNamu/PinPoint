@@ -113,8 +113,8 @@ export class Line {
     private updateCoordinate(coordinate: "x" | "y", value: number) {
         const api = excalidrawAPIHolder.getApi();
         api.updateScene({
-            elements: api
-                .getSceneElements()
+            elements: excalidrawAPIHolder
+                .getSceneElementsWithTombstones()
                 .map((el) => (el.id === this.getId() ? { ...el, [coordinate]: value } : el)),
         });
     }
@@ -125,7 +125,9 @@ export class Line {
     private cancelChange() {
         const api = excalidrawAPIHolder.getApi();
         api.updateScene({
-            elements: api.getSceneElements().map((el) => (el.id === this.getId() ? { ...this.previousElement } : el)),
+            elements: excalidrawAPIHolder
+                .getSceneElementsWithTombstones()
+                .map((el) => (el.id === this.getId() ? { ...this.previousElement } : el)),
         });
     }
 

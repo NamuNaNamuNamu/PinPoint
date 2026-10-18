@@ -34,5 +34,5 @@ export function handleExcalidrawElementsChange(_elements: readonly ExcalidrawEle
     });
 
     answerBarSceneController.rememberCurrentElements();
-    socketController.syncElements(excalidrawAPIHolder.getApi().getSceneElements());
+    socketController.syncElements(excalidrawAPIHolder.getSceneElementsWithTombstones());
 }

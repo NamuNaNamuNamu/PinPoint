@@ -60,7 +60,7 @@ class AnswerBarSceneController {
             return;
         }
         const api = excalidrawAPIHolder.getApi();
-        api.updateScene({ elements: [...api.getSceneElements(), ...additions] });
+        api.updateScene({ elements: [...excalidrawAPIHolder.getSceneElementsWithTombstones(), ...additions] });
         additions.forEach((element) => {
             this.elementSnapshots.set(element.id, structuredClone(element));
         });
@@ -80,7 +80,9 @@ class AnswerBarSceneController {
         sliders.forEach((slider) => slider.removeAnswerBar(payload.answerBarId));
         ids.forEach((id) => this.elementSnapshots.delete(id));
         const api = excalidrawAPIHolder.getApi();
-        api.updateScene({ elements: api.getSceneElements().filter((element) => !ids.has(element.id)) });
+        api.updateScene({
+            elements: excalidrawAPIHolder.getSceneElementsWithTombstones().filter((element) => !ids.has(element.id)),
+        });
     }
 
     /**
@@ -103,7 +105,9 @@ class AnswerBarSceneController {
         answerBarIds.forEach((answerBarId) => sliders.forEach((slider) => slider.removeAnswerBar(answerBarId)));
         elementIds.forEach((id) => this.elementSnapshots.delete(id));
         const api = excalidrawAPIHolder.getApi();
-        api.updateScene({ elements: api.getSceneElements().filter((element) => !elementIds.has(element.id)) });
+        api.updateScene({
+            elements: excalidrawAPIHolder.getSceneElementsWithTombstones().filter((element) => !elementIds.has(element.id)),
+        });
     }
 
     /**
@@ -148,8 +152,7 @@ class AnswerBarSceneController {
      */
     public rememberCurrentElements(): void {
         const managedElementIds = this.getManagedElementIds();
-        const api = excalidrawAPIHolder.getApi();
-        api.getSceneElements().forEach((element) => {
+        excalidrawAPIHolder.getActiveSceneElements().forEach((element) => {
             if (managedElementIds.has(element.id)) {
                 this.elementSnapshots.set(element.id, structuredClone(element));
             }
@@ -165,11 +168,11 @@ class AnswerBarSceneController {
      */
     public restoreMissingElements(): boolean {
         const api = excalidrawAPIHolder.getApi();
-        const currentElements = api.getSceneElements();
-        const currentElementIds = new Set(currentElements.map((element) => element.id));
+        const currentElements = excalidrawAPIHolder.getSceneElementsWithTombstones();
+        const activeElementIds = new Set(excalidrawAPIHolder.getActiveSceneElements().map((element) => element.id));
         const managedElementIds = this.getManagedElementIds();
         const missingElements = [...this.elementSnapshots.entries()]
-            .filter(([id]) => managedElementIds.has(id) && !currentElementIds.has(id))
+            .filter(([id]) => managedElementIds.has(id) && !activeElementIds.has(id))
             .map(([, element]) => structuredClone(element));
 
         if (missingElements.length === 0) {
