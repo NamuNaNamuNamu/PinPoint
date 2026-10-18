@@ -18,6 +18,10 @@ class AnswerBarSceneController {
      * 削除通知済みの AnswerBar 要素 ID。古い全量同期による再出現を防ぐ。
      */
     private readonly removedElementIds = new Set<string>();
+    /**
+     * 管理中 AnswerBar 要素の直近の正常な scene 状態。
+     */
+    private readonly elementSnapshots = new Map<string, OrderedExcalidrawElement>();
 
     /**
      * 現在のブラウザの操作ユーザーを設定する。
@@ -57,6 +61,9 @@ class AnswerBarSceneController {
         }
         const api = excalidrawAPIHolder.getApi();
         api.updateScene({ elements: [...api.getSceneElements(), ...additions] });
+        additions.forEach((element) => {
+            this.elementSnapshots.set(element.id, structuredClone(element));
+        });
     }
 
     /**
@@ -71,6 +78,7 @@ class AnswerBarSceneController {
         const ids = new Set([...payload.lineIds, ...payload.labelIds]);
         ids.forEach((id) => this.removedElementIds.add(id));
         sliders.forEach((slider) => slider.removeAnswerBar(payload.answerBarId));
+        ids.forEach((id) => this.elementSnapshots.delete(id));
         const api = excalidrawAPIHolder.getApi();
         api.updateScene({ elements: api.getSceneElements().filter((element) => !ids.has(element.id)) });
     }
@@ -93,6 +101,7 @@ class AnswerBarSceneController {
         );
         elementIds.forEach((id) => this.removedElementIds.add(id));
         answerBarIds.forEach((answerBarId) => sliders.forEach((slider) => slider.removeAnswerBar(answerBarId)));
+        elementIds.forEach((id) => this.elementSnapshots.delete(id));
         const api = excalidrawAPIHolder.getApi();
         api.updateScene({ elements: api.getSceneElements().filter((element) => !elementIds.has(element.id)) });
     }
@@ -130,6 +139,61 @@ class AnswerBarSceneController {
             });
         });
         return lockedByLineId;
+    }
+
+    /**
+     * scene 上にある管理中 AnswerBar 要素を、復元用の正常状態として記録する。
+     *
+     * AnswerBar の所有者による移動後の位置を保持し、不正な削除後にも同じ位置へ戻せるようにする。
+     */
+    public rememberCurrentElements(): void {
+        const managedElementIds = this.getManagedElementIds();
+        const api = excalidrawAPIHolder.getApi();
+        api.getSceneElements().forEach((element) => {
+            if (managedElementIds.has(element.id)) {
+                this.elementSnapshots.set(element.id, structuredClone(element));
+            }
+        });
+    }
+
+    /**
+     * scene から不正に削除された管理中 AnswerBar 要素を、直近の正常状態で復元する。
+     *
+     * 正規の削除では先に AnswerBar とスナップショットを管理対象から外すため、復元対象にならない。
+     *
+     * @returns 1 個以上の管理中要素を復元した場合は `true`。
+     */
+    public restoreMissingElements(): boolean {
+        const api = excalidrawAPIHolder.getApi();
+        const currentElements = api.getSceneElements();
+        const currentElementIds = new Set(currentElements.map((element) => element.id));
+        const managedElementIds = this.getManagedElementIds();
+        const missingElements = [...this.elementSnapshots.entries()]
+            .filter(([id]) => managedElementIds.has(id) && !currentElementIds.has(id))
+            .map(([, element]) => structuredClone(element));
+
+        if (missingElements.length === 0) {
+            return false;
+        }
+
+        api.updateScene({ elements: [...currentElements, ...missingElements] });
+        return true;
+    }
+
+    /**
+     * 現在の Slider が管理する AnswerBar の scene 要素 ID を取得する。
+     *
+     * @returns line と名前ラベルの ID 集合。
+     */
+    private getManagedElementIds(): ReadonlySet<string> {
+        const managedElementIds = new Set<string>();
+        sliders.forEach((slider) => {
+            slider.forEachAnswerBar((answerBar) => {
+                managedElementIds.add(answerBar.getLineId());
+                managedElementIds.add(answerBar.getLabelId());
+            });
+        });
+        return managedElementIds;
     }
 }
 

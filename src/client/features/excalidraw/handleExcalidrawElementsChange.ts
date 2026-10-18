@@ -1,5 +1,6 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
+import { answerBarSceneController } from "../answerBar/AnswerBarSceneController";
 import type { Slider } from "./Slider/Slider";
 import { sliders } from "./Slider/Sliders";
 import { socketController } from "../../socket/SocketController";
@@ -18,6 +19,10 @@ export function handleExcalidrawElementsChange(_elements: readonly ExcalidrawEle
         return;
     }
 
+    if (answerBarSceneController.restoreMissingElements()) {
+        return;
+    }
+
     lines.forEach((line: Line) => {
         line.onChange();
     });
@@ -28,5 +33,6 @@ export function handleExcalidrawElementsChange(_elements: readonly ExcalidrawEle
         });
     });
 
+    answerBarSceneController.rememberCurrentElements();
     socketController.syncElements(excalidrawAPIHolder.getApi().getSceneElements());
 }

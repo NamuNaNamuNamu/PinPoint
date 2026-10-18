@@ -5,10 +5,15 @@ const updateScene = jest.fn();
 const getSceneElements = jest.fn();
 const addAnswerBar = jest.fn();
 const removeAnswerBar = jest.fn();
-const forEachAnswerBar = jest.fn();
+const forEachAnswerBar = jest.fn<(callback: (answerBar: AnswerBarForSceneController) => void) => void>();
 const centerLabelInElements = jest.fn((elements: OrderedExcalidrawElement[]) =>
     elements.map((element) => ({ ...element, centered: true })),
 );
+
+type AnswerBarForSceneController = {
+    getLineId(): string;
+    getLabelId(): string;
+};
 
 jest.unstable_mockModule("../../../../src/client/features/excalidraw/Slider/Sliders", () => ({
     sliders: [
@@ -71,5 +76,29 @@ describe("AnswerBarSceneController", () => {
 
         expect(removeAnswerBar).toHaveBeenCalledWith("answer-bar-1");
         expect(updateScene).toHaveBeenCalledWith({ elements: [{ id: "keep" }] });
+    });
+
+    test("管理中 AnswerBar 要素が scene から消えた場合、直近の正常状態で復元すること", () => {
+        forEachAnswerBar.mockImplementation((callback) => {
+            callback({
+                getLineId: () => "line-1",
+                getLabelId: () => "label-1",
+            });
+        });
+        getSceneElements.mockReturnValueOnce([
+            { id: "line-1", x: 200 },
+            { id: "label-1", x: 200 },
+        ]);
+        answerBarSceneController.rememberCurrentElements();
+
+        getSceneElements.mockReturnValue([{ id: "label-1", x: 200 }]);
+
+        expect(answerBarSceneController.restoreMissingElements()).toBe(true);
+        expect(updateScene).toHaveBeenLastCalledWith({
+            elements: [
+                { id: "label-1", x: 200 },
+                { id: "line-1", x: 200 },
+            ],
+        });
     });
 });

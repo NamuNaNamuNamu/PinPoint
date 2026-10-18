@@ -5,6 +5,7 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useEffect, useState } from "react";
 
+import { answerBarSceneController } from "./features/answerBar/AnswerBarSceneController";
 import { registerAnswerBarListener } from "./features/answerBar/registerAnswerBarListener";
 import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
 import { excalidrawSyncController } from "./features/excalidraw/excalidrawSync/ExcalidrawSyncController.ts";
@@ -57,6 +58,7 @@ function App() {
 
             const elements = getInitialElements();
             excalidrawAPI.updateScene({ elements: [...elements] });
+            answerBarSceneController.rememberCurrentElements();
 
             onExcalidrawElementsInitialized();
             excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
