@@ -4,8 +4,6 @@ import path from "path";
 import { type DisconnectReason, Server, Socket } from "socket.io";
 import { fileURLToPath } from "url";
 
-import { roomService } from "./features/room/RoomService";
-import { userService } from "./features/user/UserService";
 import { socketLogger } from "./logging/SocketLogger";
 import { getLocalIPAddress } from "./network/getLocalIPAddress";
 import { SocketController } from "./socket/SocketController";
@@ -75,13 +73,6 @@ function onDisconnect(socket: Socket, reason: DisconnectReason) {
         event: `切断（理由: ${reason}）`,
         socketId: socket.id,
     });
-
-    const leftUser = userService.getUserBySocketId(socket.id);
-    if (!leftUser) {
-        return;
-    }
-
-    roomService.leave(leftUser.getId());
 }
 
 // 以下、デプロイ時起動用コード

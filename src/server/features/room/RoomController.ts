@@ -2,7 +2,7 @@ import type { Socket } from "socket.io";
 
 import { socketLogger } from "../../logging/SocketLogger";
 import { userService } from "../user/UserService";
-import { Room } from "./Room";
+import { Room, ROOM_RECONNECT_GRACE_MS } from "./Room";
 import { roomService } from "./RoomService";
 
 /**
@@ -14,8 +14,18 @@ class RoomController {
      *
      * @returns 作成したルーム。
      */
-    public createRoom = (): Room => {
-        return roomService.createRoom();
+    public createRoom = (creatorUserId: number): Room => {
+        return roomService.createRoom(creatorUserId);
+    };
+
+    /**
+     * 指定 ID のルームを取得する。
+     *
+     * @param roomId 取得対象のルーム ID。
+     * @returns 対応するルーム。存在しない場合は `undefined`。
+     */
+    public getRoom = (roomId: string): Room | undefined => {
+        return roomService.getRoom(roomId);
     };
 
     /**
@@ -69,6 +79,26 @@ class RoomController {
      */
     public leaveUser = (userId: number): void => {
         roomService.leave(userId);
+    };
+
+    /**
+     * 接続 ID が現在のユーザーに対応している場合だけ、30 秒間の再接続猶予を開始する。
+     *
+     * @param socket 切断中の Socket.IO 接続。
+     * @param userId 切断したユーザー ID。
+     */
+    public handleDisconnecting = (socket: Socket, userId: number | undefined): void => {
+        const user = userService.getUser(userId);
+        if (!user || user.getSocketId() !== socket.id) {
+            return;
+        }
+        const pending = roomService.markDisconnected(user.getId());
+        if (!pending) {
+            return;
+        }
+        setTimeout(() => {
+            roomService.leaveIfStillDisconnected(user.getId(), pending.token);
+        }, ROOM_RECONNECT_GRACE_MS);
     };
 
     /**

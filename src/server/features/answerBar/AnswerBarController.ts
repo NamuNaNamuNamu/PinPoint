@@ -1,9 +1,11 @@
 import type { Socket } from "socket.io";
 
-import { sliderDefinitions } from "../../../shared/Slider/sliderDefinitions";
+import { getQuestionTemplate } from "../../../shared/question/QuestionTemplate";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { excalidrawCursorSyncController } from "../excalidrawCursor/ExcalidrawCursorSyncController";
+import { ROOM_RECONNECT_GRACE_MS } from "../room/Room";
 import { roomController } from "../room/RoomController";
+import { questionController } from "../question/QuestionController";
 import { userService } from "../user/UserService";
 import { answerBarAssignmentState } from "./AnswerBarAssignmentState";
 
@@ -12,6 +14,7 @@ import { answerBarAssignmentState } from "./AnswerBarAssignmentState";
  */
 export class AnswerBarController {
     /**
+     * 参加先を確認後、別ルームへの所属があれば退出させてから、
      * ユーザーをルームへ参加させ、AnswerBar を割り当てる。
      *
      * @param socket 参加する Socket.IO 接続。
@@ -25,20 +28,39 @@ export class AnswerBarController {
             return null;
         }
 
+        const room = roomController.getRoom(roomId);
+        if (!room) {
+            return null;
+        }
+
+        const previousRoomId = roomController.getRoomIdByUserId(userId);
+        if (previousRoomId && previousRoomId !== roomId) {
+            const removed = answerBarAssignmentState.remove(previousRoomId, userId);
+            if (removed) {
+                socket.nsp.to(previousRoomId).emit(SocketEvents.ANSWER_BAR_REMOVED, removed);
+            }
+
+            roomController.leaveRoom(socket, previousRoomId);
+        }
+
         const response = roomController.joinRoom(socket, userId, roomId);
         if (!response) {
             return null;
         }
 
-        answerBarAssignmentState.getAll(roomId).forEach((assignment) => {
-            socket.emit(SocketEvents.ANSWER_BAR_ADDED, assignment);
-        });
+        questionController.sendCurrent(socket, roomId);
+
+        const questionId = room.getCurrentQuestionId();
+        const question = questionId === undefined ? undefined : getQuestionTemplate(questionId);
+        if (!question) {
+            return response;
+        }
 
         const { assignment, isNew } = answerBarAssignmentState.getOrCreate(
             roomId,
             userId,
             ownerUser.getName(),
-            sliderDefinitions.length,
+            question.sliders.length,
         );
         if (isNew) {
             socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_ADDED, assignment);
@@ -90,32 +112,35 @@ export class AnswerBarController {
     /**
      * 切断したユーザーの AnswerBar を 30 秒間保留し、期限切れ時に削除する。
      *
+     * ユーザーの最新 Socket ID と一致しない古い切断通知は無視する。
+     *
      * @param socket 切断中の Socket.IO 接続。
      * @param userId 切断したユーザー ID。未設定の場合は処理を行わない。
      */
     public handleDisconnecting(socket: Socket, userId: number | undefined): void {
-        if (userId === undefined) {
+        const user = userService.getUser(userId);
+        if (!user || user.getSocketId() !== socket.id) {
             return;
         }
-        const roomId = roomController.getRoomIdByUserId(userId);
+        const disconnectedUserId = user.getId();
+        const roomId = roomController.getRoomIdByUserId(disconnectedUserId);
         if (!roomId) {
             return;
         }
 
-        const token = answerBarAssignmentState.markDisconnected(roomId, userId);
+        const token = answerBarAssignmentState.markDisconnected(roomId, disconnectedUserId);
         if (!token) {
             return;
         }
 
         setTimeout(() => {
-            const removed = answerBarAssignmentState.removeIfStillDisconnected(roomId, userId, token);
+            const removed = answerBarAssignmentState.removeIfStillDisconnected(roomId, disconnectedUserId, token);
             if (!removed) {
                 return;
             }
 
-            roomController.leaveUser(userId);
             socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_REMOVED, removed);
-        }, 30_000);
+        }, ROOM_RECONNECT_GRACE_MS);
     }
 }
 

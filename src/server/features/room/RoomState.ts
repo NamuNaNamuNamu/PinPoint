@@ -19,7 +19,7 @@ export class RoomState {
      * @param id 検索するルーム ID。
      * @returns 対応するルーム。存在しない場合は `undefined`。
      */
-    private getRoomById(id: string): Room | undefined {
+    public getRoomById(id: string): Room | undefined {
         return this.rooms.find((room) => room.getId() === id);
     }
 
@@ -67,13 +67,13 @@ export class RoomState {
      *
      * @returns 作成したルーム。
      */
-    public addRoom(): Room {
+    public addRoom(creatorUserId: number): Room {
         let roomId: string;
         do {
             roomId = randomUUID();
         } while (this.getRoomById(roomId) !== undefined);
 
-        const room: Room = new Room({ id: roomId });
+        const room: Room = new Room({ id: roomId, creatorUserId });
         this.rooms.push(room);
         return room;
     }
@@ -112,6 +112,40 @@ export class RoomState {
                 this.rooms = this.rooms.filter((r) => r.getId() !== room.getId());
             }
         }
+    }
+
+    /**
+     * 切断したユーザーを削除せず、再接続猶予用の世代トークンを記録する。
+     *
+     * @param userId 切断したユーザー ID。
+     * @returns 対象ルーム ID と世代トークン。ルーム外の場合は `undefined`。
+     */
+    public markDisconnected(userId: number): { roomId: string; token: string } | undefined {
+        const room = this.rooms.find((candidate) => candidate.hasUser(userId));
+        if (!room) {
+            return undefined;
+        }
+        const token = room.markDisconnected(userId);
+        return token ? { roomId: room.getId(), token } : undefined;
+    }
+
+    /**
+     * 指定トークンが有効な切断猶予である場合だけ退出させる。
+     *
+     * @param userId 退出候補のユーザー ID。
+     * @param token 切断時に発行した世代トークン。
+     * @returns ユーザーを削除したルーム ID。削除しない場合は `undefined`。
+     */
+    public leaveIfStillDisconnected(userId: number, token: string): string | undefined {
+        const room = this.rooms.find((candidate) => candidate.hasUser(userId));
+        if (!room || !room.removeIfStillDisconnected(userId, token)) {
+            return undefined;
+        }
+        const roomId = room.getId();
+        if (room.isEmpty()) {
+            this.rooms = this.rooms.filter((candidate) => candidate.getId() !== roomId);
+        }
+        return roomId;
     }
 }
 

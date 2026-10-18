@@ -30,4 +30,20 @@ export const SocketEvents = {
     ANSWER_BAR_REMOVED: "answer-bar-removed",
     /** AnswerBar の所有者名更新を通知するイベント。 */
     ANSWER_BAR_OWNER_NAME_UPDATED: "answer-bar-owner-name-updated",
+    /** 問題をルームへ適用するイベント。 */
+    APPLY_QUESTION: "apply-question",
+    /** 現在の問題の正解を表示するイベント。 */
+    REVEAL_QUESTION: "reveal-question",
+    /** サーバーが適用した問題を通知するイベント。 */
+    QUESTION_APPLIED: "question-applied",
+    /** サーバーが現在の問題の正解表示を通知するイベント。 */
+    QUESTION_REVEALED: "question-revealed",
+    /**
+     * 現在問題に対する管理外要素削除・スクロールを要求するイベント。
+     */
+    CONTROL_CURRENT_QUESTION: "control-current-question",
+    /**
+     * 現在問題のコンテンツへ表示範囲を合わせることを通知するイベント。
+     */
+    QUESTION_SCROLL_TO_CONTENT: "question-scroll-to-content",
 } as const;

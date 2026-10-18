@@ -20,8 +20,8 @@ describe("RoomState", () => {
     });
 
     test("addRoom は一意なIDを持つ空ルームを追加する", () => {
-        const first = roomState.addRoom();
-        const second = roomState.addRoom();
+        const first = roomState.addRoom(1);
+        const second = roomState.addRoom(2);
         expect(first.getId()).toEqual(expect.any(String));
         expect(second.getId()).not.toBe(first.getId());
         expect(first.getSocketIds()).toEqual([]);
@@ -33,14 +33,14 @@ describe("RoomState", () => {
     });
 
     test("存在しないユーザーはルームに参加できない", () => {
-        const room = roomState.addRoom();
+        const room = roomState.addRoom(1);
         expect(roomState.join(99, room.getId())).toBe(false);
         expect(mockUserService.getUser).toHaveBeenCalledWith(99);
         expect(roomState.getRoomIdBySocketId("socket-99")).toBeUndefined();
     });
 
     test("ユーザーを参加させると socketId からルームIDを取得できる", () => {
-        const room = roomState.addRoom();
+        const room = roomState.addRoom(1);
         const user = { getId: () => 1, getSocketId: () => "socket-1" };
         mockUserService.getUser.mockReturnValue(user);
         expect(roomState.join(1, room.getId())).toBe(true);
@@ -49,7 +49,7 @@ describe("RoomState", () => {
     });
 
     test("leave は最後のユーザーが退出したルームを削除する", () => {
-        const room = roomState.addRoom();
+        const room = roomState.addRoom(1);
         mockUserService.getUser.mockReturnValue({ getId: () => 1, getSocketId: () => "socket-1" });
         roomState.join(1, room.getId());
         roomState.leave(1);
@@ -57,7 +57,7 @@ describe("RoomState", () => {
     });
 
     test("leave は同室の他ユーザーを保持する", () => {
-        const room = roomState.addRoom();
+        const room = roomState.addRoom(1);
         mockUserService.getUser.mockImplementation((id: number) => ({
             getId: () => id,
             getSocketId: () => `socket-${id}`,
@@ -67,5 +67,29 @@ describe("RoomState", () => {
         roomState.leave(1);
         expect(room.getSocketIds()).toEqual(["socket-2"]);
         expect(roomState.getRoomIdBySocketId("socket-2")).toBe(room.getId());
+    });
+
+    test("再接続したユーザーは、古い切断猶予トークンでは退出しない", () => {
+        const room = roomState.addRoom(1);
+        mockUserService.getUser.mockReturnValue({ getId: () => 1, getSocketId: () => "socket-1" });
+        roomState.join(1, room.getId());
+
+        const pending = roomState.markDisconnected(1);
+        expect(pending).toEqual({ roomId: room.getId(), token: expect.any(String) });
+
+        roomState.join(1, room.getId());
+
+        expect(roomState.leaveIfStillDisconnected(1, pending!.token)).toBeUndefined();
+        expect(roomState.getRoomIdBySocketId("socket-1")).toBe(room.getId());
+    });
+
+    test("有効な切断猶予トークンは、最後の参加者とルームを削除する", () => {
+        const room = roomState.addRoom(1);
+        mockUserService.getUser.mockReturnValue({ getId: () => 1, getSocketId: () => "socket-1" });
+        roomState.join(1, room.getId());
+        const pending = roomState.markDisconnected(1);
+
+        expect(roomState.leaveIfStillDisconnected(1, pending!.token)).toBe(room.getId());
+        expect(roomState.getRoomById(room.getId())).toBeUndefined();
     });
 });

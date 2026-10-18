@@ -105,6 +105,42 @@ export class AnswerBarAssignmentState {
     }
 
     /**
+     * 問題の Slider 構成に合わせ、既存参加者の slot を保ったまま AnswerBar を再発行する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param users AnswerBar を割り当てる参加者。
+     * @param sliderCount 問題が持つ Slider 件数。
+     * @returns 新しい割当一覧。
+     */
+    public reset(
+        roomId: RoomId,
+        users: readonly { userId: number; userName: string }[],
+        sliderCount: number,
+    ): readonly AnswerBarAdded[] {
+        const previous = this.assignmentsByRoomId.get(roomId)?.getAll() ?? [];
+        const previousSlotByUserId = new Map(previous.map((assignment) => [assignment.ownerUserId, assignment.slot]));
+        const roomAssignments = new RoomAssignments();
+        this.assignmentsByRoomId.set(roomId, roomAssignments);
+        const knownElementIds = this.getOrCreateKnownElementIds(roomId);
+        users.forEach((user, index) => {
+            const assignment: AnswerBarAssignment = {
+                answerBarId: randomUUID(),
+                ownerUserId: user.userId,
+                ownerUserName: user.userName,
+                slot: previousSlotByUserId.get(user.userId) ?? index,
+                lineIds: Array.from({ length: sliderCount }, () => randomUUID()),
+                labelIds: Array.from({ length: sliderCount }, () => randomUUID()),
+                disconnectedAt: null,
+                disconnectedToken: null,
+            };
+            roomAssignments.set(assignment);
+            assignment.lineIds.forEach((id) => knownElementIds.add(id));
+            assignment.labelIds.forEach((id) => knownElementIds.add(id));
+        });
+        return this.getAll(roomId);
+    }
+
+    /**
      * ユーザーの割当を取得し、存在しなければ新規作成する。
      *
      * @param roomId 割当先のルーム ID。

@@ -12,8 +12,8 @@ class TextSkeletonFactory {
      */
     createWith(textProps: TextProps) {
         return {
-            ...textProps,
             ...textFixedProps,
+            ...textProps,
             strokeColor: textProps.strokeColor ?? textFixedProps.strokeColor,
         };
     }
@@ -31,6 +31,7 @@ export const textSkeletonFactory = new TextSkeletonFactory();
 export type TextProps = Pick<TextSkeleton, "id" | "x" | "y" | "text" | "locked"> & {
     opacity?: TextSkeleton["opacity"];
     strokeColor?: TextSkeleton["strokeColor"];
+    fontSize?: TextSkeleton["fontSize"];
 };
 
 /**

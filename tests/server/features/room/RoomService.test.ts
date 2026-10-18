@@ -21,7 +21,8 @@ describe("RoomService", () => {
         const room = { getId: () => "room-1" };
         mockRoomState.addRoom.mockReturnValue(room);
         mockRoomState.getRoomIdBySocketId.mockReturnValue("room-1");
-        expect(roomService.createRoom()).toBe(room);
+        expect(roomService.createRoom(1)).toBe(room);
+        expect(mockRoomState.addRoom).toHaveBeenCalledWith(1);
         expect(roomService.getRoomIdBySocketId("socket-1")).toBe("room-1");
     });
 

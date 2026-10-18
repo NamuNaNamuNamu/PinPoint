@@ -10,14 +10,12 @@ import { textSkeletonFactory } from "../Elements/Text/TextSkeletonFactory";
  * AnswerBar の論理スロットに割り当てる描画色。
  */
 const ANSWER_BAR_COLORS = [
-    "#E53935",
     "#1E88E5",
     "#43A047",
     "#FB8C00",
     "#8E24AA",
     "#00ACC1",
     "#FDD835",
-    "#D81B60",
     "#6D4C41",
     "#546E7A",
 ] as const;

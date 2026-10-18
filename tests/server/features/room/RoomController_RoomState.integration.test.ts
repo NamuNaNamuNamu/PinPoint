@@ -22,7 +22,7 @@ describe("RoomController / RoomState integration", () => {
         const { roomState } = await import("../../../../src/server/features/room/RoomState");
         const client = createSocket("socket-1");
         const user = userController.registerUser(client, "Alice");
-        const room = roomController.createRoom();
+        const room = roomController.createRoom(user.getId());
         const roomId = room.getId();
 
         expect(roomController.joinRoom(client, user.getId(), roomId)).toBe(roomId);

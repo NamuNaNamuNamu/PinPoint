@@ -1,9 +1,9 @@
 import "./ShareDialog.scss";
 
-import { type Dispatch, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { answerBarSceneController } from "../../features/answerBar/AnswerBarSceneController";
 import { excalidrawCursorSyncController } from "../../features/excalidraw/excalidrawCursor/ExcalidrawCursorSyncController";
+import { questionSceneController } from "../../features/question/QuestionSceneController";
 import { userSessionStorage } from "../../features/sessionStorage/sessionStorage";
 import { url } from "../../features/url/Url";
 import { useSuccessStatus } from "../../hooks/useCopiedIndicator";
@@ -19,7 +19,8 @@ import { TextField } from "./TextField";
  */
 type Props = {
     closeDialog: () => void;
-    initCurrentRoomId: string | undefined;
+    currentRoomId: string | undefined;
+    onCurrentRoomIdChange: (roomId: string | undefined) => void;
 };
 
 /**
@@ -28,13 +29,14 @@ type Props = {
 type RoomURLDialogProps = {
     currentRoomId: string;
     closeDialog: () => void;
+    onCurrentRoomIdChange: (roomId: string | undefined) => void;
 };
 
 /**
  * 通信モードの開始画面のプロパティ。
  */
 type ShareStartDialogProps = {
-    startCollaborating: () => void;
+    startCollaborating: () => Promise<void>;
 };
 
 /**
@@ -43,7 +45,8 @@ type ShareStartDialogProps = {
 type ShareDialogInnerProps = {
     closeDialog: () => void;
     currentRoomId: string | undefined;
-    startCollaborating: () => void;
+    onCurrentRoomIdChange: (roomId: string | undefined) => void;
+    startCollaborating: () => Promise<void>;
 };
 
 /**
@@ -51,16 +54,16 @@ type ShareDialogInnerProps = {
  *
  * 作成と参加に成功した場合は、表示中のルーム ID と URL を更新する。
  *
- * @param setCurrentRoomId 現在のルーム ID を更新する State setter。
+ * @param onCurrentRoomIdChange 現在のルーム ID を親へ通知する関数。
  */
-const startCollaborating = async (setCurrentRoomId: Dispatch<any>) => {
+const startCollaborating = async (onCurrentRoomIdChange: (roomId: string | undefined) => void): Promise<void> => {
     const userId = userSessionStorage.getUserId();
     const room = await socketController.createRoom();
     const response = userId ? await socketController.joinRoom(userId, room.id) : null;
 
     if (response) {
         const roomId = response;
-        setCurrentRoomId(roomId);
+        onCurrentRoomIdChange(roomId);
         url.replaceRoomUrl(roomId);
     }
 };
@@ -70,7 +73,7 @@ const startCollaborating = async (setCurrentRoomId: Dispatch<any>) => {
  *
  * @param props 表示するルーム ID とダイアログを閉じる関数。
  */
-function RoomURLDialog({ currentRoomId, closeDialog }: RoomURLDialogProps) {
+function RoomURLDialog({ currentRoomId, closeDialog, onCurrentRoomIdChange }: RoomURLDialogProps) {
     const ref = useRef<HTMLInputElement>(null);
     const timerRef = useRef<number>(0);
     const [, setJustCopied] = useState(false);
@@ -128,7 +131,8 @@ function RoomURLDialog({ currentRoomId, closeDialog }: RoomURLDialogProps) {
         }
 
         excalidrawCursorSyncController.clear();
-        answerBarSceneController.clear();
+        questionSceneController.clear();
+        onCurrentRoomIdChange(undefined);
         closeDialog();
     };
 
@@ -255,7 +259,7 @@ const ShareStartDialog = ({ startCollaborating }: ShareStartDialogProps) => {
                     label="開始"
                     icon={playerPlayIcon}
                     onClick={() => {
-                        startCollaborating();
+                        void startCollaborating();
                         // trackEvent("share", "room creation", `ui (${getFrame()})`);
                         // collabAPI.startCollaboration(null);
                     }}
@@ -276,12 +280,21 @@ const ShareStartDialog = ({ startCollaborating }: ShareStartDialogProps) => {
  *
  * @param props ダイアログの表示状態を決めるプロパティ。
  */
-const ShareDialogInner = ({ closeDialog, currentRoomId, startCollaborating }: ShareDialogInnerProps) => {
+const ShareDialogInner = ({
+    closeDialog,
+    currentRoomId,
+    onCurrentRoomIdChange,
+    startCollaborating,
+}: ShareDialogInnerProps) => {
     return (
         <Dialog size="small" onCloseRequest={closeDialog} title={false}>
             <div className="ShareDialog">
                 {currentRoomId ? (
-                    <RoomURLDialog currentRoomId={currentRoomId} closeDialog={closeDialog} />
+                    <RoomURLDialog
+                        currentRoomId={currentRoomId}
+                        closeDialog={closeDialog}
+                        onCurrentRoomIdChange={onCurrentRoomIdChange}
+                    />
                 ) : (
                     <ShareStartDialog startCollaborating={startCollaborating} />
                 )}
@@ -293,16 +306,15 @@ const ShareDialogInner = ({ closeDialog, currentRoomId, startCollaborating }: Sh
 /**
  * 通信モードの開始、共有 URL の表示、およびルーム退出を行うダイアログ。
  *
- * @param props ダイアログを閉じる関数と初期ルーム ID。
+ * @param props ダイアログを閉じる関数、確定済みルーム ID、親の状態更新関数。
  */
-export const ShareDialog = ({ closeDialog, initCurrentRoomId }: Props) => {
-    const [currentRoomId, setCurrentRoomId] = useState(initCurrentRoomId);
-
+export const ShareDialog = ({ closeDialog, currentRoomId, onCurrentRoomIdChange }: Props) => {
     return (
         <ShareDialogInner
             closeDialog={closeDialog}
             currentRoomId={currentRoomId}
-            startCollaborating={() => startCollaborating(setCurrentRoomId)}
+            onCurrentRoomIdChange={onCurrentRoomIdChange}
+            startCollaborating={() => startCollaborating(onCurrentRoomIdChange)}
         />
     );
 };

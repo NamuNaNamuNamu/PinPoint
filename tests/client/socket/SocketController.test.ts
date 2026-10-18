@@ -1,13 +1,16 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { jest } from "@jest/globals";
 
+import type { ApplyQuestionRequest, ApplyQuestionResult } from "../../../src/shared/question/QuestionEvents";
 import { SocketEvents } from "../../../src/shared/SocketEvents";
 
 const on = jest.fn();
 const off = jest.fn();
 const emit = jest.fn();
 
-jest.unstable_mockModule("../../../src/client/socket/socket", () => ({ socket: { emit, on, off } }));
+jest.unstable_mockModule("../../../src/client/socket/socket", () => ({
+    socket: { emit, on, off, connected: true, id: "socket-1" },
+}));
 
 const { socketController } = await import("../../../src/client/socket/SocketController");
 
@@ -51,4 +54,25 @@ describe("SocketController", () => {
 
         expect(off).toHaveBeenCalledWith("connect", listener);
     });
+
+    test("問題適用の ACK を返し、接続状態と Socket ID を取得できること", async () => {
+        const request: ApplyQuestionRequest = { roomId: "room-1", questionId: 1, deleteExternalElements: true };
+
+        const result = socketController.applyQuestion(request);
+
+        expect(emit).toHaveBeenLastCalledWith(SocketEvents.APPLY_QUESTION, request, expect.any(Function));
+        const acknowledgement = emit.mock.calls.at(-1)?.[2];
+        if (!isApplyQuestionAcknowledgement(acknowledgement)) {
+            throw new Error("apply-question の ACK callback が渡されていません。");
+        }
+        acknowledgement({ ok: true });
+
+        await expect(result).resolves.toEqual({ ok: true });
+        expect(socketController.isConnected()).toBe(true);
+        expect(socketController.getSocketId()).toBe("socket-1");
+    });
 });
+
+function isApplyQuestionAcknowledgement(value: unknown): value is (response: ApplyQuestionResult) => void {
+    return typeof value === "function";
+}

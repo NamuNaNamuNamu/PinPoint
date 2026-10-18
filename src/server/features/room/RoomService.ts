@@ -10,11 +10,22 @@ export class RoomService {
     /**
      * 新しいルームを作成する。
      *
+     * @param creatorUserId ルーム作成者のユーザー ID。
      * @returns 作成したルーム。
      */
-    public createRoom(): Room {
-        const room: Room = roomState.addRoom();
+    public createRoom(creatorUserId: number): Room {
+        const room: Room = roomState.addRoom(creatorUserId);
         return room;
+    }
+
+    /**
+     * 指定 ID のルームを取得する。
+     *
+     * @param roomId 取得対象のルーム ID。
+     * @returns 対応するルーム。存在しない場合は `undefined`。
+     */
+    public getRoom(roomId: string): Room | undefined {
+        return roomState.getRoomById(roomId);
     }
 
     /**
@@ -73,6 +84,27 @@ export class RoomService {
             userId: userId,
             socketId: userService.getUser(userId)?.getSocketId() ?? "取得失敗しました",
         });
+    }
+
+    /**
+     * 切断ユーザーの再接続猶予を開始する。
+     *
+     * @param userId 切断したユーザー ID。
+     * @returns 対象ルーム ID と世代トークン。ルーム外の場合は `undefined`。
+     */
+    public markDisconnected(userId: number): { roomId: string; token: string } | undefined {
+        return roomState.markDisconnected(userId);
+    }
+
+    /**
+     * 再接続されなかったユーザーを、猶予トークンに基づいて退出させる。
+     *
+     * @param userId 退出候補のユーザー ID。
+     * @param token 切断時に発行した世代トークン。
+     * @returns ユーザーを削除したルーム ID。削除しない場合は `undefined`。
+     */
+    public leaveIfStillDisconnected(userId: number, token: string): string | undefined {
+        return roomState.leaveIfStillDisconnected(userId, token);
     }
 }
 

@@ -3,6 +3,7 @@ import type { Socket } from "socket.io";
 
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
+import { questionController } from "../question/QuestionController";
 
 /**
  * Excalidraw 要素を同じルームの他クライアントへ同期する。
@@ -29,7 +30,8 @@ class ExcalidrawSyncController {
             throw new Error("roomId が未設定です");
         }
 
-        const sanitizedElements = answerBarAssignmentState.excludeInactiveAnswerBarElements(roomId, elements);
+        const answerBarSanitizedElements = answerBarAssignmentState.excludeInactiveAnswerBarElements(roomId, elements);
+        const sanitizedElements = questionController.excludeManagedElements(roomId, answerBarSanitizedElements);
         socket.to(roomId).emit(SocketEvents.SYNC_ELEMENTS, sanitizedElements);
     };
 }

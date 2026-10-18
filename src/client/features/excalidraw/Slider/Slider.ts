@@ -45,7 +45,7 @@ export class Slider {
      *
      * @param params 回答欄の識別子、位置、幅、高さ。
      */
-    constructor({ id, x, y, width, height }: Params) {
+    constructor({ id, name, x, y, width, height }: Params) {
         this.x = x;
         this.width = width;
         this.y = y;
@@ -59,7 +59,7 @@ export class Slider {
                 id: `text-${id}`,
                 x: x + width / 2,
                 y: y + height * 1.1,
-                text: "名前",
+                text: name,
                 locked: true,
                 opacity: 100,
             }),
@@ -189,6 +189,8 @@ interface Params {
      * 回答欄の識別子。
      */
     id: string;
+    /** Slider の下部に表示する名称。 */
+    name: string;
     /**
      * 回答欄の左上の X 座標。
      */

@@ -2,6 +2,11 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import type { UserParams } from "../../server/features/user/User";
 import type { Cursor } from "../../shared/excalidraw/Cursor";
+import type {
+    ApplyQuestionRequest,
+    ApplyQuestionResult,
+    ControlCurrentQuestionRequest,
+} from "../../shared/question/QuestionEvents";
 import { SocketEvents } from "../../shared/SocketEvents";
 import { socket } from "./socket";
 
@@ -39,6 +44,24 @@ class SocketController {
         return () => {
             socket.off("connect", listener);
         };
+    }
+
+    /**
+     * 現在の Socket.IO 接続が確立済みかを返す。
+     *
+     * @returns 接続済みの場合は `true`。
+     */
+    public isConnected(): boolean {
+        return socket.connected;
+    }
+
+    /**
+     * 現在の Socket.IO 接続 ID を取得する。
+     *
+     * @returns 未接続の場合は `undefined`。
+     */
+    public getSocketId(): string | undefined {
+        return socket.id;
     }
 
     /**
@@ -156,6 +179,43 @@ class SocketController {
                 resolve(response);
             });
         });
+    }
+
+    /**
+     * 作成者として問題適用を要求する。
+     *
+     * @param request 適用する問題と外部要素削除指定。
+     * @returns サーバーによる受理または拒否の結果。
+     */
+    public applyQuestion(request: ApplyQuestionRequest): Promise<ApplyQuestionResult> {
+        return new Promise((resolve, _reject) => {
+            socket.emit(SocketEvents.APPLY_QUESTION, request, (response: ApplyQuestionResult) => {
+                resolve(response);
+            });
+        });
+    }
+
+    /**
+     * 現在問題に対する管理外要素削除・スクロールを要求する。
+     *
+     * @param request 操作対象のルームと実行内容。
+     * @returns サーバーによる受理または拒否の結果。
+     */
+    public controlCurrentQuestion(request: ControlCurrentQuestionRequest): Promise<ApplyQuestionResult> {
+        return new Promise((resolve, _reject) => {
+            socket.emit(SocketEvents.CONTROL_CURRENT_QUESTION, request, (response: ApplyQuestionResult) => {
+                resolve(response);
+            });
+        });
+    }
+
+    /**
+     * 作成者として現在の問題の正解表示を要求する。
+     *
+     * @param roomId 正解表示の対象ルーム ID。
+     */
+    public revealQuestion(roomId: string): void {
+        socket.emit(SocketEvents.REVEAL_QUESTION, { roomId });
     }
 
     /**

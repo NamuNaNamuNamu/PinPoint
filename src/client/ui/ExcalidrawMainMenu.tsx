@@ -1,27 +1,26 @@
 import { MainMenu } from "@excalidraw/excalidraw";
 import { useState } from "react";
 
-import { socketController } from "../socket/SocketController";
 import { usersIcon } from "./icons";
 import { ShareDialog } from "./ShareDialog/ShareDialog";
+
+type Props = {
+    currentRoomId: string | undefined;
+    onCurrentRoomIdChange: (roomId: string | undefined) => void;
+};
 
 /**
  * 通信モードの開始と共有ダイアログの表示を行う Excalidraw のメインメニュー。
  */
-function ExcalidrawMainMenu() {
+function ExcalidrawMainMenu({ currentRoomId, onCurrentRoomIdChange }: Props) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [currentRoomId, setCurrentRoomId] = useState<string | undefined>();
 
     return (
         <>
             <MainMenu>
                 <MainMenu.Item
                     icon={usersIcon}
-                    onSelect={async () => {
-                        // とりあえず画面を出すところから始めてみる
-                        // TODO: QRコードでも入室できるように
-                        const roomId = await socketController.getRoomId();
-                        setCurrentRoomId(roomId);
+                    onSelect={() => {
                         setIsDialogOpen(true);
                     }}
                 >
@@ -30,7 +29,11 @@ function ExcalidrawMainMenu() {
             </MainMenu>
 
             {isDialogOpen && (
-                <ShareDialog closeDialog={() => setIsDialogOpen(false)} initCurrentRoomId={currentRoomId} />
+                <ShareDialog
+                    closeDialog={() => setIsDialogOpen(false)}
+                    currentRoomId={currentRoomId}
+                    onCurrentRoomIdChange={onCurrentRoomIdChange}
+                />
             )}
         </>
     );

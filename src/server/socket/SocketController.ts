@@ -2,10 +2,12 @@ import type { Socket } from "socket.io";
 
 import type { UpdateSocketIdRequestType } from "../../client/socket/SocketController";
 import type { Cursor } from "../../shared/excalidraw/Cursor";
+import type { ApplyQuestionResult } from "../../shared/question/QuestionEvents";
 import { SocketEvents } from "../../shared/SocketEvents";
 import { answerBarController } from "../features/answerBar/AnswerBarController";
 import { excalidrawCursorSyncController } from "../features/excalidrawCursor/ExcalidrawCursorSyncController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
+import { questionController } from "../features/question/QuestionController";
 import { roomController } from "../features/room/RoomController";
 import type { User } from "../features/user/User";
 import { userController } from "../features/user/UserController";
@@ -72,7 +74,11 @@ export class SocketController {
         });
 
         this.socket.on(SocketEvents.CREATE_ROOM, (_message, callback) => {
-            const room = roomController.createRoom();
+            if (this.activeUserId === undefined) {
+                callback(null);
+                return;
+            }
+            const room = roomController.createRoom(this.activeUserId);
 
             // レスポンス
             callback(room);
@@ -111,10 +117,30 @@ export class SocketController {
             excalidrawCursorSyncController.send(this.socket, message);
         });
 
+        this.socket.on(SocketEvents.APPLY_QUESTION, (message, callback: (result: ApplyQuestionResult) => void) => {
+            const result = questionController.apply(this.socket, this.activeUserId, message);
+            console.debug("[apply-question]", {
+                userId: this.activeUserId,
+                roomId: message?.roomId,
+                deleteExternalElements: message?.deleteExternalElements,
+                result,
+            });
+            callback(result);
+        });
+
+        this.socket.on(SocketEvents.REVEAL_QUESTION, (message) => {
+            questionController.reveal(this.socket, this.activeUserId, message?.roomId);
+        });
+
+        this.socket.on(SocketEvents.CONTROL_CURRENT_QUESTION, (message, callback) => {
+            callback(questionController.controlCurrent(this.socket, this.activeUserId, message));
+        });
+
         this.socket.on("disconnecting", () => {
             // Socket.IO が socket.rooms を空にする前に発火する。
             excalidrawCursorSyncController.remove(this.socket);
             answerBarController.handleDisconnecting(this.socket, this.activeUserId);
+            roomController.handleDisconnecting(this.socket, this.activeUserId);
         });
     }
 }
