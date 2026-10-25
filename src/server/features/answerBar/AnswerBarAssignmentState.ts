@@ -105,6 +105,16 @@ export class AnswerBarAssignmentState {
     }
 
     /**
+     * ルーム削除時に、AnswerBar 割当と既知要素 ID を破棄する。
+     *
+     * @param roomId 削除されたルーム ID。
+     */
+    public clear(roomId: RoomId): void {
+        this.assignmentsByRoomId.delete(roomId);
+        this.knownElementIdsByRoomId.delete(roomId);
+    }
+
+    /**
      * 問題の Slider 構成に合わせ、既存参加者の slot を保ったまま AnswerBar を再発行する。
      *
      * @param roomId 対象ルーム ID。

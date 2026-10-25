@@ -1,4 +1,5 @@
 import type { AnswerBarAdded } from "../../../../shared/answerBar/AnswerBarEvents";
+import { getAnswerBarSlotRatio } from "../../../../shared/answerBar/answerBarSlot";
 import type { MoveRange } from "../Elements/Line/MoveRange";
 import { Rectangle } from "../Elements/Rectangle/Rectangle";
 import { rectangleSkeletonFactory } from "../Elements/Rectangle/RectangleSkeletonFactory";
@@ -134,27 +135,13 @@ export class Slider {
     }
 
     /**
-     * slot に対応する、二分割を段階的に細分化した比率を取得する。
-     *
-     * @param slot 中央、四分割、八分割の順に割り当てる論理スロット。
-     * @returns 領域の始点から終点までの比率。
-     */
-    private getSlotRatio(slot: number): number {
-        const level = Math.floor(Math.log2(slot + 1));
-        const firstSlotInLevel = 2 ** level - 1;
-        const numerator = 2 * (slot - firstSlotInLevel) + 1;
-        const denominator = 2 ** (level + 1);
-        return numerator / denominator;
-    }
-
-    /**
      * slot に対応する AnswerBar の初期 X 座標を取得する。
      *
      * @param slot AnswerBar の論理スロット。
      * @returns Slider 内での初期 X 座標。
      */
     private getInitialX(slot: number): number {
-        return this.x + this.width * this.getSlotRatio(slot);
+        return this.x + this.width * getAnswerBarSlotRatio(slot);
     }
 
     /**
@@ -164,7 +151,7 @@ export class Slider {
      * @returns Slider 内での名前ラベルの Y 座標。
      */
     private getInitialLabelY(slot: number): number {
-        return this.y + this.height * this.getSlotRatio(slot);
+        return this.y + this.height * getAnswerBarSlotRatio(slot);
     }
 
     /**

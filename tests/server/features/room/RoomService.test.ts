@@ -1,11 +1,26 @@
 import { jest } from "@jest/globals";
 
-const mockRoomState = { addRoom: jest.fn(), join: jest.fn(), getRoomIdBySocketId: jest.fn(), leave: jest.fn() };
+const mockRoomState = {
+    addRoom: jest.fn(),
+    join: jest.fn(),
+    getRoomIdBySocketId: jest.fn(),
+    getRoomIdByUserId: jest.fn(),
+    getRoomById: jest.fn(),
+    leave: jest.fn(),
+    markDisconnected: jest.fn(),
+    leaveIfStillDisconnected: jest.fn(),
+};
 const mockUserService = { getUser: jest.fn() };
 const mockRoomLogger = { outputRoomState: jest.fn() };
+const mockAnswerBarAssignmentState = { clear: jest.fn() };
+const mockScoreState = { clear: jest.fn() };
 jest.unstable_mockModule("../../../../src/server/features/room/RoomState", () => ({ roomState: mockRoomState }));
 jest.unstable_mockModule("../../../../src/server/features/user/UserService", () => ({ userService: mockUserService }));
 jest.unstable_mockModule("../../../../src/server/logging/RoomLogger", () => ({ roomLogger: mockRoomLogger }));
+jest.unstable_mockModule("../../../../src/server/features/answerBar/AnswerBarAssignmentState", () => ({
+    answerBarAssignmentState: mockAnswerBarAssignmentState,
+}));
+jest.unstable_mockModule("../../../../src/server/features/score/ScoreState", () => ({ scoreState: mockScoreState }));
 const { RoomService } = await import("../../../../src/server/features/room/RoomService");
 
 describe("RoomService", () => {
@@ -15,6 +30,8 @@ describe("RoomService", () => {
         Object.values(mockRoomState).forEach((fn) => fn.mockReset());
         mockUserService.getUser.mockReset();
         mockRoomLogger.outputRoomState.mockReset();
+        mockAnswerBarAssignmentState.clear.mockReset();
+        mockScoreState.clear.mockReset();
     });
 
     test("createRoom と getRoomIdBySocketId は RoomState に委譲する", () => {
@@ -70,5 +87,25 @@ describe("RoomService", () => {
             userId: 999,
             socketId: "取得失敗しました",
         });
+    });
+
+    test("最後の参加者が退出してルームが削除された場合、得点と AnswerBar の補助状態を破棄する", () => {
+        mockRoomState.getRoomIdByUserId.mockReturnValue("room-1");
+        mockRoomState.getRoomById.mockReturnValue(undefined);
+
+        roomService.leave(1);
+
+        expect(mockAnswerBarAssignmentState.clear).toHaveBeenCalledWith("room-1");
+        expect(mockScoreState.clear).toHaveBeenCalledWith("room-1");
+    });
+
+    test("切断猶予後にルームが残る場合、補助状態を破棄しない", () => {
+        mockRoomState.getRoomIdByUserId.mockReturnValue("room-1");
+        mockRoomState.leaveIfStillDisconnected.mockReturnValue("room-1");
+        mockRoomState.getRoomById.mockReturnValue({ getId: () => "room-1" });
+
+        expect(roomService.leaveIfStillDisconnected(1, "token-1")).toBe("room-1");
+        expect(mockAnswerBarAssignmentState.clear).not.toHaveBeenCalled();
+        expect(mockScoreState.clear).not.toHaveBeenCalled();
     });
 });

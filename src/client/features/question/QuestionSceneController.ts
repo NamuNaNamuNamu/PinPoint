@@ -11,7 +11,26 @@ import { textSkeletonFactory } from "../excalidraw/Elements/Text/TextSkeletonFac
 import { excalidrawAPIHolder } from "../excalidraw/ExcalidrawAPIHolder";
 import { setSliders, sliders } from "../excalidraw/Slider/Sliders";
 
-/** 問題テンプレートと正解マーカーを scene に反映する。 */
+/**
+ * 正解旗の三角形先端から上端までの高さ。
+ */
+const CORRECT_ANSWER_FLAG_HEIGHT = 14;
+/**
+ * 選択肢テキストに使用するフォントサイズ。
+ */
+const CHOICE_FONT_SIZE = 30;
+/**
+ * Excalidraw の 30px テキスト 1 行を収めるための高さ。
+ */
+const CHOICE_TEXT_HEIGHT = 38;
+/**
+ * 選択肢テキスト下端と正解旗上端の最小間隔。
+ */
+const CHOICE_TO_FLAG_GAP = 12;
+
+/**
+ * 問題テンプレートと正解マーカーを scene に反映する。
+ */
 class QuestionSceneController {
     private readonly managedElementIds = new Set<string>();
     private currentQuestion: QuestionApplied["question"] | undefined;
@@ -52,7 +71,9 @@ class QuestionSceneController {
     }
 
     /**
-     * 現在の問題の各 Slider に、操作不能な赤い正解マーカーを表示する。
+     * 現在の問題の各 Slider に、操作不能な赤い正解線と下向き三角形の旗を表示する。
+     *
+     * 旗の三角形先端は正解線の上端に一致する。
      *
      * 現在の問題が未適用、または通知の問題 ID が現在の問題 ID と一致しない場合は scene を変更しない。
      *
@@ -65,7 +86,7 @@ class QuestionSceneController {
         }
         const api = excalidrawAPIHolder.getApi();
         const markers = convertToExcalidrawElements(
-            question.sliders.map((slider) =>
+            question.sliders.flatMap((slider) => [
                 lineSkeletonFactory.createWith({
                     id: `correct-answer-${slider.id}`,
                     x: slider.x + slider.width * slider.correctAnswerRatio,
@@ -74,7 +95,19 @@ class QuestionSceneController {
                     strokeColor: "#E53935",
                     locked: true,
                 }),
-            ),
+                {
+                    type: "arrow",
+                    id: `correct-answer-flag-${slider.id}`,
+                    x: slider.x + slider.width * slider.correctAnswerRatio,
+                    y: slider.y - CORRECT_ANSWER_FLAG_HEIGHT,
+                    points: [[0, 0], [0, CORRECT_ANSWER_FLAG_HEIGHT]],
+                    strokeColor: "#E53935",
+                    strokeWidth: 2,
+                    endArrowhead: "triangle",
+                    locked: true,
+                    roughness: 0,
+                },
+            ]),
             { regenerateIds: false },
         );
         markers.forEach((marker) => this.managedElementIds.add(marker.id));
@@ -82,6 +115,7 @@ class QuestionSceneController {
             .getSceneElementsWithTombstones()
             .filter((element) => !markerIds(question).has(element.id));
         api.updateScene({ elements: [...remaining, ...markers] });
+        api.setToast({ message: "解答表示！", duration: 2000 });
     }
 
     /**
@@ -129,6 +163,7 @@ class QuestionSceneController {
             return [];
         }
         const centerX = firstSlider.x + firstSlider.width / 2;
+        const choiceY = firstSlider.y - CORRECT_ANSWER_FLAG_HEIGHT - CHOICE_TO_FLAG_GAP - CHOICE_TEXT_HEIGHT;
         return [
             textSkeletonFactory.createWith({
                 id: `question-${question.id}`,
@@ -141,18 +176,18 @@ class QuestionSceneController {
             textSkeletonFactory.createWith({
                 id: `choice-left-${question.id}`,
                 x: firstSlider.x,
-                y: 170,
+                y: choiceY,
                 text: question.choiceLeft,
                 locked: true,
-                fontSize: 30,
+                fontSize: CHOICE_FONT_SIZE,
             }),
             textSkeletonFactory.createWith({
                 id: `choice-right-${question.id}`,
                 x: firstSlider.x + firstSlider.width,
-                y: 170,
+                y: choiceY,
                 text: question.choiceRight,
                 locked: true,
-                fontSize: 30,
+                fontSize: CHOICE_FONT_SIZE,
             }),
             ...sliders.flatMap((slider) => slider.getSkeleton()),
         ];

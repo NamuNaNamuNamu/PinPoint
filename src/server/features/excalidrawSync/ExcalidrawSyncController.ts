@@ -4,6 +4,7 @@ import type { Socket } from "socket.io";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
 import { questionController } from "../question/QuestionController";
+import { scoreState } from "../score/ScoreState";
 
 /**
  * Excalidraw 要素を同じルームの他クライアントへ同期する。
@@ -17,9 +18,10 @@ class ExcalidrawSyncController {
      *
      * @param socket 要素を送信したクライアントのソケット。
      * @param elements 同期する Excalidraw 要素。
+     * @param userId 要素同期を送信した認証済みユーザー ID。
      * @throws ルーム ID を取得できない場合にエラーを送出する。
      */
-    public send = (socket: Socket, elements: readonly ExcalidrawElement[]): void => {
+    public send = (socket: Socket, elements: readonly ExcalidrawElement[], userId: number | undefined = undefined): void => {
         const roomIds = [...socket.rooms].filter((roomId) => roomId !== socket.id);
         if (roomIds.length !== 1) {
             return;
@@ -29,6 +31,8 @@ class ExcalidrawSyncController {
         if (!roomId) {
             throw new Error("roomId が未設定です");
         }
+
+        scoreState.recordPositions(roomId, userId, elements, answerBarAssignmentState.getAll(roomId));
 
         const answerBarSanitizedElements = answerBarAssignmentState.excludeInactiveAnswerBarElements(roomId, elements);
         const sanitizedElements = questionController.excludeManagedElements(roomId, answerBarSanitizedElements);

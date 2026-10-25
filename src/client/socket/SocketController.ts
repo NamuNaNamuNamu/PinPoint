@@ -210,6 +210,20 @@ class SocketController {
     }
 
     /**
+     * 作成者としてルームの累積得点リセットを要求する。
+     *
+     * @param roomId リセット対象ルーム ID。
+     * @returns サーバーによる受理または拒否の結果。
+     */
+    public resetScores(roomId: string): Promise<ApplyQuestionResult> {
+        return new Promise((resolve, _reject) => {
+            socket.emit(SocketEvents.RESET_SCORES, { roomId }, (response: ApplyQuestionResult) => {
+                resolve(response);
+            });
+        });
+    }
+
+    /**
      * 作成者として現在の問題の正解表示を要求する。
      *
      * @param roomId 正解表示の対象ルーム ID。

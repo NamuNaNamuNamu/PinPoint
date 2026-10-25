@@ -1,9 +1,11 @@
+import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { jest } from "@jest/globals";
 
 type SetSliders = typeof import("../../../../src/client/features/excalidraw/Slider/Sliders").setSliders;
 
-const updateScene = jest.fn();
+const updateScene = jest.fn<ExcalidrawImperativeAPI["updateScene"]>();
 const scrollToContent = jest.fn();
+const setToast = jest.fn();
 const getSceneElementsWithTombstones = jest.fn();
 const getActiveSceneElements = jest.fn();
 const clearAnswerBars = jest.fn();
@@ -34,7 +36,7 @@ jest.unstable_mockModule("../../../../src/client/features/excalidraw/Elements/Te
 }));
 jest.unstable_mockModule("../../../../src/client/features/excalidraw/ExcalidrawAPIHolder", () => ({
     excalidrawAPIHolder: {
-        getApi: () => ({ updateScene, scrollToContent }),
+        getApi: () => ({ updateScene, scrollToContent, setToast }),
         getActiveSceneElements,
         getSceneElementsWithTombstones,
     },
@@ -136,8 +138,60 @@ describe("QuestionSceneController", () => {
                     strokeColor: "#E53935",
                     locked: true,
                 },
+                {
+                    type: "arrow",
+                    id: "correct-answer-flag-slider-1",
+                    x: 400,
+                    y: 206,
+                    points: [[0, 0], [0, 14]],
+                    strokeColor: "#E53935",
+                    strokeWidth: 2,
+                    endArrowhead: "triangle",
+                    locked: true,
+                    roughness: 0,
+                },
             ],
         });
+        expect(setToast).toHaveBeenCalledWith({ message: "解答表示！", duration: 2000 });
+    });
+
+    test("選択肢テキスト下端と正解旗上端の間に 12px を確保する", () => {
+        questionSceneController.apply(
+            {
+                question: {
+                    id: 1,
+                    question: "質問",
+                    choiceLeft: "左",
+                    choiceRight: "右",
+                    sliders: [
+                        {
+                            id: "slider-1",
+                            name: "評価",
+                            x: 100,
+                            y: 220,
+                            width: 600,
+                            height: 48,
+                            correctAnswerRatio: 0.5,
+                        },
+                    ],
+                },
+                answerBars: [],
+                deleteExternalElements: false,
+                scrollToContent: false,
+            },
+            1,
+        );
+
+        const scene = updateScene.mock.calls[0]?.[0];
+        if (!scene?.elements) {
+            throw new Error("問題 scene が更新されていません。");
+        }
+        const leftChoice = scene.elements.find((element) => element.id === "choice-left-1");
+        if (!leftChoice) {
+            throw new Error("選択肢テキストが生成されていません。");
+        }
+        expect(leftChoice).toEqual(expect.objectContaining({ y: 156, fontSize: 30 }));
+        expect(220 - 14 - (leftChoice.y + 38)).toBeGreaterThanOrEqual(12);
     });
 
     test("clear は問題管理要素と AnswerBar を除去し、外部要素を保持すること", () => {

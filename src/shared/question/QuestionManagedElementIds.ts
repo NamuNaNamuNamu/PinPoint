@@ -16,6 +16,7 @@ export function getQuestionManagedElementIds(question: QuestionTemplate): Readon
             `rectangle-${slider.id}`,
             `text-${slider.id}`,
             `correct-answer-${slider.id}`,
+            `correct-answer-flag-${slider.id}`,
         ]),
     ]);
 }

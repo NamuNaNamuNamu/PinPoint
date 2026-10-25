@@ -5,6 +5,7 @@ export type InitialRoomCommand = {
     reveal: boolean;
     scrollToContent: boolean;
     hasScrollToContentParam: boolean;
+    scoreReset: boolean;
 };
 
 class Url {
@@ -70,6 +71,15 @@ class Url {
     };
 
     /**
+     * URL の `scoreReset` が文字列 `true` かを判定する。
+     *
+     * @returns `true` が明示された場合は `true`。
+     */
+    public shouldResetScores = (): boolean => {
+        return new URLSearchParams(window.location.search).get("scoreReset") === "true";
+    };
+
+    /**
      * 現在の URL を、ページ遷移時に一度だけ実行する入室・問題操作として読み取る。
      *
      * @returns room パラメータがある場合はその操作内容。ない場合は `undefined`。
@@ -87,6 +97,7 @@ class Url {
             reveal: this.shouldReveal(),
             scrollToContent: this.shouldScrollToContent(),
             hasScrollToContentParam: this.hasScrollToContentParam(),
+            scoreReset: this.shouldResetScores(),
         };
     };
 

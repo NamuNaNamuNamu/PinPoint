@@ -12,8 +12,11 @@ import { SocketEvents } from "../../../shared/SocketEvents";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
 import { roomController } from "../room/RoomController";
 import { userService } from "../user/UserService";
+import { scoreState } from "../score/ScoreState";
 
-/** ルームの問題適用と正解表示を処理する。 */
+/**
+ * ルームの問題適用と正解表示を処理する。
+ */
 class QuestionController {
     /**
      * サーバー管理要素を通常の Excalidraw 同期から除外する。
@@ -73,6 +76,7 @@ class QuestionController {
             return user ? [{ userId: participantUserId, userName: user.getName() }] : [];
         });
         const answerBars = answerBarAssignmentState.reset(request.roomId, users, question.sliders.length);
+        scoreState.prepareQuestion(request.roomId, question, answerBars);
         const payload: QuestionApplied = {
             question,
             answerBars,
@@ -99,8 +103,37 @@ class QuestionController {
         if (!room || questionId === undefined || !room.isCreatedBy(userId) || !room.hasUser(userId)) {
             return;
         }
+        if (room.isAnswerRevealed()) {
+            return;
+        }
         room.revealAnswer();
+        const scores = scoreState.addQuestionScores(roomId, getQuestionTemplate(questionId)!, answerBarAssignmentState.getAll(roomId));
         socket.nsp.to(roomId).emit(SocketEvents.QUESTION_REVEALED, { questionId });
+        socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores });
+    }
+
+    /**
+     * 作成者の要求により累積得点を 0 に戻してルームへ通知する。
+     *
+     * @param socket 要求元の Socket.IO 接続。
+     * @param userId 要求元ユーザー ID。
+     * @param roomId リセット対象ルーム ID。
+     * @returns 受理結果。作成者以外の要求は状態を変更しない。
+     */
+    public resetScores(socket: Socket, userId: number | undefined, roomId: string | undefined): ApplyQuestionResult {
+        if (userId === undefined || !roomId) {
+            return { ok: false, reason: "invalid-request" };
+        }
+        const room = roomController.getRoom(roomId);
+        if (!room) {
+            return { ok: false, reason: "room-not-found" };
+        }
+        if (!room.isCreatedBy(userId)) {
+            return { ok: false, reason: "not-creator" };
+        }
+        const scores = scoreState.reset(roomId, answerBarAssignmentState.getAll(roomId));
+        socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores });
+        return { ok: true };
     }
 
     /**
@@ -144,6 +177,9 @@ class QuestionController {
                 deleteExternalElements: true,
                 scrollToContent: request.scrollToContent,
             } satisfies QuestionApplied);
+            if (room.isAnswerRevealed()) {
+                socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_REVEALED, { questionId });
+            }
         } else if (request.scrollToContent) {
             socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_SCROLL_TO_CONTENT);
         }
@@ -175,6 +211,7 @@ class QuestionController {
         if (room.isAnswerRevealed()) {
             socket.emit(SocketEvents.QUESTION_REVEALED, { questionId });
         }
+        socket.emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId) });
     }
 }
 

@@ -1,4 +1,6 @@
 import { roomLogger } from "../../logging/RoomLogger";
+import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
+import { scoreState } from "../score/ScoreState";
 import { userService } from "../user/UserService";
 import { Room } from "./Room";
 import { roomState } from "./RoomState";
@@ -77,7 +79,9 @@ export class RoomService {
      * @param userId 退出するユーザー ID。
      */
     public leave(userId: number): void {
+        const roomId = roomState.getRoomIdByUserId(userId);
         roomState.leave(userId);
+        this.clearRoomDataIfDeleted(roomId);
 
         roomLogger.outputRoomState({
             event: "退出",
@@ -104,7 +108,23 @@ export class RoomService {
      * @returns ユーザーを削除したルーム ID。削除しない場合は `undefined`。
      */
     public leaveIfStillDisconnected(userId: number, token: string): string | undefined {
-        return roomState.leaveIfStillDisconnected(userId, token);
+        const roomId = roomState.getRoomIdByUserId(userId);
+        const leftRoomId = roomState.leaveIfStillDisconnected(userId, token);
+        this.clearRoomDataIfDeleted(roomId);
+        return leftRoomId;
+    }
+
+    /**
+     * 参加者の退出によってルームが削除された場合だけ、ルームに紐付く補助状態を破棄する。
+     *
+     * @param roomId 退出前にユーザーが所属していたルーム ID。
+     */
+    private clearRoomDataIfDeleted(roomId: string | undefined): void {
+        if (!roomId || roomState.getRoomById(roomId)) {
+            return;
+        }
+        answerBarAssignmentState.clear(roomId);
+        scoreState.clear(roomId);
     }
 }
 

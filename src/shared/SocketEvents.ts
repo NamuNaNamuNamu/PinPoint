@@ -46,4 +46,12 @@ export const SocketEvents = {
      * 現在問題のコンテンツへ表示範囲を合わせることを通知するイベント。
      */
     QUESTION_SCROLL_TO_CONTENT: "question-scroll-to-content",
+    /**
+     * ルームの累積得点を通知するイベント。
+     */
+    SCORES_UPDATED: "scores-updated",
+    /**
+     * 累積得点を 0 に戻す要求。
+     */
+    RESET_SCORES: "reset-scores",
 } as const;

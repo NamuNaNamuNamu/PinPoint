@@ -10,6 +10,7 @@ import { excalidrawSyncState } from "./features/excalidraw/excalidrawSync/Excali
 import { handlePointerChange } from "./features/excalidraw/handlePointerChange.ts";
 import { useExcalidrawSceneInitialization } from "./features/excalidraw/useExcalidrawSceneInitialization";
 import { useRoomConnection } from "./features/room/useRoomConnection";
+import { CurrentScore } from "./ui/CurrentScore";
 import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx";
 
 function App() {
@@ -30,7 +31,7 @@ function App() {
                 onPointerUpdate={(payload) => {
                     handlePointerChange(payload);
                 }}
-                zenModeEnabled={true}
+                renderTopRightUI={() => <CurrentScore userId={roomConnection.getOperatorUserId()} />}
             >
                 <ExcalidrawMainMenu
                     currentRoomId={roomConnection.currentRoomId}

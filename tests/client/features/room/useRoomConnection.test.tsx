@@ -18,6 +18,7 @@ type UpdateSocketId = (userId: number | undefined) => Promise<UserParams | undef
 type RegisterUser = (userName: string) => Promise<UserParams>;
 type ApplyQuestion = (request: ApplyQuestionRequest) => Promise<ApplyQuestionResult>;
 type ControlCurrentQuestion = (request: ControlCurrentQuestionRequest) => Promise<ApplyQuestionResult>;
+type ResetScores = (roomId: string) => Promise<ApplyQuestionResult>;
 type RevealQuestion = (roomId: string) => void;
 type GetSocketId = () => string | undefined;
 type JoinRoom = (userId: number, roomId: string) => Promise<string | null>;
@@ -27,6 +28,7 @@ type GetInitialRoomCommand = () => InitialRoomCommand | undefined;
 type ReplaceRoomUrl = (roomId: string) => void;
 type RegisterAnswerBarListener = (operatorUserId: number) => void;
 type RegisterQuestionListener = (operatorUserId: number) => void;
+type RegisterScoreListener = () => void;
 
 const onConnect = jest.fn<OnConnect>();
 const getUser = jest.fn<GetUser>();
@@ -34,6 +36,7 @@ const updateSocketId = jest.fn<UpdateSocketId>();
 const registerUser = jest.fn<RegisterUser>();
 const applyQuestion = jest.fn<ApplyQuestion>();
 const controlCurrentQuestion = jest.fn<ControlCurrentQuestion>();
+const resetScores = jest.fn<ResetScores>();
 const revealQuestion = jest.fn<RevealQuestion>();
 const getSocketId = jest.fn<GetSocketId>();
 const joinRoom = jest.fn<JoinRoom>();
@@ -43,6 +46,7 @@ const getInitialRoomCommand = jest.fn<GetInitialRoomCommand>();
 const replaceRoomUrl = jest.fn<ReplaceRoomUrl>();
 const registerAnswerBarListener = jest.fn<RegisterAnswerBarListener>();
 const registerQuestionListener = jest.fn<RegisterQuestionListener>();
+const registerScoreListener = jest.fn<RegisterScoreListener>();
 
 let connectListener: ConnectListener | undefined;
 
@@ -64,6 +68,7 @@ jest.unstable_mockModule("../../../../src/client/socket/SocketController", () =>
         registerUser,
         applyQuestion,
         controlCurrentQuestion,
+        resetScores,
         revealQuestion,
         getSocketId,
     },
@@ -80,6 +85,9 @@ jest.unstable_mockModule("../../../../src/client/features/answerBar/registerAnsw
 }));
 jest.unstable_mockModule("../../../../src/client/features/question/registerQuestionListener", () => ({
     registerQuestionListener,
+}));
+jest.unstable_mockModule("../../../../src/client/features/score/registerScoreListener", () => ({
+    registerScoreListener,
 }));
 
 const { useRoomConnection } = await import("../../../../src/client/features/room/useRoomConnection");
@@ -102,6 +110,7 @@ describe("useRoomConnection", () => {
         registerUser.mockResolvedValue({ id: 1, name: "名無し", socketId: "socket-1" });
         applyQuestion.mockResolvedValue({ ok: true });
         controlCurrentQuestion.mockResolvedValue({ ok: true });
+        resetScores.mockResolvedValue({ ok: true });
         getSocketId.mockReturnValue("socket-1");
         joinRoom.mockResolvedValue("room-1");
         getInitialRoomCommand.mockReturnValue({
@@ -111,6 +120,7 @@ describe("useRoomConnection", () => {
             reveal: true,
             scrollToContent: true,
             hasScrollToContentParam: true,
+            scoreReset: false,
         });
         container = document.createElement("div");
         document.body.append(container);
@@ -173,6 +183,7 @@ describe("useRoomConnection", () => {
             reveal: false,
             scrollToContent: true,
             hasScrollToContentParam: true,
+            scoreReset: false,
         });
 
         await renderAndFlush(root);
@@ -183,6 +194,23 @@ describe("useRoomConnection", () => {
             deleteExternalElements: true,
             scrollToContent: true,
         });
+        expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
+    });
+
+    test("scoreReset=true は問題適用と独立して作成者の得点リセットを要求すること", async () => {
+        getInitialRoomCommand.mockReturnValue({
+            roomId: "room-1",
+            questionId: undefined,
+            deleteExternalElements: false,
+            reveal: false,
+            scrollToContent: false,
+            hasScrollToContentParam: false,
+            scoreReset: true,
+        });
+
+        await renderAndFlush(root);
+
+        expect(resetScores).toHaveBeenCalledWith("room-1");
         expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
     });
 });

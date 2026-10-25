@@ -110,7 +110,7 @@ export class SocketController {
         });
 
         this.socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {
-            excalidrawSyncController.send(this.socket, message);
+            excalidrawSyncController.send(this.socket, message, this.activeUserId);
         });
 
         this.socket.on(SocketEvents.SYNC_CURSOR, (message: Cursor) => {
@@ -134,6 +134,10 @@ export class SocketController {
 
         this.socket.on(SocketEvents.CONTROL_CURRENT_QUESTION, (message, callback) => {
             callback(questionController.controlCurrent(this.socket, this.activeUserId, message));
+        });
+
+        this.socket.on(SocketEvents.RESET_SCORES, (message, callback) => {
+            callback(questionController.resetScores(this.socket, this.activeUserId, message?.roomId));
         });
 
         this.socket.on("disconnecting", () => {

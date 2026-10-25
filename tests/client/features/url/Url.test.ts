@@ -46,6 +46,7 @@ describe("Url", () => {
             reveal: true,
             scrollToContent: false,
             hasScrollToContentParam: false,
+            scoreReset: false,
         });
     });
 
@@ -53,5 +54,17 @@ describe("Url", () => {
         window.history.replaceState(null, "", "/?question=1");
 
         expect(url.getInitialRoomCommand()).toBeUndefined();
+    });
+
+    test("scoreReset は true の明示時だけリセット要求として読み取ること", () => {
+        window.history.replaceState(null, "", "/?room=room-1&scoreReset=true");
+        expect(url.getInitialRoomCommand()).toEqual(
+            expect.objectContaining({ roomId: "room-1", scoreReset: true }),
+        );
+
+        window.history.replaceState(null, "", "/?room=room-1&scoreReset=false");
+        expect(url.getInitialRoomCommand()).toEqual(
+            expect.objectContaining({ roomId: "room-1", scoreReset: false }),
+        );
     });
 });

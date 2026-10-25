@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { socketController } from "../../socket/SocketController";
 import { registerAnswerBarListener } from "../answerBar/registerAnswerBarListener";
 import { registerQuestionListener } from "../question/registerQuestionListener";
+import { registerScoreListener } from "../score/registerScoreListener";
 import { userSessionStorage } from "../sessionStorage/sessionStorage";
 import { type InitialRoomCommand, url } from "../url/Url";
 import { joinRoom } from "./joinRoom";
@@ -94,6 +95,13 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 }
             }
 
+            if (command.scoreReset) {
+                const result = await socketController.resetScores(command.roomId);
+                if (!result.ok) {
+                    return;
+                }
+            }
+
             if (command.reveal) {
                 socketController.revealQuestion(command.roomId);
             }
@@ -114,6 +122,7 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
 
             registerAnswerBarListener(user.id);
             registerQuestionListener(user.id);
+            registerScoreListener();
             operatorUserIdRef.current = user.id;
 
             return user.id;
