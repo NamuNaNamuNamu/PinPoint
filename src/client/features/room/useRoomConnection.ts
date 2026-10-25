@@ -6,6 +6,7 @@ import { registerQuestionListener } from "../question/registerQuestionListener";
 import { registerScoreListener } from "../score/registerScoreListener";
 import { userSessionStorage } from "../sessionStorage/sessionStorage";
 import { type InitialRoomCommand, url } from "../url/Url";
+import { waitForInitialUrlControlReadiness } from "../url/waitForInitialUrlControlReadiness";
 import { joinRoom } from "./joinRoom";
 
 type Props = {
@@ -38,7 +39,7 @@ export interface RoomConnection {
 /**
  * Socket.IO 接続、ルーム入室、および初期 URL コマンドを管理する。
  *
- * 初期 URL コマンドは、初回の Effect で一度だけ読み取り、接続復旧を待って実行する。
+ * 初期 URL コマンドは、実行許可条件を満たした初回の Effect で一度だけ読み取り、接続復旧を待って実行する。
  * 以後の Socket.IO 再接続では、ユーザーとルームを復元するだけで URL コマンドは再実行しない。
  *
  * @param props Excalidraw API の準備状態。
@@ -144,6 +145,7 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
         };
 
         const initializeInitialNavigation = async (): Promise<void> => {
+            await waitForInitialUrlControlReadiness();
             const command = url.getInitialRoomCommand();
             const userId = await restoreUser();
 

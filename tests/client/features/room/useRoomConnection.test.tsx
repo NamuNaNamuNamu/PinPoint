@@ -26,6 +26,7 @@ type GetUserIdForCurrentNavigation = () => number | undefined;
 type SetUserId = (userId: number) => void;
 type GetInitialRoomCommand = () => InitialRoomCommand | undefined;
 type ReplaceRoomUrl = (roomId: string) => void;
+type WaitForInitialUrlControlReadiness = () => Promise<void>;
 type RegisterAnswerBarListener = (operatorUserId: number) => void;
 type RegisterQuestionListener = (operatorUserId: number) => void;
 type RegisterScoreListener = () => void;
@@ -44,6 +45,7 @@ const getUserIdForCurrentNavigation = jest.fn<GetUserIdForCurrentNavigation>();
 const setUserId = jest.fn<SetUserId>();
 const getInitialRoomCommand = jest.fn<GetInitialRoomCommand>();
 const replaceRoomUrl = jest.fn<ReplaceRoomUrl>();
+const waitForInitialUrlControlReadiness = jest.fn<WaitForInitialUrlControlReadiness>();
 const registerAnswerBarListener = jest.fn<RegisterAnswerBarListener>();
 const registerQuestionListener = jest.fn<RegisterQuestionListener>();
 const registerScoreListener = jest.fn<RegisterScoreListener>();
@@ -80,6 +82,9 @@ jest.unstable_mockModule("../../../../src/client/features/sessionStorage/session
 jest.unstable_mockModule("../../../../src/client/features/url/Url", () => ({
     url: { getInitialRoomCommand, replaceRoomUrl },
 }));
+jest.unstable_mockModule("../../../../src/client/features/url/waitForInitialUrlControlReadiness", () => ({
+    waitForInitialUrlControlReadiness,
+}));
 jest.unstable_mockModule("../../../../src/client/features/answerBar/registerAnswerBarListener", () => ({
     registerAnswerBarListener,
 }));
@@ -113,6 +118,7 @@ describe("useRoomConnection", () => {
         resetScores.mockResolvedValue({ ok: true });
         getSocketId.mockReturnValue("socket-1");
         joinRoom.mockResolvedValue("room-1");
+        waitForInitialUrlControlReadiness.mockResolvedValue(undefined);
         getInitialRoomCommand.mockReturnValue({
             roomId: "room-1",
             questionId: 1,
@@ -212,6 +218,39 @@ describe("useRoomConnection", () => {
 
         expect(resetScores).toHaveBeenCalledWith("room-1");
         expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
+    });
+
+    test("初期 URL を読む前に URL 制御の実行許可を待つこと", async () => {
+        let resolveReadiness: (() => void) | undefined;
+        waitForInitialUrlControlReadiness.mockImplementation(
+            () =>
+                new Promise<void>((resolve) => {
+                    resolveReadiness = resolve;
+                }),
+        );
+
+        await renderAndFlush(root);
+
+        expect(waitForInitialUrlControlReadiness).toHaveBeenCalledTimes(1);
+        expect(getInitialRoomCommand).not.toHaveBeenCalled();
+        expect(getUser).not.toHaveBeenCalled();
+        expect(joinRoom).not.toHaveBeenCalled();
+        expect(applyQuestion).not.toHaveBeenCalled();
+
+        if (!resolveReadiness) {
+            throw new Error("URL 制御の実行許可を解決できません。");
+        }
+        const resolveInitialUrlControlReadiness = resolveReadiness;
+
+        await act(async () => {
+            resolveInitialUrlControlReadiness();
+            await flushAsyncWork();
+        });
+
+        expect(getInitialRoomCommand).toHaveBeenCalledTimes(1);
+        expect(getUser).toHaveBeenCalledWith(1);
+        expect(joinRoom).toHaveBeenCalledWith(1, "room-1");
+        expect(applyQuestion).toHaveBeenCalledTimes(1);
     });
 });
 
