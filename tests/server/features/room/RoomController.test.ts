@@ -4,6 +4,7 @@ import type { Socket } from "socket.io";
 const mockRoomService = {
     createRoom: jest.fn(),
     joinRoom: jest.fn(),
+    getRoom: jest.fn(),
     getRoomIdBySocketId: jest.fn(),
     leave: jest.fn(),
     markDisconnected: jest.fn(),
@@ -11,9 +12,11 @@ const mockRoomService = {
 };
 const mockUserService = { getUserBySocketId: jest.fn(), getUser: jest.fn() };
 const mockSocketLogger = { outputAllSockets: jest.fn() };
+const mockScoreState = { addParticipant: jest.fn(), removeParticipant: jest.fn(), get: jest.fn() };
 jest.unstable_mockModule("../../../../src/server/features/room/RoomService", () => ({ roomService: mockRoomService }));
 jest.unstable_mockModule("../../../../src/server/features/user/UserService", () => ({ userService: mockUserService }));
 jest.unstable_mockModule("../../../../src/server/logging/SocketLogger", () => ({ socketLogger: mockSocketLogger }));
+jest.unstable_mockModule("../../../../src/server/features/score/ScoreState", () => ({ scoreState: mockScoreState }));
 const { roomController } = await import("../../../../src/server/features/room/RoomController");
 
 describe("RoomController", () => {
@@ -22,6 +25,7 @@ describe("RoomController", () => {
         mockUserService.getUserBySocketId.mockReset();
         mockUserService.getUser.mockReset();
         mockSocketLogger.outputAllSockets.mockReset();
+        Object.values(mockScoreState).forEach((mock) => mock.mockReset());
     });
 
     test("createRoom と getRoomId はサービスへ委譲する", () => {
@@ -51,6 +55,25 @@ describe("RoomController", () => {
         expect(mockSocketLogger.outputAllSockets).not.toHaveBeenCalled();
     });
 
+    test("非作成者の入室時に得点一覧へ追加して通知する", () => {
+        const client = createSocket("socket-1");
+        const emit = jest.fn();
+        client.nsp.to.mockReturnValue({ emit });
+        mockRoomService.joinRoom.mockReturnValue(true);
+        mockRoomService.getRoom.mockReturnValue({ isCreatedBy: () => false });
+        mockUserService.getUser.mockReturnValue({ getName: () => "Alice" });
+        mockScoreState.addParticipant.mockReturnValue(true);
+        mockScoreState.get.mockReturnValue([{ userId: 1, userName: "Alice", score: 0 }]);
+
+        roomController.joinRoom(client, 1, "room-1");
+
+        expect(mockScoreState.addParticipant).toHaveBeenCalledWith("room-1", 1, "Alice");
+        expect(emit).toHaveBeenCalledWith("scores-updated", {
+            scores: [{ userId: 1, userName: "Alice", score: 0 }],
+            reason: "snapshot",
+        });
+    });
+
     test("getRoomId は socket.id を指定して RoomService に取得を委譲すること", () => {
         mockRoomService.getRoomIdBySocketId.mockReturnValue("room-1");
 
@@ -75,6 +98,20 @@ describe("RoomController", () => {
         expect(roomController.leaveRoom(client, "room-1")).toBeNull();
         expect(mockRoomService.leave).not.toHaveBeenCalled();
         expect(client.leave).not.toHaveBeenCalled();
+    });
+
+    test("退出時に得点一覧から除外して通知する", () => {
+        const client = createSocket("socket-1");
+        const emit = jest.fn();
+        client.nsp.to.mockReturnValue({ emit });
+        mockUserService.getUserBySocketId.mockReturnValue({ getId: () => 1 });
+        mockScoreState.removeParticipant.mockReturnValue(true);
+        mockScoreState.get.mockReturnValue([]);
+
+        roomController.leaveRoom(client, "room-1");
+
+        expect(mockScoreState.removeParticipant).toHaveBeenCalledWith("room-1", 1);
+        expect(emit).toHaveBeenCalledWith("scores-updated", { scores: [], reason: "snapshot" });
     });
 
     test("最新 Socket の切断だけが再接続猶予を開始し、期限後にサービスへ委譲する", () => {
@@ -104,6 +141,11 @@ describe("RoomController", () => {
     });
 });
 
-function createSocket(id: string): Socket & { join: jest.Mock; leave: jest.Mock } {
-    return { id, join: jest.fn(), leave: jest.fn() } as unknown as Socket & { join: jest.Mock; leave: jest.Mock };
+function createSocket(id: string): Socket & { join: jest.Mock; leave: jest.Mock; nsp: { to: jest.Mock } } {
+    return {
+        id,
+        join: jest.fn(),
+        leave: jest.fn(),
+        nsp: { to: jest.fn() },
+    } as unknown as Socket & { join: jest.Mock; leave: jest.Mock; nsp: { to: jest.Mock } };
 }

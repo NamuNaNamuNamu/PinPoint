@@ -1,7 +1,9 @@
 import { MainMenu } from "@excalidraw/excalidraw";
 import { useState } from "react";
 
-import { usersIcon } from "./icons";
+import { useScoreListEnabled } from "../features/score/scoreListStore";
+import { listOrderedIcon, usersIcon } from "./icons";
+import { ScoreListDialog } from "./ScoreListDialog";
 import { ShareDialog } from "./ShareDialog/ShareDialog";
 
 type Props = {
@@ -14,6 +16,9 @@ type Props = {
  */
 function ExcalidrawMainMenu({ currentRoomId, onCurrentRoomIdChange }: Props) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isScoreListOpen, setIsScoreListOpen] = useState(false);
+    const scoreListEnabled = useScoreListEnabled();
+    const scoreListAvailable = currentRoomId !== undefined && scoreListEnabled;
 
     return (
         <>
@@ -26,6 +31,19 @@ function ExcalidrawMainMenu({ currentRoomId, onCurrentRoomIdChange }: Props) {
                 >
                     通信モード
                 </MainMenu.Item>
+                <MainMenu.Item
+                    aria-disabled={!scoreListAvailable}
+                    className={scoreListAvailable ? undefined : "ScoreListMenuItem--disabled"}
+                    disabled={!scoreListAvailable}
+                    icon={listOrderedIcon}
+                    onSelect={() => {
+                        if (scoreListAvailable) {
+                            setIsScoreListOpen(true);
+                        }
+                    }}
+                >
+                    得点一覧
+                </MainMenu.Item>
             </MainMenu>
 
             {isDialogOpen && (
@@ -35,6 +53,7 @@ function ExcalidrawMainMenu({ currentRoomId, onCurrentRoomIdChange }: Props) {
                     onCurrentRoomIdChange={onCurrentRoomIdChange}
                 />
             )}
+            {isScoreListOpen && <ScoreListDialog closeDialog={() => setIsScoreListOpen(false)} />}
         </>
     );
 }

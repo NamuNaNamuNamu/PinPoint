@@ -4,7 +4,9 @@ import { Room } from "../../../../src/server/features/room/Room";
 import { User } from "../../../../src/server/features/user/User";
 
 type RoomController = typeof import("../../../../src/server/features/room/RoomController").roomController;
-type AnswerBarAssignmentState = typeof import("../../../../src/server/features/answerBar/AnswerBarAssignmentState").answerBarAssignmentState;
+type AnswerBarAssignmentState =
+    typeof import("../../../../src/server/features/answerBar/AnswerBarAssignmentState").answerBarAssignmentState;
+type ScoreState = typeof import("../../../../src/server/features/score/ScoreState").scoreState;
 type UserService = typeof import("../../../../src/server/features/user/UserService").userService;
 
 const joinRoom = jest.fn<RoomController["joinRoom"]>();
@@ -18,6 +20,8 @@ const getRoomIdByUserId = jest.fn<RoomController["getRoomIdByUserId"]>();
 const getRoom = jest.fn<RoomController["getRoom"]>();
 const markDisconnected = jest.fn<AnswerBarAssignmentState["markDisconnected"]>();
 const removeIfStillDisconnected = jest.fn<AnswerBarAssignmentState["removeIfStillDisconnected"]>();
+const updateParticipantName = jest.fn<ScoreState["updateParticipantName"]>();
+const getScores = jest.fn<ScoreState["get"]>();
 
 jest.unstable_mockModule("../../../../src/server/features/room/RoomController", () => ({
     roomController: { joinRoom, leaveRoom, getRoomIdByUserId, getRoom, leaveUser: jest.fn() },
@@ -33,6 +37,9 @@ jest.unstable_mockModule("../../../../src/server/features/answerBar/AnswerBarAss
     },
 }));
 jest.unstable_mockModule("../../../../src/server/features/user/UserService", () => ({ userService: { getUser } }));
+jest.unstable_mockModule("../../../../src/server/features/score/ScoreState", () => ({
+    scoreState: { updateParticipantName, get: getScores },
+}));
 jest.unstable_mockModule("../../../../src/server/features/excalidrawCursor/ExcalidrawCursorSyncController", () => ({
     excalidrawCursorSyncController: { remove: jest.fn() },
 }));
@@ -64,6 +71,7 @@ describe("AnswerBarController", () => {
         const emit = jest.fn();
         const roomEmit = jest.fn();
         const socket = { emit, nsp: { to: jest.fn(() => ({ emit: roomEmit })) } } as any;
+        getRoom.mockReturnValue(createRoom(2));
         getOrCreate.mockReturnValue({
             assignment: {
                 answerBarId: "new",
@@ -144,6 +152,22 @@ describe("AnswerBarController", () => {
         });
     });
 
+    test("所有者名更新時に得点一覧の表示名も更新すること", () => {
+        const roomEmit = jest.fn();
+        const socket = { nsp: { to: jest.fn(() => ({ emit: roomEmit })) } } as any;
+        getRoomIdByUserId.mockReturnValue("room-1");
+        updateParticipantName.mockReturnValue(true);
+        getScores.mockReturnValue([{ userId: 1, userName: "ゆうこ", score: 10 }]);
+
+        new AnswerBarController().updateOwnerUserName(socket, 1, "ゆうこ");
+
+        expect(updateParticipantName).toHaveBeenCalledWith("room-1", 1, "ゆうこ");
+        expect(roomEmit).toHaveBeenCalledWith("scores-updated", {
+            scores: [{ userId: 1, userName: "ゆうこ", score: 10 }],
+            reason: "snapshot",
+        });
+    });
+
     test("古い Socket の切断では AnswerBar の削除猶予を開始しないこと", () => {
         const socket = { id: "socket-old", nsp: { to: jest.fn() } } as any;
         getUser.mockReturnValue(createUser("socket-new"));
@@ -185,8 +209,8 @@ function createUser(socketId = "socket-1"): User {
     return new User({ id: 1, name: "ゆう", socketId });
 }
 
-function createRoom(): Room {
-    const room = new Room({ id: "room-1", creatorUserId: 1 });
+function createRoom(creatorUserId = 1): Room {
+    const room = new Room({ id: "room-1", creatorUserId });
     room.setCurrentQuestionId(1);
     return room;
 }

@@ -2,9 +2,13 @@ import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { RemoteExcalidrawElement } from "@excalidraw/excalidraw/data/reconcile";
 import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
-import type { AnswerBarAdded, AnswerBarOwnerNameUpdated, AnswerBarRemoved } from "../../../shared/answerBar/AnswerBarEvents";
-import { sliders } from "../excalidraw/Slider/Sliders";
+import type {
+    AnswerBarAdded,
+    AnswerBarOwnerNameUpdated,
+    AnswerBarRemoved,
+} from "../../../shared/answerBar/AnswerBarEvents";
 import { excalidrawAPIHolder } from "../excalidraw/ExcalidrawAPIHolder";
+import { sliders } from "../excalidraw/Slider/Sliders";
 
 /**
  * AnswerBar イベントと、クライアント固有の操作可否を scene に反映する。
@@ -14,6 +18,10 @@ class AnswerBarSceneController {
      * このブラウザを操作しているユーザー。`locked` の復元に使用する。
      */
     private operatorUserId: number | undefined;
+    /**
+     * 現在の問題で AnswerBar 操作を一律禁止しているか。
+     */
+    private interactionLocked = false;
     /**
      * 削除通知済みの AnswerBar 要素 ID。古い全量同期による再出現を防ぐ。
      */
@@ -35,6 +43,39 @@ class AnswerBarSceneController {
     }
 
     /**
+     * 現在管理中の AnswerBar の操作可否を scene へ反映する。
+     *
+     * @param locked `true` の場合は所有者を含む全 AnswerBar をロックする。
+     */
+    public setInteractionLocked(locked: boolean): void {
+        this.interactionLocked = locked;
+        const lockedByLineId = this.getLockedByLineId();
+        if (lockedByLineId.size === 0) {
+            return;
+        }
+        const elements = excalidrawAPIHolder.getSceneElementsWithTombstones().map((element) => {
+            const elementLocked = lockedByLineId.get(element.id);
+            return elementLocked === undefined ? element : { ...element, locked: elementLocked };
+        });
+        excalidrawAPIHolder.getApi().updateScene({ elements });
+        elements.forEach((element) => {
+            if (lockedByLineId.has(element.id)) {
+                this.elementSnapshots.set(element.id, structuredClone(element));
+            }
+        });
+    }
+
+    /**
+     * 指定要素が現在管理中の AnswerBar 要素かを判定する。
+     *
+     * @param elementId Excalidraw scene 要素 ID。
+     * @returns AnswerBar 要素の場合は `true`。
+     */
+    public hasElement(elementId: string): boolean {
+        return this.elementSnapshots.has(elementId);
+    }
+
+    /**
      * AnswerBar と名前ラベルを全 Slider と scene に追加する。
      *
      * @param payload サーバーが発行した AnswerBar の割当情報。
@@ -53,7 +94,7 @@ class AnswerBarSceneController {
             const answerBar = slider.addAnswerBar({ ...payload, lineId, labelId, operatorUserId });
             if (answerBar) {
                 const elements = convertToExcalidrawElements(answerBar.getSkeletons(), { regenerateIds: false });
-                additions.push(...answerBar.centerLabelInElements(elements));
+                additions.push(...this.normalizeLockedElements(answerBar.centerLabelInElements(elements)));
             }
         });
         if (additions.length === 0) {
@@ -109,6 +150,7 @@ class AnswerBarSceneController {
      * 削除した要素 ID を保持する。
      */
     public clear(): void {
+        this.interactionLocked = false;
         const answerBarIds = new Set<string>();
         const elementIds = new Set<string>();
         sliders.forEach((slider) =>
@@ -123,7 +165,9 @@ class AnswerBarSceneController {
         elementIds.forEach((id) => this.elementSnapshots.delete(id));
         const api = excalidrawAPIHolder.getApi();
         api.updateScene({
-            elements: excalidrawAPIHolder.getSceneElementsWithTombstones().filter((element) => !elementIds.has(element.id)),
+            elements: excalidrawAPIHolder
+                .getSceneElementsWithTombstones()
+                .filter((element) => !elementIds.has(element.id)),
         });
     }
 
@@ -156,10 +200,21 @@ class AnswerBarSceneController {
 
         sliders.forEach((slider) => {
             slider.forEachAnswerBar((answerBar) => {
-                lockedByLineId.set(answerBar.getLineId(), !answerBar.isOwnedBy(this.operatorUserId!));
+                lockedByLineId.set(
+                    answerBar.getLineId(),
+                    this.interactionLocked || !answerBar.isOwnedBy(this.operatorUserId!),
+                );
             });
         });
         return lockedByLineId;
+    }
+
+    private normalizeLockedElements(elements: readonly OrderedExcalidrawElement[]): OrderedExcalidrawElement[] {
+        const lockedByLineId = this.getLockedByLineId();
+        return elements.map((element) => {
+            const locked = lockedByLineId.get(element.id);
+            return locked === undefined ? element : { ...element, locked };
+        });
     }
 
     /**

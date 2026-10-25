@@ -27,11 +27,24 @@ export function handleExcalidrawElementsChange(_elements: readonly ExcalidrawEle
         line.onChange();
     });
 
+    const answerBarElementUpdates = new Map<string, ExcalidrawElement>();
     sliders.forEach((slider: Slider) => {
         slider.forEachAnswerBar((answerBar) => {
-            answerBar.onChange(operatorUserId);
+            answerBar.getElementUpdates(operatorUserId).forEach((element) => {
+                answerBarElementUpdates.set(element.id, element);
+            });
         });
     });
+
+    if (answerBarElementUpdates.size > 0) {
+        const api = excalidrawAPIHolder.getApi();
+        api.updateScene({
+            elements: excalidrawAPIHolder
+                .getSceneElementsWithTombstones()
+                .map((element) => answerBarElementUpdates.get(element.id) ?? element),
+        });
+        return;
+    }
 
     answerBarSceneController.rememberCurrentElements();
     socketController.syncElements(excalidrawAPIHolder.getSceneElementsWithTombstones());

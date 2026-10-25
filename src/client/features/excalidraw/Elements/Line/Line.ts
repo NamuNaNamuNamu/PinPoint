@@ -1,3 +1,6 @@
+import { newElementWith } from "@excalidraw/excalidraw";
+import type { ExcalidrawLinearElement } from "@excalidraw/excalidraw/element/types";
+
 import { excalidrawAPIHolder } from "../../ExcalidrawAPIHolder";
 import { ElementCommon } from "../ElementCommon";
 import type { MoveRange } from "./MoveRange";
@@ -19,7 +22,7 @@ export class Line {
     /**
      * 直前の Excalidraw 要素の状態。形状変更を取り消す際に使用する。
      */
-    private previousElement: any;
+    private previousElement: ExcalidrawLinearElement | null;
 
     /**
      * 線要素を初期化する。
@@ -37,8 +40,13 @@ export class Line {
      *
      * @returns Excalidraw のシーンに配置されている線要素。
      */
-    private getExcalidrawElement() {
-        return this.elementCommon.getExcalidrawElement();
+    private getExcalidrawElement(): ExcalidrawLinearElement {
+        const element = this.elementCommon.getExcalidrawElement();
+        if (element.type !== "line") {
+            throw new Error("Excalidraw の線要素が見つかりませんでした");
+        }
+
+        return element;
     }
 
     /**
@@ -60,99 +68,128 @@ export class Line {
     }
 
     /**
-     * 線要素の X 座標を取得する。
+     * 線要素を検証し、回答バーとして許可する状態へ正規化した要素を返す。
      *
-     * @returns 線要素の X 座標。
-     */
-    public getX() {
-        return this.getExcalidrawElement().x;
-    }
-
-    /**
-     * 線要素の Y 座標を取得する。
+     * 現在の要素を基に必要なプロパティだけを更新するため、ドラッグ中の要素を
+     * 過去のスナップショット全体で置き換えない。
      *
-     * @returns 線要素の Y 座標。
+     * @returns 正規化後の線要素と、scene 更新が必要かどうか。
      */
-    private getY() {
-        return this.getExcalidrawElement().y;
+    public getNormalizedElement(): NormalizedLineElement {
+        const current = this.getExcalidrawElement();
+        const changes = this.getNormalizationChanges(current);
+        const isUpdated = Object.keys(changes).length > 0;
+        const element = isUpdated ? newElementWith(current, changes) : current;
+        this.previousElement = structuredClone(element);
+
+        return { element, isUpdated };
     }
 
     /**
-     * 線要素の高さを取得する。
+     * 線要素の変更を検証し、必要な正規化を scene へ反映する。
      *
-     * @returns 線要素の高さ。
-     */
-    private getHeight() {
-        return this.getExcalidrawElement().height;
-    }
-
-    /**
-     * 線要素の X 座標を更新する。
-     *
-     * @param x 更新後の X 座標。
-     */
-    private setX(x: number) {
-        this.updateCoordinate("x", x);
-    }
-
-    /**
-     * 線要素の Y 座標を更新する。
-     *
-     * @param y 更新後の Y 座標。
-     */
-    private setY(y: number) {
-        this.updateCoordinate("y", y);
-    }
-
-    /**
-     * 線要素の指定座標を更新する。
-     *
-     * @param coordinate 更新する座標軸。
-     * @param value 更新後の座標値。
-     */
-    private updateCoordinate(coordinate: "x" | "y", value: number) {
-        const api = excalidrawAPIHolder.getApi();
-        api.updateScene({
-            elements: excalidrawAPIHolder
-                .getSceneElementsWithTombstones()
-                .map((el) => (el.id === this.getId() ? { ...el, [coordinate]: value } : el)),
-        });
-    }
-
-    /**
-     * 直前に保存した状態へ線要素を戻す。
-     */
-    private cancelChange() {
-        const api = excalidrawAPIHolder.getApi();
-        api.updateScene({
-            elements: excalidrawAPIHolder
-                .getSceneElementsWithTombstones()
-                .map((el) => (el.id === this.getId() ? { ...this.previousElement } : el)),
-        });
-    }
-
-    /**
-     * 線要素の変更を検証し、形状変更の取り消しと移動範囲の制限を行う。
+     * AnswerBar では複数要素を一度に反映するため `getNormalizedElement()` を使用する。
      */
     public onChange(): void {
-        if (this.previousElement && this.getHeight() !== this.previousElement.height) {
-            this.cancelChange();
+        const normalizedElement = this.getNormalizedElement();
+        if (!normalizedElement.isUpdated) {
+            return;
         }
-        if (this.getX() < this.moveRange.minX) {
-            this.setX(this.moveRange.minX);
+
+        const api = excalidrawAPIHolder.getApi();
+        api.updateScene({
+            elements: excalidrawAPIHolder
+                .getSceneElementsWithTombstones()
+                .map((element) => (element.id === this.getId() ? normalizedElement.element : element)),
+        });
+    }
+
+    /**
+     * 回答バーで許可していないプロパティが変更されたかを判定する。
+     *
+     * AnswerBar で利用する Line は、水平位置を表す `x` だけ変更可能である。
+     * Excalidraw の同期用 version 情報は比較対象に含めない。
+     *
+     * @returns `x` 以外の表示または形状プロパティが変更された場合は `true`。
+     */
+    private hasUnexpectedChange(current: ExcalidrawLinearElement, previousElement: ExcalidrawLinearElement): boolean {
+        return ANSWER_BAR_FIXED_PROPERTIES.some(
+            (property) => JSON.stringify(current[property]) !== JSON.stringify(previousElement[property]),
+        );
+    }
+
+    /**
+     * 現在の線要素を AnswerBar の不変条件と移動範囲へ戻すための差分を取得する。
+     *
+     * @param current scene 上の現在の線要素。
+     * @returns 現在の線要素に適用する最小限の差分。
+     */
+    private getNormalizationChanges(current: ExcalidrawLinearElement): NormalizationChanges {
+        const previousElement = this.previousElement;
+        const changes: NormalizationChanges = {};
+
+        if (previousElement && this.hasUnexpectedChange(current, previousElement)) {
+            changes.y = previousElement.y;
+            changes.width = previousElement.width;
+            changes.height = previousElement.height;
+            changes.angle = previousElement.angle;
+            changes.points = previousElement.points;
+            changes.strokeColor = previousElement.strokeColor;
+            changes.backgroundColor = previousElement.backgroundColor;
+            changes.fillStyle = previousElement.fillStyle;
+            changes.strokeWidth = previousElement.strokeWidth;
+            changes.strokeStyle = previousElement.strokeStyle;
+            changes.roughness = previousElement.roughness;
+            changes.opacity = previousElement.opacity;
+            changes.startArrowhead = previousElement.startArrowhead;
+            changes.endArrowhead = previousElement.endArrowhead;
         }
-        if (this.getX() > this.moveRange.maxX) {
-            this.setX(this.moveRange.maxX);
+
+        const x = Math.min(Math.max(current.x, this.moveRange.minX), this.moveRange.maxX);
+        const y = Math.min(Math.max(current.y, this.moveRange.minY), this.moveRange.maxY);
+        if (x !== current.x) {
+            changes.x = x;
         }
-        if (this.getY() < this.moveRange.minY) {
-            this.setY(this.moveRange.minY);
+        if (y !== current.y) {
+            changes.y = y;
         }
-        if (this.getY() > this.moveRange.maxY) {
-            this.setY(this.moveRange.maxY);
-        }
-        this.previousElement = structuredClone(this.getExcalidrawElement());
+
+        return changes;
     }
 }
+
+/** 線要素の正規化結果。 */
+interface NormalizedLineElement {
+    /** 正規化後の線要素。 */
+    element: ExcalidrawLinearElement;
+    /** scene へ反映する変更がある場合は `true`。 */
+    isUpdated: boolean;
+}
+
+/** AnswerBar の移動以外で固定する Excalidraw Line プロパティ。 */
+const ANSWER_BAR_FIXED_PROPERTIES = [
+    "y",
+    "width",
+    "height",
+    "angle",
+    "points",
+    "strokeColor",
+    "backgroundColor",
+    "fillStyle",
+    "strokeWidth",
+    "strokeStyle",
+    "roughness",
+    "opacity",
+    "startArrowhead",
+    "endArrowhead",
+] as const;
+
+/**
+ * AnswerBar の Line 正規化で更新できるプロパティ。
+ */
+type NormalizationChanges = {
+    -readonly [property in "x" | (typeof ANSWER_BAR_FIXED_PROPERTIES)[number]]?: ExcalidrawLinearElement[property];
+};
 
 /**
  * 線要素の生成に必要なパラメータ。

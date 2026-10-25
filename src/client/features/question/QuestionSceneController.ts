@@ -1,4 +1,6 @@
 import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
+import type { FileId } from "@excalidraw/excalidraw/element/types";
+import type { BinaryFileData, DataURL } from "@excalidraw/excalidraw/types";
 
 import type { QuestionApplied, QuestionRevealed } from "../../../shared/question/QuestionEvents";
 import {
@@ -10,11 +12,16 @@ import { lineSkeletonFactory } from "../excalidraw/Elements/Line/LineSkeletonFac
 import { textSkeletonFactory } from "../excalidraw/Elements/Text/TextSkeletonFactory";
 import { excalidrawAPIHolder } from "../excalidraw/ExcalidrawAPIHolder";
 import { setSliders, sliders } from "../excalidraw/Slider/Sliders";
+import { questionStore } from "./questionStore";
 
 /**
  * 正解旗の三角形先端から上端までの高さ。
  */
 const CORRECT_ANSWER_FLAG_HEIGHT = 14;
+/** 正解線と正解旗で共通利用する色。 */
+const CORRECT_ANSWER_COLOR = "#E53935";
+/** 正解旗の幅。 */
+const CORRECT_ANSWER_FLAG_WIDTH = 24;
 /**
  * 選択肢テキストに使用するフォントサイズ。
  */
@@ -55,6 +62,7 @@ class QuestionSceneController {
             );
         this.managedElementIds.clear();
         this.currentQuestion = payload.question;
+        questionStore.set(true);
         setSliders(payload.question.sliders);
         const elements = convertToExcalidrawElements(this.getQuestionSkeletons(), { regenerateIds: false });
         elements.forEach((element) => this.managedElementIds.add(element.id));
@@ -85,6 +93,7 @@ class QuestionSceneController {
             return;
         }
         const api = excalidrawAPIHolder.getApi();
+        api.addFiles(question.sliders.map((slider) => createCorrectAnswerFlagFile(slider.id)));
         const markers = convertToExcalidrawElements(
             question.sliders.flatMap((slider) => [
                 lineSkeletonFactory.createWith({
@@ -92,20 +101,19 @@ class QuestionSceneController {
                     x: slider.x + slider.width * slider.correctAnswerRatio,
                     y: slider.y,
                     width: slider.height,
-                    strokeColor: "#E53935",
+                    strokeColor: CORRECT_ANSWER_COLOR,
                     locked: true,
                 }),
                 {
-                    type: "arrow",
+                    type: "image",
                     id: `correct-answer-flag-${slider.id}`,
-                    x: slider.x + slider.width * slider.correctAnswerRatio,
+                    x: slider.x + slider.width * slider.correctAnswerRatio - CORRECT_ANSWER_FLAG_WIDTH / 2,
                     y: slider.y - CORRECT_ANSWER_FLAG_HEIGHT,
-                    points: [[0, 0], [0, CORRECT_ANSWER_FLAG_HEIGHT]],
-                    strokeColor: "#E53935",
-                    strokeWidth: 2,
-                    endArrowhead: "triangle",
+                    width: CORRECT_ANSWER_FLAG_WIDTH,
+                    height: CORRECT_ANSWER_FLAG_HEIGHT,
+                    fileId: correctAnswerFlagFileId(slider.id),
+                    status: "saved",
                     locked: true,
-                    roughness: 0,
                 },
             ]),
             { regenerateIds: false },
@@ -115,7 +123,7 @@ class QuestionSceneController {
             .getSceneElementsWithTombstones()
             .filter((element) => !markerIds(question).has(element.id));
         api.updateScene({ elements: [...remaining, ...markers] });
-        api.setToast({ message: "解答表示！", duration: 2000 });
+        answerBarSceneController.setInteractionLocked(true);
     }
 
     /**
@@ -136,6 +144,7 @@ class QuestionSceneController {
         });
         this.managedElementIds.clear();
         this.currentQuestion = undefined;
+        questionStore.set(false);
         setSliders([]);
     }
 
@@ -153,6 +162,25 @@ class QuestionSceneController {
             viewportZoomFactor: 0.8,
             animate: true,
             duration: 1000,
+        });
+    }
+
+    /**
+     * 現在問題に属さない要素だけを scene から除去する。
+     *
+     * 問題要素と AnswerBar の実体は再生成しないため、参加者の回答位置を維持する。
+     */
+    public removeExternalElements(): void {
+        if (!this.currentQuestion) {
+            return;
+        }
+        excalidrawAPIHolder.getApi().updateScene({
+            elements: excalidrawAPIHolder
+                .getSceneElementsWithTombstones()
+                .filter(
+                    (element) =>
+                        this.managedElementIds.has(element.id) || answerBarSceneController.hasElement(element.id),
+                ),
         });
     }
 
@@ -208,3 +236,29 @@ function markerIds(question: QuestionApplied["question"]): ReadonlySet<string> {
 }
 
 export const questionSceneController = new QuestionSceneController();
+
+/**
+ * 正解旗の file ID を返す。
+ *
+ * @param sliderId Slider ID。
+ * @returns SVG ファイルを識別する ID。
+ */
+function correctAnswerFlagFileId(sliderId: string): FileId {
+    return `correct-answer-flag-file-${sliderId}` as FileId;
+}
+
+/**
+ * 棒線を含まない塗りつぶし下向き三角形の SVG ファイルを生成する。
+ *
+ * @param sliderId 正解旗を表示する Slider ID。
+ * @returns Excalidraw に登録するSVGデータ。
+ */
+function createCorrectAnswerFlagFile(sliderId: string): BinaryFileData {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CORRECT_ANSWER_FLAG_WIDTH} ${CORRECT_ANSWER_FLAG_HEIGHT}"><path fill="${CORRECT_ANSWER_COLOR}" d="M0 0H${CORRECT_ANSWER_FLAG_WIDTH}L${CORRECT_ANSWER_FLAG_WIDTH / 2} ${CORRECT_ANSWER_FLAG_HEIGHT}Z"/></svg>`;
+    return {
+        id: correctAnswerFlagFileId(sliderId),
+        dataURL: `data:image/svg+xml,${encodeURIComponent(svg)}` as DataURL,
+        mimeType: "image/svg+xml",
+        created: Date.now(),
+    };
+}

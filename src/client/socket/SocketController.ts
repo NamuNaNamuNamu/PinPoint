@@ -224,6 +224,21 @@ class SocketController {
     }
 
     /**
+     * 得点一覧の表示可否を作成者として変更する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param enabled 更新後の表示可否。
+     * @returns サーバーによる受理または拒否の結果。
+     */
+    public setScoreListEnabled(roomId: string, enabled: boolean): Promise<ApplyQuestionResult> {
+        return new Promise((resolve, _reject) => {
+            socket.emit(SocketEvents.SET_SCORE_LIST_ENABLED, { roomId, enabled }, (response: ApplyQuestionResult) => {
+                resolve(response);
+            });
+        });
+    }
+
+    /**
      * 作成者として現在の問題の正解表示を要求する。
      *
      * @param roomId 正解表示の対象ルーム ID。

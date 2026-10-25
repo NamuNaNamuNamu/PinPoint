@@ -1,17 +1,17 @@
-import type { ScoreEntry, ScoresUpdated } from "../../../shared/score/ScoreEvents";
+import type { ScoresUpdated } from "../../../shared/score/ScoreEvents";
 
 /**
  * Socket 通知を React UI へ配信する、クライアント側の得点状態。
  */
 class ScoreStore {
-    private scores: readonly ScoreEntry[] = [];
+    private snapshot: ScoresUpdated = { scores: [], reason: "snapshot" };
     private readonly listeners = new Set<() => void>();
     /**
      * React の外部 store 購読用に現在の得点一覧を取得する。
      *
      * @returns 現在保持している累積得点一覧。
      */
-    public getSnapshot = (): readonly ScoreEntry[] => this.scores;
+    public getSnapshot = (): ScoresUpdated => this.snapshot;
 
     /**
      * 得点更新を通知するリスナーを登録する。
@@ -29,7 +29,7 @@ class ScoreStore {
      * @param payload サーバーが配信した得点一覧。
      */
     public set(payload: ScoresUpdated): void {
-        this.scores = payload.scores;
+        this.snapshot = payload;
         this.listeners.forEach((listener) => listener());
     }
 }

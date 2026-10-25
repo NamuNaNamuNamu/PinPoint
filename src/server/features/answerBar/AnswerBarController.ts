@@ -3,9 +3,10 @@ import type { Socket } from "socket.io";
 import { getQuestionTemplate } from "../../../shared/question/QuestionTemplate";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { excalidrawCursorSyncController } from "../excalidrawCursor/ExcalidrawCursorSyncController";
+import { questionController } from "../question/QuestionController";
 import { ROOM_RECONNECT_GRACE_MS } from "../room/Room";
 import { roomController } from "../room/RoomController";
-import { questionController } from "../question/QuestionController";
+import { scoreState } from "../score/ScoreState";
 import { userService } from "../user/UserService";
 import { answerBarAssignmentState } from "./AnswerBarAssignmentState";
 
@@ -52,7 +53,7 @@ export class AnswerBarController {
 
         const questionId = room.getCurrentQuestionId();
         const question = questionId === undefined ? undefined : getQuestionTemplate(questionId);
-        if (!question) {
+        if (!question || room.isCreatedBy(userId)) {
             return response;
         }
 
@@ -106,6 +107,11 @@ export class AnswerBarController {
         const updated = answerBarAssignmentState.updateOwnerUserName(roomId, userId, ownerUserName);
         if (updated) {
             socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_OWNER_NAME_UPDATED, updated);
+        }
+        if (scoreState.updateParticipantName(roomId, userId, ownerUserName)) {
+            socket.nsp
+                .to(roomId)
+                .emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: "snapshot" });
         }
     }
 

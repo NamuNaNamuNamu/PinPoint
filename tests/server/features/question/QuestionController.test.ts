@@ -46,11 +46,7 @@ describe("QuestionController", () => {
 
         expect(room.setCurrentQuestionId).toHaveBeenCalledWith(1);
         expect(mockScoreState.prepareQuestion).toHaveBeenCalledWith("room-1", expect.objectContaining({ id: 1 }), []);
-        expect(mockAnswerBarAssignmentState.reset).toHaveBeenCalledWith(
-            "room-1",
-            [{ userId: 1, userName: "Alice" }],
-            3,
-        );
+        expect(mockAnswerBarAssignmentState.reset).toHaveBeenCalledWith("room-1", [], 3);
         expect(socket.nsp.to).toHaveBeenCalledWith("room-1");
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(
             SocketEvents.QUESTION_APPLIED,
@@ -131,10 +127,7 @@ describe("QuestionController", () => {
                 scrollToContent: false,
             }),
         ).toEqual({ ok: true });
-        expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(
-            SocketEvents.QUESTION_APPLIED,
-            expect.objectContaining({ deleteExternalElements: true, scrollToContent: false }),
-        );
+        expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS);
     });
 
     test("現在問題への制御は作成者以外、または問題未適用時には通知しない", () => {
@@ -198,6 +191,7 @@ describe("QuestionController", () => {
             scrollToContent: false,
         });
 
+        expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS);
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.QUESTION_REVEALED, { questionId: 1 });
     });
 
@@ -221,6 +215,7 @@ describe("QuestionController", () => {
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.QUESTION_REVEALED, { questionId: 1 });
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.SCORES_UPDATED, {
             scores: [{ userId: 1, userName: "Alice", score: 100 }],
+            reason: "scored",
         });
 
         room.isAnswerRevealed.mockReturnValue(true);
@@ -237,11 +232,12 @@ describe("QuestionController", () => {
         expect(mockScoreState.reset).not.toHaveBeenCalled();
 
         room.isCreatedBy.mockReturnValue(true);
-        mockAnswerBarAssignmentState.getAll.mockReturnValue([]);
         mockScoreState.reset.mockReturnValue([{ userId: 1, userName: "Alice", score: 0 }]);
         expect(questionController.resetScores(socket, 1, "room-1")).toEqual({ ok: true });
+        expect(mockScoreState.reset).toHaveBeenCalledWith("room-1");
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.SCORES_UPDATED, {
             scores: [{ userId: 1, userName: "Alice", score: 0 }],
+            reason: "reset",
         });
     });
 });

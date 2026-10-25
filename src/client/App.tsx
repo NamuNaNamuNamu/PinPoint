@@ -21,7 +21,7 @@ function App() {
     useExcalidrawSceneInitialization(excalidrawAPI, roomConnection.getOperatorUserId);
 
     return (
-        <div style={{ height: "100dvh" }}>
+        <div style={{ height: "100dvh", position: "relative" }}>
             <Excalidraw
                 excalidrawAPI={(api) => {
                     setExcalidrawAPI(api);
@@ -31,13 +31,14 @@ function App() {
                 onPointerUpdate={(payload) => {
                     handlePointerChange(payload);
                 }}
-                renderTopRightUI={() => <CurrentScore userId={roomConnection.getOperatorUserId()} />}
+                zenModeEnabled={true}
             >
                 <ExcalidrawMainMenu
                     currentRoomId={roomConnection.currentRoomId}
                     onCurrentRoomIdChange={roomConnection.onCurrentRoomIdChange}
                 />
             </Excalidraw>
+            <CurrentScore userId={roomConnection.getOperatorUserId()} />
         </div>
     );
 }

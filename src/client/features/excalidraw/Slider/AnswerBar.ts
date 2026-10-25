@@ -1,4 +1,4 @@
-import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import type { ExcalidrawElement, OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import { Line } from "../Elements/Line/Line";
 import { lineSkeletonFactory } from "../Elements/Line/LineSkeletonFactory";
@@ -150,15 +150,29 @@ export class AnswerBar {
     }
 
     /**
-     * 所有者だけに Line の座標・形状補正を委譲し、名前ラベルを補正後の X 座標へ追従させる。
+     * 所有者だけに Line の座標・形状補正と名前ラベルの追従を委譲する。
+     *
+     * scene 自体は更新せず、同じ変更通知に含める要素差分だけを返す。
      *
      * @param operatorUserId 操作するユーザー ID。
+     * @returns scene に反映する AnswerBar の要素差分。所有者以外の場合は空配列。
      */
-    public onChange(operatorUserId: number): void {
-        if (this.isOwnedBy(operatorUserId)) {
-            this.line.onChange();
-            this.label.setCenterPosition(this.line.getX(), this.labelY);
+    public getElementUpdates(operatorUserId: number): readonly ExcalidrawElement[] {
+        if (!this.isOwnedBy(operatorUserId)) {
+            return [];
         }
+
+        const line = this.line.getNormalizedElement();
+        const label = this.label.getCenteredElement(line.element.x, this.labelY);
+        const updates: ExcalidrawElement[] = [];
+        if (line.isUpdated) {
+            updates.push(line.element);
+        }
+        if (label?.isUpdated) {
+            updates.push(label.element);
+        }
+
+        return updates;
     }
 }
 

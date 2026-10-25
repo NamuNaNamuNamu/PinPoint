@@ -1,11 +1,30 @@
 html,
 body,
 #root {
-  margin: 0;
-  width: 100%;
-  height: 100%;
+    margin: 0;
+    width: 100%;
+    height: 100%;
 }
 
 body {
-  overflow: hidden; /* 画面スクロール防止 */
+    overflow: hidden; /* 画面スクロール防止 */
+}
+
+.CurrentScore {
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 768px) {
+    .CurrentScore {
+        bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+}
+
+.ScoreListMenuItem--disabled,
+.ScoreListMenuItem--disabled:hover {
+    background-color: #808080 !important;
+    color: inherit;
+    cursor: not-allowed;
+    opacity: 1;
 }

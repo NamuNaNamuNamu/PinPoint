@@ -85,6 +85,18 @@ describe("Text", () => {
         });
     });
 
+    test("scene を更新せずに指定座標が外枠中心となるテキスト要素を取得すること", () => {
+        const elements = [{ id: "label-1", x: 0, y: 0, width: 80, height: 20, version: 1 }];
+        getSceneElements.mockReturnValue(elements);
+        const text = new Text({ skeleton: { id: "label-1" } });
+
+        expect(text.getCenteredElement(100, 200)).toEqual({
+            element: { id: "label-1", x: 60, y: 190, width: 80, height: 20, version: 2, versionNonce: 100 },
+            isUpdated: true,
+        });
+        expect(updateScene).not.toHaveBeenCalled();
+    });
+
     test("scene 上のテキスト内容を更新すること", () => {
         const elements = [
             {

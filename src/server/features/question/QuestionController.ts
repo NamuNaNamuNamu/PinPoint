@@ -72,6 +72,9 @@ class QuestionController {
 
         room.setCurrentQuestionId(question.id);
         const users = room.getUserIds().flatMap((participantUserId) => {
+            if (room.isCreatedBy(participantUserId)) {
+                return [];
+            }
             const user = userService.getUser(participantUserId);
             return user ? [{ userId: participantUserId, userName: user.getName() }] : [];
         });
@@ -109,7 +112,7 @@ class QuestionController {
         room.revealAnswer();
         const scores = scoreState.addQuestionScores(roomId, getQuestionTemplate(questionId)!, answerBarAssignmentState.getAll(roomId));
         socket.nsp.to(roomId).emit(SocketEvents.QUESTION_REVEALED, { questionId });
-        socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores });
+        socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "scored" });
     }
 
     /**
@@ -131,8 +134,42 @@ class QuestionController {
         if (!room.isCreatedBy(userId)) {
             return { ok: false, reason: "not-creator" };
         }
-        const scores = scoreState.reset(roomId, answerBarAssignmentState.getAll(roomId));
-        socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores });
+        const scores = scoreState.reset(roomId);
+        socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "reset" });
+        return { ok: true };
+    }
+
+    /**
+     * 作成者の要求により得点一覧の表示可否を更新する。
+     *
+     * @param socket 要求元の Socket.IO 接続。
+     * @param userId 要求元ユーザー ID。
+     * @param roomId 対象ルーム ID。
+     * @param enabled 更新後の表示可否。
+     * @returns 受理結果。状態が同じ場合は通知せず成功する。
+     */
+    public setScoreListEnabled(
+        socket: Socket,
+        userId: number | undefined,
+        roomId: string | undefined,
+        enabled: unknown,
+    ): ApplyQuestionResult {
+        if (userId === undefined || !roomId || typeof enabled !== "boolean") {
+            return { ok: false, reason: "invalid-request" };
+        }
+        const room = roomController.getRoom(roomId);
+        if (!room) {
+            return { ok: false, reason: "room-not-found" };
+        }
+        if (!room.isCreatedBy(userId)) {
+            return { ok: false, reason: "not-creator" };
+        }
+        if (!room.hasUser(userId)) {
+            return { ok: false, reason: "not-member" };
+        }
+        if (room.setScoreListEnabled(enabled)) {
+            socket.nsp.to(roomId).emit(SocketEvents.SCORE_LIST_ENABLED_UPDATED, { enabled });
+        }
         return { ok: true };
     }
 
@@ -171,16 +208,12 @@ class QuestionController {
         }
 
         if (request.deleteExternalElements) {
-            socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_APPLIED, {
-                question,
-                answerBars: answerBarAssignmentState.getAll(request.roomId),
-                deleteExternalElements: true,
-                scrollToContent: request.scrollToContent,
-            } satisfies QuestionApplied);
+            socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS);
             if (room.isAnswerRevealed()) {
                 socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_REVEALED, { questionId });
             }
-        } else if (request.scrollToContent) {
+        }
+        if (request.scrollToContent) {
             socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_SCROLL_TO_CONTENT);
         }
         return { ok: true };
@@ -195,7 +228,12 @@ class QuestionController {
     public sendCurrent(socket: Socket, roomId: string): void {
         const room = roomController.getRoom(roomId);
         const questionId = room?.getCurrentQuestionId();
-        if (!room || questionId === undefined) {
+        if (!room) {
+            return;
+        }
+        socket.emit(SocketEvents.SCORE_LIST_ENABLED_UPDATED, { enabled: room.isScoreListEnabled() });
+        socket.emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: "snapshot" });
+        if (questionId === undefined) {
             return;
         }
         const question = getQuestionTemplate(questionId);
@@ -211,7 +249,6 @@ class QuestionController {
         if (room.isAnswerRevealed()) {
             socket.emit(SocketEvents.QUESTION_REVEALED, { questionId });
         }
-        socket.emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId) });
     }
 }
 

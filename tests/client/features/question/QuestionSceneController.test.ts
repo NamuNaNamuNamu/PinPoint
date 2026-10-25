@@ -5,10 +5,11 @@ type SetSliders = typeof import("../../../../src/client/features/excalidraw/Slid
 
 const updateScene = jest.fn<ExcalidrawImperativeAPI["updateScene"]>();
 const scrollToContent = jest.fn();
-const setToast = jest.fn();
+const addFiles = jest.fn();
 const getSceneElementsWithTombstones = jest.fn();
 const getActiveSceneElements = jest.fn();
 const clearAnswerBars = jest.fn();
+const setInteractionLocked = jest.fn();
 const setSliders = jest.fn<SetSliders>();
 const sliders: Array<{ getSkeleton(): { id: string }[] }> = [];
 
@@ -26,7 +27,7 @@ jest.unstable_mockModule("@excalidraw/excalidraw", () => ({
     convertToExcalidrawElements: jest.fn((elements) => elements),
 }));
 jest.unstable_mockModule("../../../../src/client/features/answerBar/AnswerBarSceneController", () => ({
-    answerBarSceneController: { clear: clearAnswerBars, add: jest.fn() },
+    answerBarSceneController: { clear: clearAnswerBars, add: jest.fn(), hasElement: jest.fn(), setInteractionLocked },
 }));
 jest.unstable_mockModule("../../../../src/client/features/excalidraw/Elements/Line/LineSkeletonFactory", () => ({
     lineSkeletonFactory: { createWith: jest.fn((element) => element) },
@@ -36,7 +37,7 @@ jest.unstable_mockModule("../../../../src/client/features/excalidraw/Elements/Te
 }));
 jest.unstable_mockModule("../../../../src/client/features/excalidraw/ExcalidrawAPIHolder", () => ({
     excalidrawAPIHolder: {
-        getApi: () => ({ updateScene, scrollToContent, setToast }),
+        getApi: () => ({ updateScene, scrollToContent, addFiles }),
         getActiveSceneElements,
         getSceneElementsWithTombstones,
     },
@@ -139,20 +140,25 @@ describe("QuestionSceneController", () => {
                     locked: true,
                 },
                 {
-                    type: "arrow",
+                    type: "image",
                     id: "correct-answer-flag-slider-1",
-                    x: 400,
+                    x: 388,
                     y: 206,
-                    points: [[0, 0], [0, 14]],
-                    strokeColor: "#E53935",
-                    strokeWidth: 2,
-                    endArrowhead: "triangle",
+                    width: 24,
+                    height: 14,
+                    fileId: "correct-answer-flag-file-slider-1",
+                    status: "saved",
                     locked: true,
-                    roughness: 0,
                 },
             ],
         });
-        expect(setToast).toHaveBeenCalledWith({ message: "解答表示！", duration: 2000 });
+        expect(addFiles).toHaveBeenCalledWith([
+            expect.objectContaining({
+                id: "correct-answer-flag-file-slider-1",
+                mimeType: "image/svg+xml",
+            }),
+        ]);
+        expect(setInteractionLocked).toHaveBeenCalledWith(true);
     });
 
     test("選択肢テキスト下端と正解旗上端の間に 12px を確保する", () => {

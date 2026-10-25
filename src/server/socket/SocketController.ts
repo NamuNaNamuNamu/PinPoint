@@ -140,6 +140,17 @@ export class SocketController {
             callback(questionController.resetScores(this.socket, this.activeUserId, message?.roomId));
         });
 
+        this.socket.on(SocketEvents.SET_SCORE_LIST_ENABLED, (message, callback) => {
+            callback(
+                questionController.setScoreListEnabled(
+                    this.socket,
+                    this.activeUserId,
+                    message?.roomId,
+                    message?.enabled,
+                ),
+            );
+        });
+
         this.socket.on("disconnecting", () => {
             // Socket.IO が socket.rooms を空にする前に発火する。
             excalidrawCursorSyncController.remove(this.socket);

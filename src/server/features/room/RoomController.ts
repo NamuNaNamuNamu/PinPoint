@@ -1,6 +1,8 @@
 import type { Socket } from "socket.io";
 
+import { SocketEvents } from "../../../shared/SocketEvents";
 import { socketLogger } from "../../logging/SocketLogger";
+import { scoreState } from "../score/ScoreState";
 import { userService } from "../user/UserService";
 import { Room, ROOM_RECONNECT_GRACE_MS } from "./Room";
 import { roomService } from "./RoomService";
@@ -41,6 +43,7 @@ class RoomController {
 
         if (success) {
             socket.join(roomId);
+            this.addScoreParticipant(socket, userId, roomId);
             socketLogger.outputAllSockets({
                 event: "部屋参加",
                 socketId: socket.id,
@@ -78,7 +81,11 @@ class RoomController {
      * @param userId 退出するユーザー ID。
      */
     public leaveUser = (userId: number): void => {
+        const roomId = roomService.getRoomIdByUserId(userId);
         roomService.leave(userId);
+        if (roomId) {
+            scoreState.removeParticipant(roomId, userId);
+        }
     };
 
     /**
@@ -97,7 +104,10 @@ class RoomController {
             return;
         }
         setTimeout(() => {
-            roomService.leaveIfStillDisconnected(user.getId(), pending.token);
+            const roomId = roomService.leaveIfStillDisconnected(user.getId(), pending.token);
+            if (roomId) {
+                this.removeScoreParticipant(socket, roomId, user.getId());
+            }
         }, ROOM_RECONNECT_GRACE_MS);
     };
 
@@ -116,6 +126,7 @@ class RoomController {
 
         roomService.leave(user.getId());
         socket.leave(roomId);
+        this.removeScoreParticipant(socket, roomId, user.getId());
         socketLogger.outputAllSockets({
             event: `部屋退出 (roomId: ${roomId})`,
             socketId: socket.id,
@@ -123,6 +134,41 @@ class RoomController {
 
         return roomId;
     };
+
+    /**
+     * 入室成功後、非作成者を得点一覧の表示対象へ追加して参加者へ通知する。
+     *
+     * @param socket 入室した Socket.IO 接続。
+     * @param userId 入室したユーザー ID。
+     * @param roomId 入室先ルーム ID。
+     */
+    private addScoreParticipant(socket: Socket, userId: number, roomId: string): void {
+        const room = roomService.getRoom(roomId);
+        const user = userService.getUser(userId);
+        if (!room || !user || room.isCreatedBy(userId)) {
+            return;
+        }
+        if (scoreState.addParticipant(roomId, userId, user.getName())) {
+            socket.nsp
+                .to(roomId)
+                .emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: "snapshot" });
+        }
+    }
+
+    /**
+     * 退出した非作成者を得点一覧の表示対象から除外して残留参加者へ通知する。
+     *
+     * @param socket 退出に使用した Socket.IO 接続。
+     * @param roomId 退出元ルーム ID。
+     * @param userId 退出したユーザー ID。
+     */
+    private removeScoreParticipant(socket: Socket, roomId: string, userId: number): void {
+        if (scoreState.removeParticipant(roomId, userId)) {
+            socket.nsp
+                .to(roomId)
+                .emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: "snapshot" });
+        }
+    }
 }
 
 export const roomController = new RoomController();

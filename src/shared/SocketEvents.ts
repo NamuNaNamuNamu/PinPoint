@@ -46,6 +46,8 @@ export const SocketEvents = {
      * 現在問題のコンテンツへ表示範囲を合わせることを通知するイベント。
      */
     QUESTION_SCROLL_TO_CONTENT: "question-scroll-to-content",
+    /** 現在問題に属さない要素をクライアントから除去する通知。 */
+    QUESTION_REMOVE_EXTERNAL_ELEMENTS: "question-remove-external-elements",
     /**
      * ルームの累積得点を通知するイベント。
      */
@@ -54,4 +56,8 @@ export const SocketEvents = {
      * 累積得点を 0 に戻す要求。
      */
     RESET_SCORES: "reset-scores",
+    /** 得点一覧の表示可否を変更する要求。 */
+    SET_SCORE_LIST_ENABLED: "set-score-list-enabled",
+    /** 得点一覧の表示可否を通知するイベント。 */
+    SCORE_LIST_ENABLED_UPDATED: "score-list-enabled-updated",
 } as const;

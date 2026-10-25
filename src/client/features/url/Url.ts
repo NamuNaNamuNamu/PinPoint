@@ -6,6 +6,7 @@ export type InitialRoomCommand = {
     scrollToContent: boolean;
     hasScrollToContentParam: boolean;
     scoreReset: boolean;
+    scoreListEnabled: boolean | undefined;
 };
 
 class Url {
@@ -80,6 +81,16 @@ class Url {
     };
 
     /**
+     * URL の `scoreListEnabled` を表示可否として取得する。
+     *
+     * @returns `true` または `false` が明示された場合だけその値。未指定または無効値は `undefined`。
+     */
+    public getScoreListEnabledFromParams = (): boolean | undefined => {
+        const value = new URLSearchParams(window.location.search).get("scoreListEnabled");
+        return value === "true" ? true : value === "false" ? false : undefined;
+    };
+
+    /**
      * 現在の URL を、ページ遷移時に一度だけ実行する入室・問題操作として読み取る。
      *
      * @returns room パラメータがある場合はその操作内容。ない場合は `undefined`。
@@ -98,6 +109,7 @@ class Url {
             scrollToContent: this.shouldScrollToContent(),
             hasScrollToContentParam: this.hasScrollToContentParam(),
             scoreReset: this.shouldResetScores(),
+            scoreListEnabled: this.getScoreListEnabledFromParams(),
         };
     };
 

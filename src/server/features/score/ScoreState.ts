@@ -11,6 +11,60 @@ import { scoreCalculator } from "./ScoreCalculator";
 export class ScoreState {
     private readonly scoresByRoom = new Map<string, Map<number, ScoreEntry>>();
     private readonly positionsByRoom = new Map<string, Map<string, number>>();
+    private readonly activeUserIdsByRoom = new Map<string, Set<number>>();
+
+    /**
+     * 得点一覧の参加者としてユーザーを追加する。
+     *
+     * 過去に参加したユーザーは保持済みの累積得点を再利用し、初参加者だけを 0 点で作成する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param userId 参加するユーザー ID。
+     * @param userName 得点一覧に表示するユーザー名。
+     * @returns 表示対象または表示名が変化した場合は `true`。
+     */
+    public addParticipant(roomId: string, userId: number, userName: string): boolean {
+        const scores = this.getScores(roomId);
+        const current = scores.get(userId);
+        const userNameUpdated = current !== undefined && current.userName !== userName;
+        if (current) {
+            current.userName = userName;
+        } else {
+            scores.set(userId, { userId, userName, score: 0 });
+        }
+        const activeUserIds = this.getActiveUserIds(roomId);
+        const wasActive = activeUserIds.has(userId);
+        activeUserIds.add(userId);
+        return !wasActive || userNameUpdated;
+    }
+
+    /**
+     * 得点一覧の表示対象からユーザーを除外する。累積得点は再参加時に復元できるよう削除しない。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param userId 退出するユーザー ID。
+     * @returns 表示対象が変化した場合は `true`。
+     */
+    public removeParticipant(roomId: string, userId: number): boolean {
+        return this.activeUserIdsByRoom.get(roomId)?.delete(userId) ?? false;
+    }
+
+    /**
+     * 得点一覧に保存済みの参加者名を更新する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param userId 更新するユーザー ID。
+     * @param userName 更新後のユーザー名。
+     * @returns 表示名が変化した場合は `true`。
+     */
+    public updateParticipantName(roomId: string, userId: number, userName: string): boolean {
+        const current = this.scoresByRoom.get(roomId)?.get(userId);
+        if (!current || current.userName === userName) {
+            return false;
+        }
+        current.userName = userName;
+        return true;
+    }
 
     /**
      * 問題適用時の初期回答位置を保存し、参加者の得点エントリを準備する。
@@ -87,19 +141,12 @@ export class ScoreState {
      * 指定ルームの累積得点を 0 にリセットする。
      *
      * @param roomId 対象ルーム ID。
-     * @param assignments リセット対象として表示する AnswerBar 割当。
      * @returns リセット後の累積得点一覧。
      */
-    public reset(roomId: string, assignments: readonly AnswerBarAdded[]): readonly ScoreEntry[] {
-        const scores = new Map<number, ScoreEntry>();
-        assignments.forEach((assignment) => {
-            scores.set(assignment.ownerUserId, {
-                userId: assignment.ownerUserId,
-                userName: assignment.ownerUserName,
-                score: 0,
-            });
+    public reset(roomId: string): readonly ScoreEntry[] {
+        this.scoresByRoom.get(roomId)?.forEach((entry) => {
+            entry.score = 0;
         });
-        this.scoresByRoom.set(roomId, scores);
         return this.get(roomId);
     }
 
@@ -110,7 +157,10 @@ export class ScoreState {
      * @returns 現在の累積得点一覧。未作成の場合は空配列。
      */
     public get(roomId: string): readonly ScoreEntry[] {
-        return [...(this.scoresByRoom.get(roomId)?.values() ?? [])];
+        const activeUserIds = this.activeUserIdsByRoom.get(roomId);
+        return activeUserIds
+            ? [...(this.scoresByRoom.get(roomId)?.values() ?? [])].filter((entry) => activeUserIds.has(entry.userId))
+            : [];
     }
 
     /**
@@ -121,10 +171,11 @@ export class ScoreState {
     public clear(roomId: string): void {
         this.scoresByRoom.delete(roomId);
         this.positionsByRoom.delete(roomId);
+        this.activeUserIdsByRoom.delete(roomId);
     }
 
     private ensureEntries(roomId: string, assignments: readonly AnswerBarAdded[]): void {
-        const scores = this.scoresByRoom.get(roomId) ?? new Map<number, ScoreEntry>();
+        const scores = this.getScores(roomId);
         assignments.forEach((assignment) => {
             const current = scores.get(assignment.ownerUserId);
             if (current) {
@@ -137,7 +188,18 @@ export class ScoreState {
                 });
             }
         });
+    }
+
+    private getScores(roomId: string): Map<number, ScoreEntry> {
+        const scores = this.scoresByRoom.get(roomId) ?? new Map<number, ScoreEntry>();
         this.scoresByRoom.set(roomId, scores);
+        return scores;
+    }
+
+    private getActiveUserIds(roomId: string): Set<number> {
+        const activeUserIds = this.activeUserIdsByRoom.get(roomId) ?? new Set<number>();
+        this.activeUserIdsByRoom.set(roomId, activeUserIds);
+        return activeUserIds;
     }
 }
 

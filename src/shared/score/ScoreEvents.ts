@@ -6,4 +6,7 @@ export type ScoreEntry = { userId: number; userName: string; score: number };
 /**
  * サーバーが配信するルームの得点スナップショット。
  */
-export type ScoresUpdated = { scores: readonly ScoreEntry[] };
+export type ScoresUpdated = {
+    scores: readonly ScoreEntry[];
+    reason: "scored" | "reset" | "snapshot";
+};

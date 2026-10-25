@@ -121,3 +121,16 @@ export const playerStopFilledIcon = createIcon(
     </>,
     tablerIconProps,
 );
+
+// オリジナルアイコン、得点一覧
+export const listOrderedIcon = createIcon(
+    <>
+        <path d="M11 5h10"></path>
+        <path d="M11 12h10"></path>
+        <path d="M11 19h10"></path>
+        <path d="M4 4h1v5"></path>
+        <path d="M4 9h2"></path>
+        <path d="M4 14a2 2 0 0 1 2 2c0 2 -2 2 -2 4h2"></path>
+    </>,
+    tablerIconProps,
+);

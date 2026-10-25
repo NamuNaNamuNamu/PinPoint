@@ -19,6 +19,7 @@ type RegisterUser = (userName: string) => Promise<UserParams>;
 type ApplyQuestion = (request: ApplyQuestionRequest) => Promise<ApplyQuestionResult>;
 type ControlCurrentQuestion = (request: ControlCurrentQuestionRequest) => Promise<ApplyQuestionResult>;
 type ResetScores = (roomId: string) => Promise<ApplyQuestionResult>;
+type SetScoreListEnabled = (typeof import("../../../../src/client/socket/SocketController").socketController)["setScoreListEnabled"];
 type RevealQuestion = (roomId: string) => void;
 type GetSocketId = () => string | undefined;
 type JoinRoom = (userId: number, roomId: string) => Promise<string | null>;
@@ -38,6 +39,7 @@ const registerUser = jest.fn<RegisterUser>();
 const applyQuestion = jest.fn<ApplyQuestion>();
 const controlCurrentQuestion = jest.fn<ControlCurrentQuestion>();
 const resetScores = jest.fn<ResetScores>();
+const setScoreListEnabled = jest.fn<SetScoreListEnabled>();
 const revealQuestion = jest.fn<RevealQuestion>();
 const getSocketId = jest.fn<GetSocketId>();
 const joinRoom = jest.fn<JoinRoom>();
@@ -71,6 +73,7 @@ jest.unstable_mockModule("../../../../src/client/socket/SocketController", () =>
         applyQuestion,
         controlCurrentQuestion,
         resetScores,
+        setScoreListEnabled,
         revealQuestion,
         getSocketId,
     },
@@ -116,6 +119,7 @@ describe("useRoomConnection", () => {
         applyQuestion.mockResolvedValue({ ok: true });
         controlCurrentQuestion.mockResolvedValue({ ok: true });
         resetScores.mockResolvedValue({ ok: true });
+        setScoreListEnabled.mockResolvedValue({ ok: true });
         getSocketId.mockReturnValue("socket-1");
         joinRoom.mockResolvedValue("room-1");
         waitForInitialUrlControlReadiness.mockResolvedValue(undefined);
@@ -127,6 +131,7 @@ describe("useRoomConnection", () => {
             scrollToContent: true,
             hasScrollToContentParam: true,
             scoreReset: false,
+            scoreListEnabled: undefined,
         });
         container = document.createElement("div");
         document.body.append(container);
@@ -190,6 +195,7 @@ describe("useRoomConnection", () => {
             scrollToContent: true,
             hasScrollToContentParam: true,
             scoreReset: false,
+            scoreListEnabled: undefined,
         });
 
         await renderAndFlush(root);
@@ -212,11 +218,30 @@ describe("useRoomConnection", () => {
             scrollToContent: false,
             hasScrollToContentParam: false,
             scoreReset: true,
+            scoreListEnabled: undefined,
         });
 
         await renderAndFlush(root);
 
         expect(resetScores).toHaveBeenCalledWith("room-1");
+        expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
+    });
+
+    test("scoreListEnabled が指定された URL は得点一覧の表示可否を要求すること", async () => {
+        getInitialRoomCommand.mockReturnValue({
+            roomId: "room-1",
+            questionId: undefined,
+            deleteExternalElements: false,
+            reveal: false,
+            scrollToContent: false,
+            hasScrollToContentParam: false,
+            scoreReset: false,
+            scoreListEnabled: false,
+        });
+
+        await renderAndFlush(root);
+
+        expect(setScoreListEnabled).toHaveBeenCalledWith("room-1", false);
         expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
     });
 

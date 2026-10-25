@@ -4,6 +4,7 @@ import { socketController } from "../../socket/SocketController";
 import { registerAnswerBarListener } from "../answerBar/registerAnswerBarListener";
 import { registerQuestionListener } from "../question/registerQuestionListener";
 import { registerScoreListener } from "../score/registerScoreListener";
+import { registerScoreListListener } from "../score/registerScoreListListener";
 import { userSessionStorage } from "../sessionStorage/sessionStorage";
 import { type InitialRoomCommand, url } from "../url/Url";
 import { waitForInitialUrlControlReadiness } from "../url/waitForInitialUrlControlReadiness";
@@ -103,6 +104,13 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 }
             }
 
+            if (command.scoreListEnabled !== undefined) {
+                const result = await socketController.setScoreListEnabled(command.roomId, command.scoreListEnabled);
+                if (!result.ok) {
+                    return;
+                }
+            }
+
             if (command.reveal) {
                 socketController.revealQuestion(command.roomId);
             }
@@ -124,6 +132,7 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
             registerAnswerBarListener(user.id);
             registerQuestionListener(user.id);
             registerScoreListener();
+            registerScoreListListener();
             operatorUserIdRef.current = user.id;
 
             return user.id;

@@ -15,6 +15,7 @@ export class Room {
     private users: User[] = [];
     private currentQuestionId: number | undefined;
     private answerRevealed = false;
+    private scoreListEnabled = true;
     private readonly disconnectTokensByUserId = new Map<number, string>();
 
     /**
@@ -86,6 +87,29 @@ export class Room {
      */
     public isAnswerRevealed(): boolean {
         return this.answerRevealed;
+    }
+
+    /**
+     * 得点一覧を参加者へ表示できるかを返す。
+     *
+     * @returns 表示可能な場合は `true`。
+     */
+    public isScoreListEnabled(): boolean {
+        return this.scoreListEnabled;
+    }
+
+    /**
+     * 得点一覧の表示可否を更新する。
+     *
+     * @param enabled 更新後の表示可否。
+     * @returns 状態が変化した場合は `true`。
+     */
+    public setScoreListEnabled(enabled: boolean): boolean {
+        if (this.scoreListEnabled === enabled) {
+            return false;
+        }
+        this.scoreListEnabled = enabled;
+        return true;
     }
 
     /**

@@ -4,6 +4,7 @@ import type { Socket } from "socket.io";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
 import { questionController } from "../question/QuestionController";
+import { roomController } from "../room/RoomController";
 import { scoreState } from "../score/ScoreState";
 
 /**
@@ -32,7 +33,9 @@ class ExcalidrawSyncController {
             throw new Error("roomId が未設定です");
         }
 
-        scoreState.recordPositions(roomId, userId, elements, answerBarAssignmentState.getAll(roomId));
+        if (!roomController.getRoom(roomId)?.isAnswerRevealed()) {
+            scoreState.recordPositions(roomId, userId, elements, answerBarAssignmentState.getAll(roomId));
+        }
 
         const answerBarSanitizedElements = answerBarAssignmentState.excludeInactiveAnswerBarElements(roomId, elements);
         const sanitizedElements = questionController.excludeManagedElements(roomId, answerBarSanitizedElements);
