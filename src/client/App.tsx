@@ -1,72 +1,44 @@
-import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { useEffect, useState } from "react";
-import { onExcalidrawElementsInitialized } from "./features/excalidraw/onExcalidrawElementsInitialized";
-import { handleChange } from "./features/excalidraw/handleChange";
-import { getInitialElements } from "./features/excalidraw/getInitialElements";
-import { socketController } from "./socket/SocketController";
-import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
 
+import { Excalidraw } from "@excalidraw/excalidraw";
+import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import { useState } from "react";
+
+import { excalidrawAPIHolder } from "./features/excalidraw/ExcalidrawAPIHolder";
+import { excalidrawSyncController } from "./features/excalidraw/excalidrawSync/ExcalidrawSyncController.ts";
+import { excalidrawSyncState } from "./features/excalidraw/excalidrawSync/ExcalidrawSyncState";
+import { handlePointerChange } from "./features/excalidraw/handlePointerChange.ts";
+import { useExcalidrawSceneInitialization } from "./features/excalidraw/useExcalidrawSceneInitialization";
+import { useRoomConnection } from "./features/room/useRoomConnection";
+import { CurrentScore } from "./ui/CurrentScore";
 import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx";
-import { url } from "./features/url/Url.ts";
-import { joinRoom } from "./features/room/joinRoom.ts";
 
 function App() {
-    // excalidrawAPI を React の state に保存する準備
-    // excalidrawAPI = { (api) => setExcalidrawAPI(api) } で実際に保存
+    /** Excalidraw の操作 API。初期化完了後に同期・イベント登録に使用する。 */
     const [excalidrawAPI, setExcalidrawAPI] = useState<ExcalidrawImperativeAPI | null>(null);
+    const roomConnection = useRoomConnection({ enabled: excalidrawAPI !== null });
 
-    // 画面描画後に実行 (ただし、Excalidraw が未マウント)
-    useEffect(() => {
-        if (!excalidrawAPI) {
-            return;
-        }
-
-        const initialize = async () => {
-            // サーバーからの受信開始
-            socketController.register();
-
-            const roomId = url.getRoomIdFromParams();
-            if (roomId) {
-                joinRoom(roomId);
-            }
-
-            // const userName = prompt("名前を入力してね") ?? null;
-            // if (userName) socketController.registerUser(userName);
-
-            // フォントロード完了を待つ。テキストが全て描画されない不具合の解消用
-            await document.fonts.ready;
-            await document.fonts.load("20px Excalifont");
-
-            // フォントロード後にSkeleton → Element変換
-            const elements = getInitialElements();
-            excalidrawAPI.updateScene({
-                elements: [...elements],
-            });
-
-            // 初期 elements を投入後、実行する
-            onExcalidrawElementsInitialized();
-            excalidrawAPI.onChange((elements: readonly ExcalidrawElement[]) => {
-                handleChange(elements);
-            });
-        };
-        initialize();
-    });
+    useExcalidrawSceneInitialization(excalidrawAPI, roomConnection.getOperatorUserId);
 
     return (
-        <div style={{ height: "100dvh" }}>
+        <div style={{ height: "100dvh", position: "relative" }}>
             <Excalidraw
                 excalidrawAPI={(api) => {
                     setExcalidrawAPI(api);
                     excalidrawAPIHolder.setApi(api);
+                    excalidrawSyncController.syncElements(excalidrawSyncState.getRemoteElements());
                 }}
-
+                onPointerUpdate={(payload) => {
+                    handlePointerChange(payload);
+                }}
                 zenModeEnabled={true}
             >
-                <ExcalidrawMainMenu />
+                <ExcalidrawMainMenu
+                    currentRoomId={roomConnection.currentRoomId}
+                    onCurrentRoomIdChange={roomConnection.onCurrentRoomIdChange}
+                />
             </Excalidraw>
+            <CurrentScore userId={roomConnection.getOperatorUserId()} />
         </div>
     );
 }

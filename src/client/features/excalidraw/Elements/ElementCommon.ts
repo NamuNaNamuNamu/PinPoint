@@ -1,0 +1,58 @@
+import { excalidrawAPIHolder } from "../ExcalidrawAPIHolder";
+
+/**
+ * Excalidraw要素のスケルトンと、シーン上の対応要素を扱う共通処理を提供する。
+ */
+export class ElementCommon {
+    private readonly skeleton;
+
+    /**
+     * Excalidraw 要素のスケルトンを設定して共通処理を初期化する。
+     *
+     * @param params 要素スケルトン。
+     */
+    constructor({ skeleton }: Params) {
+        this.skeleton = skeleton;
+    }
+
+    /**
+     * スケルトンのIDに対応する、現在のシーン上のExcalidraw要素を取得する。
+     *
+     * @returns シーン上のExcalidraw要素
+     * @throws 対応する要素がシーンに存在しない場合
+     */
+    getExcalidrawElement() {
+        const element = excalidrawAPIHolder.findActiveElementById(this.getId());
+
+        if (!element) {
+            throw new Error("Excalidraw 要素が見つかりませんでした");
+        }
+
+        return element;
+    }
+
+    /**
+     * この要素を生成するためのスケルトンを取得する。
+     *
+     * @returns この要素を生成するためのスケルトン。
+     */
+    getSkeleton() {
+        return this.skeleton;
+    }
+
+    /**
+     * スケルトンに設定された要素 ID を取得する。
+     *
+     * @returns スケルトンに設定された要素 ID。
+     */
+    getId() {
+        return this.skeleton.id;
+    }
+}
+
+/**
+ * ElementCommon の初期化に必要なパラメータ。
+ */
+interface Params {
+    skeleton: any;
+}

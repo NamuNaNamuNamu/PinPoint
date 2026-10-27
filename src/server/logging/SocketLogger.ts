@@ -1,4 +1,4 @@
-import { Server, type DefaultEventsMap } from "socket.io";
+import { type DefaultEventsMap, Server } from "socket.io";
 
 class SocketLogger {
     private io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any> | null;
@@ -7,13 +7,22 @@ class SocketLogger {
         this.io = null;
     }
 
+    /**
+     * Socket.IO サーバーを設定する。
+     *
+     * @param io 設定する Socket.IO サーバー。
+     */
     public setIo(io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) {
         this.io = io;
     }
 
-    public outputAllSockets({
-        event, socketId
-    }: Props) {
+    /**
+     * 接続中のすべての Socket をイベント情報とともに標準出力へ記録する。
+     *
+     * @param props 発生イベントと Socket ID。
+     * @throws Socket.IO サーバーが未設定の場合。
+     */
+    public outputAllSockets({ event, socketId }: Props) {
         if (!this.io) {
             throw Error("io が未設定");
         }
@@ -28,14 +37,17 @@ class SocketLogger {
                 connected: socket.connected,
             });
         }
-        
+
         console.log("=============\n");
     }
 }
 
+/**
+ * Socket の状態を記録するイベントの情報。
+ */
 type Props = {
-    event: string,
-    socketId: string
-}
+    event: string;
+    socketId: string;
+};
 
 export const socketLogger = new SocketLogger();
