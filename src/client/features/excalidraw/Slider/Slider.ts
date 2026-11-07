@@ -64,6 +64,7 @@ export class Slider {
                 locked: true,
                 opacity: 100,
                 fontSize: 28,
+                strokeColor: "#000000",
             }),
         });
     }

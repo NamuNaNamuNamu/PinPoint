@@ -199,7 +199,9 @@ class QuestionSceneController {
                 y: 80,
                 text: question.question,
                 locked: true,
+                opacity: 50,
                 fontSize: 28,
+                strokeColor: "#202020",
             }),
             textSkeletonFactory.createWith({
                 id: `choice-left-${question.id}`,
@@ -208,6 +210,7 @@ class QuestionSceneController {
                 text: question.choiceLeft,
                 locked: true,
                 fontSize: CHOICE_FONT_SIZE,
+                strokeColor: "#000000",
             }),
             textSkeletonFactory.createWith({
                 id: `choice-right-${question.id}`,
@@ -216,6 +219,7 @@ class QuestionSceneController {
                 text: question.choiceRight,
                 locked: true,
                 fontSize: CHOICE_FONT_SIZE,
+                strokeColor: "#000000",
             }),
             ...sliders.flatMap((slider) => slider.getSkeleton()),
         ];
