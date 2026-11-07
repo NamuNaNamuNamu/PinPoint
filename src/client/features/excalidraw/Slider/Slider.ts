@@ -63,6 +63,7 @@ export class Slider {
                 text: name,
                 locked: true,
                 opacity: 100,
+                fontSize: 28,
             }),
         });
     }

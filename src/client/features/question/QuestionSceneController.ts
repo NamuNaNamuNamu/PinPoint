@@ -199,7 +199,7 @@ class QuestionSceneController {
                 y: 80,
                 text: question.question,
                 locked: true,
-                fontSize: 20,
+                fontSize: 28,
             }),
             textSkeletonFactory.createWith({
                 id: `choice-left-${question.id}`,
