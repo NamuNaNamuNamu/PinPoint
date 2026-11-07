@@ -15,9 +15,11 @@ const ANSWER_BAR_COLORS = [
     "#FB8C00",
     "#8E24AA",
     "#00ACC1",
-    "#FDD835",
     "#6D4C41",
     "#546E7A",
+    "#283593",
+    "#00897B",
+    "#212121",
 ] as const;
 
 /**
