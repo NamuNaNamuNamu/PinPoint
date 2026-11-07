@@ -277,7 +277,14 @@ class SocketController {
         }, delay);
     }
 
-    /** 所有 AnswerBar の最新位置を最大毎秒 30 回でサーバーへ送る。 */
+    /**
+     * 所有する AnswerBar の最新 X 座標を、専用イベントで最大毎秒 30 回サーバーへ送信する。
+     *
+     * 同じ line ID の送信待ちデータは最新値で置き換える。送信間隔内の複数 line ID は、
+     * 次回の送信時にそれぞれ 1 件ずつ送信する。
+     *
+     * @param position AnswerBar ID、line ID、正規化済み X 座標を含む位置更新要求。
+     */
     public syncAnswerBarPosition(position: AnswerBarPositionUpdateRequest): void {
         this.pendingAnswerBarPositions.set(position.lineId, position);
         const delay =
@@ -294,6 +301,11 @@ class SocketController {
         }
     }
 
+    /**
+     * 保持中の AnswerBar 位置更新を専用イベントで送信する。
+     *
+     * 送信対象がない場合は何もしない。
+     */
     private sendPendingAnswerBarPositions(): void {
         if (this.pendingAnswerBarPositions.size === 0) {
             return;

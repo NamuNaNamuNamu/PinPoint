@@ -10,9 +10,14 @@ import { excalidrawAPIHolder } from "./ExcalidrawAPIHolder";
 import { excalidrawSyncController } from "./excalidrawSync/ExcalidrawSyncController";
 
 /**
- * Excalidraw 要素の変更を処理し、関連する線が更新（位置の変更など）された時の処理と要素の同期を行う。
+ * Excalidraw 要素の変更を処理する。
  *
- * @param elements 変更後の Excalidraw 要素。
+ * 所有 AnswerBar の位置変更は line と名前ラベルをローカルで正規化し、専用位置イベントで送信する。
+ * それ以外の scene 要素だけを通常の `SYNC_ELEMENTS` で同期する。リモート適用中または AnswerBar
+ * 欠損を復元した場合は、再送信を防ぐため何もしない。
+ *
+ * @param _elements 変更後の Excalidraw 要素。現在の scene は API から再取得するため直接は使用しない。
+ * @param operatorUserId 現在操作しているユーザー ID。
  */
 export function handleExcalidrawElementsChange(_elements: readonly ExcalidrawElement[], operatorUserId: number): void {
     if (excalidrawSyncController.isRemoteApplying()) {

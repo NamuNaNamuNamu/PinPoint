@@ -106,7 +106,15 @@ export class AnswerBarAssignmentState {
         );
     }
 
-    /** 指定ルームの採点用 AnswerBar 位置を読み取り専用 map として返す。 */
+    /**
+     * 指定ルームの採点用 AnswerBar 位置を、line ID をキーとする読み取り専用 map として返す。
+     *
+     * 戻り値は内部 map の複製であるため、呼び出し側の変更は状態に影響しない。割当がない
+     * 場合は空の map を返す。
+     *
+     * @param roomId 位置を取得するルーム ID。
+     * @returns line ID ごとのサーバー受理済み X 座標。
+     */
     public getPositionsByLineId(roomId: RoomId): ReadonlyMap<string, number> {
         return new Map(
             (this.assignmentsByRoomId.get(roomId)?.getAll() ?? []).flatMap((assignment) =>
@@ -130,7 +138,7 @@ export class AnswerBarAssignmentState {
      *
      * @param roomId 対象ルーム ID。
      * @param users AnswerBar を割り当てる参加者。
-     * @param sliderCount 問題が持つ Slider 件数。
+     * @param sliders 問題が持つ Slider の X 座標と幅、または互換用の Slider 件数。
      * @returns 新しい割当一覧。
      */
     public reset(
@@ -170,7 +178,7 @@ export class AnswerBarAssignmentState {
      * @param roomId 割当先のルーム ID。
      * @param ownerUserId AnswerBar の所有者 ID。
      * @param ownerUserName AnswerBar のそばに表示する所有者名。
-     * @param sliderCount 割り当てる Slider の件数。
+     * @param sliders 割り当てる Slider の X 座標と幅、または互換用の Slider 件数。
      * @returns 割当と、新規に作成したかどうか。
      */
     public getOrCreate(
@@ -299,7 +307,8 @@ export class AnswerBarAssignmentState {
      * @param lineId 更新対象 line ID。
      * @param x 要求された X 座標。
      * @param slider 更新対象 Slider の座標範囲。
-     * @returns 受理・正規化済み位置。検証に失敗した場合は `null`。
+     * @returns 受理・正規化済み位置。所有者、AnswerBar ID、line ID、座標、または Slider の
+     * 検証に失敗した場合は `null`。
      */
     public updatePosition(
         roomId: RoomId,
@@ -322,10 +331,10 @@ export class AnswerBarAssignmentState {
     }
 
     /**
-     * AnswerBar として既知だが、現在の割当に存在しない要素を scene 同期から除外する。
+     * AnswerBar として既知の要素を、通常の scene 同期から除外する。
      *
-     * 削除通知より前に生成された古い `SYNC_ELEMENTS` を別のクライアントが送っても、
-     * 退出済み AnswerBar と名前ラベルが再生成されないようにする。
+     * 現在・過去の AnswerBar は専用イベントで同期するため、遅延した `SYNC_ELEMENTS` が
+     * AnswerBar または名前ラベルを初期位置へ戻したり、退出済み要素を再生成したりしないようにする。
      *
      * @param roomId 対象ルーム ID。
      * @param elements 同期対象の要素。
@@ -401,7 +410,14 @@ export class AnswerBarAssignmentState {
         return event;
     }
 
-    /** slot と Slider 定義から、line ID ごとの初期位置を作成する。 */
+    /**
+     * slot と Slider 定義から、line ID ごとの初期 X 座標を作成する。
+     *
+     * @param sliders AnswerBar を配置する Slider の X 座標と幅。
+     * @param slot 初期位置比率を決める論理 slot。
+     * @param lineIds Slider 定義順に対応する AnswerBar line ID。
+     * @returns line ID をキーとする初期 X 座標。
+     */
     private createInitialPositions(
         sliders: readonly { x: number; width: number }[],
         slot: AnswerBarSlot,
@@ -415,6 +431,12 @@ export class AnswerBarAssignmentState {
         );
     }
 
+    /**
+     * Slider 件数だけが渡された互換呼び出しを、初期位置 0 の Slider 定義へ正規化する。
+     *
+     * @param sliders Slider 定義、またはその件数。
+     * @returns 初期位置計算に使用する Slider 定義。
+     */
     private toSliderDefinitions(
         sliders: readonly { x: number; width: number }[] | number,
     ): readonly { x: number; width: number }[] {

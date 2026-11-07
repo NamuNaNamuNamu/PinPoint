@@ -32,8 +32,8 @@ export class SocketController {
     /**
      * クライアントから受信する Socket.IO イベントのハンドラーを登録する。
      *
-     * AnswerBar の参加・退出・切断処理は `AnswerBarController` に委譲し、
-     * このクラスはイベントとアプリケーション処理の接続に専念する。
+     * AnswerBar の参加、退出、切断、位置更新は `AnswerBarController` に委譲し、このクラスは
+     * Socket.IO イベントとアプリケーション処理の接続に専念する。
      */
     public register(): void {
         this.socket.on(SocketEvents.REGISTER_USER, (message, callback) => {

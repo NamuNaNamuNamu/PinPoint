@@ -225,7 +225,11 @@ class QuestionController {
     }
 
     /**
-     * 途中参加者へ現在の問題状態を送信する。
+     * 途中参加者または再接続者へ、現在の問題状態を専用 snapshot として送信する。
+     *
+     * 現在問題がある場合、問題定義、AnswerBar 割当、line ID ごとのサーバー受理済み X 座標を
+     * `CURRENT_QUESTION_STATE` で送信する。ルームまたは問題が存在しない場合は、送信可能な
+     * score-list・score snapshot 以外の問題通知を行わない。
      *
      * @param socket 通知先の Socket.IO 接続。
      * @param roomId 現在状態を取得するルーム ID。

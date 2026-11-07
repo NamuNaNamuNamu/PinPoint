@@ -113,7 +113,16 @@ export class AnswerBarController {
         }
     }
 
-    /** 所有者の位置更新を検証し、同一ルームへ正規化済み X 座標を通知する。 */
+    /**
+     * 所有者からの AnswerBar 位置更新を検証し、受理した正規化済み X 座標を同一ルームへ通知する。
+     *
+     * 現在問題が存在しない場合、回答公開後、要求元が room 内の参加者でない場合、または
+     * `AnswerBarAssignmentState` による所有者・line ID・座標の検証に失敗した場合は何もしない。
+     *
+     * @param socket 更新要求を受信した Socket.IO 接続。
+     * @param userId 更新を要求した認証済みユーザー ID。
+     * @param request AnswerBar ID、line ID、X 座標を含む位置更新要求。
+     */
     public updatePosition(
         socket: Socket,
         userId: number | undefined,

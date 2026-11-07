@@ -4,7 +4,7 @@ import { socket } from "../../socket/socket";
 import { questionSceneController } from "./QuestionSceneController";
 
 /**
- * サーバー主導の問題適用・正解表示イベントを登録する。
+ * サーバー主導の問題適用、再接続用現在状態、正解表示の各イベントを登録する。
  *
  * @param operatorUserId 現在操作しているユーザー ID。
  */

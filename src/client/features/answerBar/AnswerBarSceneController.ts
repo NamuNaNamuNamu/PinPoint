@@ -144,7 +144,14 @@ class AnswerBarSceneController {
         this.rememberCurrentElements();
     }
 
-    /** サーバーが受理した X 座標で AnswerBar の線と名前ラベルを同時に更新する。 */
+    /**
+     * サーバーが受理した X 座標で AnswerBar の線と名前ラベルを同時に更新する。
+     *
+     * 対象の AnswerBar または名前ラベルを現在の Slider 群から特定できない場合は、scene を
+     * 変更しない。更新した要素は、後続の欠損復元にも同じ位置を用いるため snapshot へ保存する。
+     *
+     * @param payload サーバーが正規化して配信した AnswerBar の位置更新。
+     */
     public updatePosition(payload: AnswerBarPositionUpdated): void {
         let labelId: string | undefined;
         sliders.forEach((slider) => {

@@ -4,7 +4,7 @@ import { socket } from "../../socket/socket";
 import { answerBarSceneController } from "./AnswerBarSceneController";
 
 /**
- * サーバーから通知される AnswerBar の追加・削除イベントを登録する。
+ * サーバーから通知される AnswerBar の追加、削除、所有者名、および位置更新イベントを登録する。
  *
  * @param operatorUserId 現在操作しているユーザー ID。
  */

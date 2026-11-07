@@ -12,13 +12,12 @@ class ExcalidrawSyncController {
     /**
      * 送信元ソケットが参加するルームへ、要素同期イベントを送信する。
      *
-     * AnswerBar の追加・削除はサーバー発行イベントを正とする。したがって、既に削除された
-     * AnswerBar を含む古い scene は、他クライアントへ中継しない。
+     * AnswerBar の追加、削除、位置更新はサーバー発行の専用イベントを正とする。そのため、
+     * 現在・過去を含む既知の AnswerBar 要素は `SYNC_ELEMENTS` から除外して中継する。
      *
      * @param socket 要素を送信したクライアントのソケット。
      * @param elements 同期する Excalidraw 要素。
-     * @param userId 要素同期を送信した認証済みユーザー ID。
-     * @throws ルーム ID を取得できない場合にエラーを送出する。
+     * 参加ルームが 1 件でない場合は何も送信しない。
      */
     public send = (socket: Socket, elements: readonly ExcalidrawElement[]): void => {
         const roomIds = [...socket.rooms].filter((roomId) => roomId !== socket.id);
