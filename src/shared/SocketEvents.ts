@@ -34,6 +34,8 @@ export const SocketEvents = {
     ANSWER_BAR_POSITION_UPDATE: "answer-bar-position-update",
     /** サーバーが受理・正規化した AnswerBar の位置を通知するイベント。 */
     ANSWER_BAR_POSITION_UPDATED: "answer-bar-position-updated",
+    /** AnswerBar を全参加者へ公開する状態の更新を通知するイベント。 */
+    ANSWER_BAR_REVEAL_UPDATED: "answer-bar-reveal-updated",
     /** 問題をルームへ適用するイベント。 */
     APPLY_QUESTION: "apply-question",
     /** 現在の問題の正解を表示するイベント。 */

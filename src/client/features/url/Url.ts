@@ -2,7 +2,8 @@ export type InitialRoomCommand = {
     roomId: string;
     questionId: number | undefined;
     deleteExternalElements: boolean;
-    reveal: boolean;
+    answerReveal: boolean;
+    answerBarReveal: boolean | undefined;
     scrollToContent: boolean;
     hasScrollToContentParam: boolean;
     scoreReset: boolean;
@@ -45,12 +46,22 @@ class Url {
     };
 
     /**
-     * URL の `reveal` が文字列 `true` かを判定する。
+     * URL の `answerReveal` が文字列 `true` かを判定する。
      *
      * @returns `true` が明示された場合は `true`。
      */
-    public shouldReveal = (): boolean => {
-        return new URLSearchParams(window.location.search).get("reveal") === "true";
+    public shouldAnswerReveal = (): boolean => {
+        return new URLSearchParams(window.location.search).get("answerReveal") === "true";
+    };
+
+    /**
+     * URL の `answerBarReveal` を AnswerBar の全体公開状態として取得する。
+     *
+     * @returns `true` または `false` が明示された場合だけその値。未指定または無効値は `undefined`。
+     */
+    public getAnswerBarRevealFromParams = (): boolean | undefined => {
+        const value = new URLSearchParams(window.location.search).get("answerBarReveal");
+        return value === "true" ? true : value === "false" ? false : undefined;
     };
 
     /**
@@ -105,7 +116,8 @@ class Url {
             roomId,
             questionId: this.getQuestionIdFromParams(),
             deleteExternalElements: this.shouldDeleteExternalElements(),
-            reveal: this.shouldReveal(),
+            answerReveal: this.shouldAnswerReveal(),
+            answerBarReveal: this.getAnswerBarRevealFromParams(),
             scrollToContent: this.shouldScrollToContent(),
             hasScrollToContentParam: this.hasScrollToContentParam(),
             scoreReset: this.shouldResetScores(),

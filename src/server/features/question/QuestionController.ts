@@ -1,5 +1,6 @@
 import type { Socket } from "socket.io";
 
+import type { AnswerBarRevealUpdated } from "../../../shared/answerBar/AnswerBarEvents";
 import type {
     ApplyQuestionRequest,
     ApplyQuestionResult,
@@ -52,7 +53,8 @@ class QuestionController {
             !request ||
             userId === undefined ||
             (request.deleteExternalElements !== true && request.deleteExternalElements !== false) ||
-            (request.scrollToContent !== undefined && typeof request.scrollToContent !== "boolean")
+            (request.scrollToContent !== undefined && typeof request.scrollToContent !== "boolean") ||
+            (request.answerBarReveal !== undefined && typeof request.answerBarReveal !== "boolean")
         ) {
             return { ok: false, reason: "invalid-request" };
         }
@@ -72,6 +74,7 @@ class QuestionController {
         }
 
         room.setCurrentQuestionId(question.id);
+        room.setAnswerBarReveal(request.answerBarReveal ?? true);
         const users = room.getUserIds().flatMap((participantUserId) => {
             if (room.isCreatedBy(participantUserId)) {
                 return [];
@@ -85,6 +88,7 @@ class QuestionController {
             answerBars,
             deleteExternalElements: request.deleteExternalElements,
             scrollToContent: request.scrollToContent ?? false,
+            answerBarReveal: room.isAnswerBarRevealed(),
         };
         socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_APPLIED, payload);
         return { ok: true };
@@ -195,7 +199,8 @@ class QuestionController {
             !request ||
             userId === undefined ||
             (request.deleteExternalElements !== true && request.deleteExternalElements !== false) ||
-            (request.scrollToContent !== true && request.scrollToContent !== false)
+            (request.scrollToContent !== true && request.scrollToContent !== false) ||
+            (request.answerBarReveal !== undefined && typeof request.answerBarReveal !== "boolean")
         ) {
             return { ok: false, reason: "invalid-request" };
         }
@@ -220,6 +225,11 @@ class QuestionController {
         }
         if (request.scrollToContent) {
             socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_SCROLL_TO_CONTENT);
+        }
+        if (request.answerBarReveal !== undefined && room.setAnswerBarReveal(request.answerBarReveal)) {
+            socket.nsp.to(request.roomId).emit(SocketEvents.ANSWER_BAR_REVEAL_UPDATED, {
+                answerBarReveal: room.isAnswerBarRevealed(),
+            } satisfies AnswerBarRevealUpdated);
         }
         return { ok: true };
     }
@@ -254,6 +264,7 @@ class QuestionController {
             answerBars: answerBarAssignmentState.getAll(roomId),
             deleteExternalElements: false,
             scrollToContent: true,
+            answerBarReveal: room.isAnswerBarRevealed(),
         } satisfies CurrentQuestionState);
         if (room.isAnswerRevealed()) {
             socket.emit(SocketEvents.QUESTION_REVEALED, { questionId });

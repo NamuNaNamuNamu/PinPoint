@@ -40,8 +40,17 @@ export type AnswerBarPositionUpdateRequest = {
     x: number;
 };
 
-/** サーバーが正規化して配信する AnswerBar の位置更新。 */
+/**
+ * サーバーが正規化して配信する AnswerBar の位置更新。
+ */
 export type AnswerBarPositionUpdated = AnswerBarPositionUpdateRequest;
+
+/**
+ * ルーム内の AnswerBar を、全参加者へ公開するかを通知する。
+ */
+export type AnswerBarRevealUpdated = {
+    answerBarReveal: boolean;
+};
 
 /**
  * AnswerBar を全 Slider と scene から除去するための情報。

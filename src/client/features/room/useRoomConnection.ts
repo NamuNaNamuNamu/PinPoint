@@ -78,6 +78,9 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                     questionId: command.questionId,
                     deleteExternalElements: command.deleteExternalElements,
                     scrollToContent: command.scrollToContent,
+                    ...(command.answerBarReveal === undefined
+                        ? {}
+                        : { answerBarReveal: command.answerBarReveal }),
                 });
                 console.debug("[initial-room-command] apply-question acknowledged", {
                     socketId: socketController.getSocketId(),
@@ -86,11 +89,18 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 if (!result.ok) {
                     return;
                 }
-            } else if (command.deleteExternalElements || command.hasScrollToContentParam) {
+            } else if (
+                command.deleteExternalElements ||
+                command.hasScrollToContentParam ||
+                command.answerBarReveal !== undefined
+            ) {
                 const result = await socketController.controlCurrentQuestion({
                     roomId: command.roomId,
                     deleteExternalElements: command.deleteExternalElements,
                     scrollToContent: command.scrollToContent,
+                    ...(command.answerBarReveal === undefined
+                        ? {}
+                        : { answerBarReveal: command.answerBarReveal }),
                 });
                 if (!result.ok) {
                     return;
@@ -111,7 +121,7 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 }
             }
 
-            if (command.reveal) {
+            if (command.answerReveal) {
                 socketController.revealQuestion(command.roomId);
             }
 

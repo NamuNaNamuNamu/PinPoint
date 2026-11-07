@@ -1,6 +1,6 @@
 import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { RemoteExcalidrawElement } from "@excalidraw/excalidraw/data/reconcile";
-import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import type { ExcalidrawElement, OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import type {
     AnswerBarAdded,
@@ -9,6 +9,7 @@ import type {
     AnswerBarRemoved,
 } from "../../../shared/answerBar/AnswerBarEvents";
 import { excalidrawAPIHolder } from "../excalidraw/ExcalidrawAPIHolder";
+import type { AnswerBar } from "../excalidraw/Slider/AnswerBar";
 import { sliders } from "../excalidraw/Slider/Sliders";
 
 /**
@@ -23,6 +24,10 @@ class AnswerBarSceneController {
      * 現在の問題で AnswerBar 操作を一律禁止しているか。
      */
     private interactionLocked = false;
+    /**
+     * `false` の場合、所有者以外の AnswerBar と名前ラベルをこのクライアントで非表示にする。
+     */
+    private answerBarReveal = true;
     /**
      * 削除通知済みの AnswerBar 要素 ID。古い全量同期による再出現を防ぐ。
      */
@@ -44,6 +49,24 @@ class AnswerBarSceneController {
     }
 
     /**
+     * AnswerBar を全参加者へ公開する状態を scene に反映する。
+     *
+     * 非公開時も要素を scene 内に保持することで、位置・名前の更新を受信し、再公開時に
+     * 最新状態を表示できるようにする。所有者以外の line と全名前ラベルは不透明度 0 かつ
+     * ロック状態で反映する。
+     *
+     * @param answerBarReveal `true` の場合は全 AnswerBar を公開する。
+     */
+    public setAnswerBarReveal(answerBarReveal: boolean): void {
+        this.answerBarReveal = answerBarReveal;
+        const api = excalidrawAPIHolder.getApi();
+        const elements = excalidrawAPIHolder
+            .getSceneElementsWithTombstones()
+            .map((element) => this.applyLocalPresentation(element));
+        api.updateScene({ elements });
+    }
+
+    /**
      * 現在管理中の AnswerBar の操作可否を scene へ反映する。
      *
      * @param locked `true` の場合は所有者を含む全 AnswerBar をロックする。
@@ -56,12 +79,14 @@ class AnswerBarSceneController {
         }
         const elements = excalidrawAPIHolder.getSceneElementsWithTombstones().map((element) => {
             const elementLocked = lockedByLineId.get(element.id);
-            return elementLocked === undefined ? element : { ...element, locked: elementLocked };
+            return this.applyLocalPresentation(
+                elementLocked === undefined ? element : { ...element, locked: elementLocked },
+            );
         });
         excalidrawAPIHolder.getApi().updateScene({ elements });
         elements.forEach((element) => {
             if (lockedByLineId.has(element.id)) {
-                this.elementSnapshots.set(element.id, structuredClone(element));
+                this.rememberElement(element);
             }
         });
     }
@@ -95,7 +120,9 @@ class AnswerBarSceneController {
             const answerBar = slider.addAnswerBar({ ...payload, lineId, labelId, operatorUserId });
             if (answerBar) {
                 const elements = convertToExcalidrawElements(answerBar.getSkeletons(), { regenerateIds: false });
-                additions.push(...this.normalizeLockedElements(answerBar.centerLabelInElements(elements)));
+                const normalizedElements = this.normalizeLockedElements(answerBar.centerLabelInElements(elements));
+                normalizedElements.forEach((element) => this.rememberElement(element));
+                additions.push(...normalizedElements.map((element) => this.applyLocalPresentation(element)));
             }
         });
         if (additions.length === 0) {
@@ -104,7 +131,7 @@ class AnswerBarSceneController {
         const api = excalidrawAPIHolder.getApi();
         api.updateScene({ elements: [...excalidrawAPIHolder.getSceneElementsWithTombstones(), ...additions] });
         additions.forEach((element) => {
-            this.elementSnapshots.set(element.id, structuredClone(element));
+            this.rememberElement(element);
         });
     }
 
@@ -176,7 +203,7 @@ class AnswerBarSceneController {
         excalidrawAPIHolder.getApi().updateScene({ elements });
         elements.forEach((element) => {
             if (element.id === payload.lineId || element.id === labelId) {
-                this.elementSnapshots.set(element.id, structuredClone(element));
+                this.rememberElement(element);
             }
         });
     }
@@ -189,6 +216,7 @@ class AnswerBarSceneController {
      */
     public clear(): void {
         this.interactionLocked = false;
+        this.answerBarReveal = true;
         const answerBarIds = new Set<string>();
         const elementIds = new Set<string>();
         sliders.forEach((slider) =>
@@ -221,7 +249,7 @@ class AnswerBarSceneController {
             .filter((element) => !this.removedElementIds.has(element.id))
             .map((element) => {
                 const locked = lockedByLineId.get(element.id);
-                return locked === undefined ? element : { ...element, locked };
+                return this.applyLocalPresentation(locked === undefined ? element : { ...element, locked });
             });
     }
 
@@ -240,7 +268,9 @@ class AnswerBarSceneController {
             slider.forEachAnswerBar((answerBar) => {
                 lockedByLineId.set(
                     answerBar.getLineId(),
-                    this.interactionLocked || !answerBar.isOwnedBy(this.operatorUserId!),
+                    this.interactionLocked ||
+                        !this.isAnswerBarVisible(answerBar) ||
+                        !answerBar.isOwnedBy(this.operatorUserId!),
                 );
             });
         });
@@ -264,7 +294,7 @@ class AnswerBarSceneController {
         const managedElementIds = this.getManagedElementIds();
         excalidrawAPIHolder.getActiveSceneElements().forEach((element) => {
             if (managedElementIds.has(element.id)) {
-                this.elementSnapshots.set(element.id, structuredClone(element));
+                this.rememberElement(element);
             }
         });
     }
@@ -283,7 +313,7 @@ class AnswerBarSceneController {
         const managedElementIds = this.getManagedElementIds();
         const missingElements = [...this.elementSnapshots.entries()]
             .filter(([id]) => managedElementIds.has(id) && !activeElementIds.has(id))
-            .map(([, element]) => structuredClone(element));
+            .map(([, element]) => this.applyLocalPresentation(structuredClone(element)));
 
         if (missingElements.length === 0) {
             return false;
@@ -307,6 +337,77 @@ class AnswerBarSceneController {
             });
         });
         return managedElementIds;
+    }
+
+    /**
+     * 管理中の要素へ、このクライアントだけが所有する公開・ロック状態を適用する。
+     *
+     * @param element scene に反映する前の要素。
+     * @returns 公開状態を反映した要素。管理外要素はそのまま返す。
+     */
+    private applyLocalPresentation<T extends ExcalidrawElement>(element: T): T {
+        const answerBar = this.getAnswerBarByElementId(element.id);
+        if (!answerBar) {
+            return element;
+        }
+        const isVisible = this.isAnswerBarVisible(answerBar);
+        const snapshot = this.elementSnapshots.get(element.id);
+        const isLine = answerBar.getLineId() === element.id;
+        return {
+            ...element,
+            opacity: isVisible ? (snapshot?.opacity ?? element.opacity) : 0,
+            locked: isLine
+                ? this.interactionLocked || !isVisible || !answerBar.isOwnedBy(this.operatorUserId!)
+                : true,
+        } as T;
+    }
+
+    /**
+     * 指定要素を管理する AnswerBar を取得する。
+     *
+     * @param elementId AnswerBar の line または名前ラベルの scene 要素 ID。
+     * @returns 管理中の AnswerBar。見つからない場合は `undefined`。
+     */
+    private getAnswerBarByElementId(elementId: string): AnswerBar | undefined {
+        let foundAnswerBar: AnswerBar | undefined;
+        sliders.forEach((slider) => {
+            slider.forEachAnswerBar((answerBar) => {
+                if (answerBar.getLineId() === elementId || answerBar.getLabelId() === elementId) {
+                    foundAnswerBar = answerBar;
+                }
+            });
+        });
+        return foundAnswerBar;
+    }
+
+    /**
+     * 指定 AnswerBar をこのクライアントで表示するかを判定する。
+     *
+     * @param answerBar 判定対象の AnswerBar。
+     * @returns 全体公開中または現在の操作ユーザーが所有者の場合は `true`。
+     */
+    private isAnswerBarVisible(answerBar: AnswerBar): boolean {
+        return this.answerBarReveal || (this.operatorUserId !== undefined && answerBar.isOwnedBy(this.operatorUserId));
+    }
+
+    /**
+     * 管理中要素の復元用 snapshot を更新する。
+     *
+     * 非公開表示に用いる不透明度とロック状態はクライアント固有の一時表現なので、既存 snapshot
+     * がある場合はその値を維持する。
+     *
+     * @param element snapshot として保存する scene 要素。
+     */
+    private rememberElement(element: OrderedExcalidrawElement): void {
+        const previous = this.elementSnapshots.get(element.id);
+        this.elementSnapshots.set(
+            element.id,
+            structuredClone({
+                ...element,
+                opacity: previous?.opacity ?? element.opacity,
+                locked: previous?.locked ?? element.locked,
+            }),
+        );
     }
 }
 

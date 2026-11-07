@@ -64,6 +64,7 @@ class QuestionSceneController {
         this.currentQuestion = payload.question;
         questionStore.set(true);
         setSliders(payload.question.sliders);
+        answerBarSceneController.setAnswerBarReveal(payload.answerBarReveal);
         const elements = convertToExcalidrawElements(this.getQuestionSkeletons(), { regenerateIds: false });
         elements.forEach((element) => this.managedElementIds.add(element.id));
         api.updateScene({ elements: [...previous, ...elements] });

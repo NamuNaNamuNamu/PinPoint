@@ -127,7 +127,8 @@ describe("useRoomConnection", () => {
             roomId: "room-1",
             questionId: 1,
             deleteExternalElements: true,
-            reveal: true,
+            answerReveal: true,
+            answerBarReveal: undefined,
             scrollToContent: true,
             hasScrollToContentParam: true,
             scoreReset: false,
@@ -191,7 +192,8 @@ describe("useRoomConnection", () => {
             roomId: "room-1",
             questionId: undefined,
             deleteExternalElements: true,
-            reveal: false,
+            answerReveal: false,
+            answerBarReveal: undefined,
             scrollToContent: true,
             hasScrollToContentParam: true,
             scoreReset: false,
@@ -214,7 +216,8 @@ describe("useRoomConnection", () => {
             roomId: "room-1",
             questionId: undefined,
             deleteExternalElements: false,
-            reveal: false,
+            answerReveal: false,
+            answerBarReveal: undefined,
             scrollToContent: false,
             hasScrollToContentParam: false,
             scoreReset: true,
@@ -232,7 +235,8 @@ describe("useRoomConnection", () => {
             roomId: "room-1",
             questionId: undefined,
             deleteExternalElements: false,
-            reveal: false,
+            answerReveal: false,
+            answerBarReveal: undefined,
             scrollToContent: false,
             hasScrollToContentParam: false,
             scoreReset: false,
@@ -276,6 +280,29 @@ describe("useRoomConnection", () => {
         expect(getUser).toHaveBeenCalledWith(1);
         expect(joinRoom).toHaveBeenCalledWith(1, "room-1");
         expect(applyQuestion).toHaveBeenCalledTimes(1);
+    });
+
+    test("問題 ID のない answerBarReveal=false は現在問題の公開状態だけを更新すること", async () => {
+        getInitialRoomCommand.mockReturnValue({
+            roomId: "room-1",
+            questionId: undefined,
+            deleteExternalElements: false,
+            answerReveal: false,
+            answerBarReveal: false,
+            scrollToContent: false,
+            hasScrollToContentParam: false,
+            scoreReset: false,
+            scoreListEnabled: undefined,
+        });
+
+        await renderAndFlush(root);
+
+        expect(controlCurrentQuestion).toHaveBeenCalledWith({
+            roomId: "room-1",
+            deleteExternalElements: false,
+            scrollToContent: false,
+            answerBarReveal: false,
+        });
     });
 });
 

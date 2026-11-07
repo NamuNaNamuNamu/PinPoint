@@ -8,7 +8,7 @@ import { url } from "../../../../src/client/features/url/Url";
 
 describe("Url", () => {
     beforeEach(() => {
-        window.history.replaceState(null, "", "/?room=room-1&question=1&deleteExternalElements=true&reveal=true");
+        window.history.replaceState(null, "", "/?room=room-1&question=1&deleteExternalElements=true&answerReveal=true");
     });
 
     test("createRoomUrl は room 以外のクエリパラメータを引き継がないこと", () => {
@@ -43,7 +43,8 @@ describe("Url", () => {
             roomId: "room-1",
             questionId: 1,
             deleteExternalElements: true,
-            reveal: true,
+            answerReveal: true,
+            answerBarReveal: undefined,
             scrollToContent: false,
             hasScrollToContentParam: false,
             scoreReset: false,
@@ -66,5 +67,16 @@ describe("Url", () => {
         expect(url.getInitialRoomCommand()).toEqual(
             expect.objectContaining({ roomId: "room-1", scoreReset: false }),
         );
+    });
+
+    test("answerBarReveal は true と false の明示時だけ公開状態として読み取ること", () => {
+        window.history.replaceState(null, "", "/?room=room-1&answerBarReveal=true");
+        expect(url.getInitialRoomCommand()).toEqual(expect.objectContaining({ answerBarReveal: true }));
+
+        window.history.replaceState(null, "", "/?room=room-1&answerBarReveal=false");
+        expect(url.getInitialRoomCommand()).toEqual(expect.objectContaining({ answerBarReveal: false }));
+
+        window.history.replaceState(null, "", "/?room=room-1&answerBarReveal=invalid");
+        expect(url.getInitialRoomCommand()).toEqual(expect.objectContaining({ answerBarReveal: undefined }));
     });
 });

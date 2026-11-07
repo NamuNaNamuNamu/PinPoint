@@ -15,6 +15,7 @@ export class Room {
     private users: User[] = [];
     private currentQuestionId: number | undefined;
     private answerRevealed = false;
+    private answerBarReveal = true;
     private scoreListEnabled = true;
     private readonly disconnectTokensByUserId = new Map<number, string>();
 
@@ -73,6 +74,7 @@ export class Room {
     public setCurrentQuestionId(questionId: number): void {
         this.currentQuestionId = questionId;
         this.answerRevealed = false;
+        this.answerBarReveal = true;
     }
 
     /** 現在の問題の正解を表示済みにする。 */
@@ -87,6 +89,31 @@ export class Room {
      */
     public isAnswerRevealed(): boolean {
         return this.answerRevealed;
+    }
+
+    /**
+     * AnswerBar を全参加者へ公開する状態を更新する。
+     *
+     * `false` の場合、クライアントは自身が所有する AnswerBar だけを表示する。
+     *
+     * @param answerBarReveal 更新後の AnswerBar 公開状態。
+     * @returns 状態が変化した場合は `true`。
+     */
+    public setAnswerBarReveal(answerBarReveal: boolean): boolean {
+        if (this.answerBarReveal === answerBarReveal) {
+            return false;
+        }
+        this.answerBarReveal = answerBarReveal;
+        return true;
+    }
+
+    /**
+     * AnswerBar を全参加者へ公開しているかを返す。
+     *
+     * @returns 全参加者へ公開している場合は `true`。
+     */
+    public isAnswerBarRevealed(): boolean {
+        return this.answerBarReveal;
     }
 
     /**

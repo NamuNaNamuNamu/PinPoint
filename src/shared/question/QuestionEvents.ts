@@ -9,6 +9,7 @@ export type ApplyQuestionRequest = {
     questionId: number;
     deleteExternalElements: boolean;
     scrollToContent?: boolean;
+    answerBarReveal?: boolean;
 };
 
 /**
@@ -30,6 +31,7 @@ export type ControlCurrentQuestionRequest = {
     roomId: string;
     deleteExternalElements: boolean;
     scrollToContent: boolean;
+    answerBarReveal?: boolean;
 };
 
 /**
@@ -40,6 +42,7 @@ export type QuestionApplied = {
     answerBars: readonly AnswerBarAdded[];
     deleteExternalElements: boolean;
     scrollToContent: boolean;
+    answerBarReveal: boolean;
 };
 
 /**

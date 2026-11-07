@@ -27,6 +27,18 @@ describe("RoomState", () => {
         expect(first.getSocketIds()).toEqual([]);
     });
 
+    test("AnswerBar は既定で公開され、新しい問題の適用時にも公開状態へ戻る", () => {
+        const room = roomState.addRoom(1);
+
+        expect(room.isAnswerBarRevealed()).toBe(true);
+        expect(room.setAnswerBarReveal(false)).toBe(true);
+        expect(room.isAnswerBarRevealed()).toBe(false);
+
+        room.setCurrentQuestionId(1);
+
+        expect(room.isAnswerBarRevealed()).toBe(true);
+    });
+
     test("存在しないルームには参加できず、ユーザーを検索しない", () => {
         expect(roomState.join(1, "missing")).toBe(false);
         expect(mockUserService.getUser).not.toHaveBeenCalled();
