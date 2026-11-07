@@ -110,7 +110,11 @@ export class SocketController {
         });
 
         this.socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {
-            excalidrawSyncController.send(this.socket, message, this.activeUserId);
+            excalidrawSyncController.send(this.socket, message);
+        });
+
+        this.socket.on(SocketEvents.ANSWER_BAR_POSITION_UPDATE, (message) => {
+            answerBarController.updatePosition(this.socket, this.activeUserId, message);
         });
 
         this.socket.on(SocketEvents.SYNC_CURSOR, (message: Cursor) => {

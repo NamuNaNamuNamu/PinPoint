@@ -26,7 +26,22 @@ export type AnswerBarAdded = {
      * 各 Slider 内の初期位置を表す論理スロット。
      */
     slot: number;
+    /**
+     * line ID ごとの現在の X 座標。問題適用時は slot に基づく初期値、
+     * 現在状態通知時はサーバーが受理した最新値を持つ。
+     */
+    positionsByLineId?: Readonly<Record<string, number>>;
 };
+
+/** 所有者が送信する AnswerBar の位置更新要求。 */
+export type AnswerBarPositionUpdateRequest = {
+    answerBarId: string;
+    lineId: string;
+    x: number;
+};
+
+/** サーバーが正規化して配信する AnswerBar の位置更新。 */
+export type AnswerBarPositionUpdated = AnswerBarPositionUpdateRequest;
 
 /**
  * AnswerBar を全 Slider と scene から除去するための情報。

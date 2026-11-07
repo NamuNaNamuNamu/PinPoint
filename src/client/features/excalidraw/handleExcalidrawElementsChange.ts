@@ -32,6 +32,13 @@ export function handleExcalidrawElementsChange(_elements: readonly ExcalidrawEle
         slider.forEachAnswerBar((answerBar) => {
             answerBar.getElementUpdates(operatorUserId).forEach((element) => {
                 answerBarElementUpdates.set(element.id, element);
+                if (element.id === answerBar.getLineId()) {
+                    socketController.syncAnswerBarPosition({
+                        answerBarId: answerBar.getAnswerBarId(),
+                        lineId: element.id,
+                        x: element.x,
+                    });
+                }
             });
         });
     });

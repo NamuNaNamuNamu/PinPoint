@@ -5,6 +5,7 @@ import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/ty
 import type {
     AnswerBarAdded,
     AnswerBarOwnerNameUpdated,
+    AnswerBarPositionUpdated,
     AnswerBarRemoved,
 } from "../../../shared/answerBar/AnswerBarEvents";
 import { excalidrawAPIHolder } from "../excalidraw/ExcalidrawAPIHolder";
@@ -141,6 +142,36 @@ class AnswerBarSceneController {
             });
         });
         this.rememberCurrentElements();
+    }
+
+    /** サーバーが受理した X 座標で AnswerBar の線と名前ラベルを同時に更新する。 */
+    public updatePosition(payload: AnswerBarPositionUpdated): void {
+        let labelId: string | undefined;
+        sliders.forEach((slider) => {
+            slider.forEachAnswerBar((answerBar) => {
+                if (answerBar.getAnswerBarId() === payload.answerBarId && answerBar.getLineId() === payload.lineId) {
+                    labelId = answerBar.getLabelId();
+                }
+            });
+        });
+        if (!labelId) {
+            return;
+        }
+        const elements = excalidrawAPIHolder.getSceneElementsWithTombstones().map((element) => {
+            if (element.id === payload.lineId) {
+                return { ...element, x: payload.x };
+            }
+            if (element.id === labelId) {
+                return { ...element, x: payload.x - element.width / 2 };
+            }
+            return element;
+        });
+        excalidrawAPIHolder.getApi().updateScene({ elements });
+        elements.forEach((element) => {
+            if (element.id === payload.lineId || element.id === labelId) {
+                this.elementSnapshots.set(element.id, structuredClone(element));
+            }
+        });
     }
 
     /**

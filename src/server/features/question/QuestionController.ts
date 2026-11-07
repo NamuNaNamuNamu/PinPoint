@@ -4,6 +4,7 @@ import type {
     ApplyQuestionRequest,
     ApplyQuestionResult,
     ControlCurrentQuestionRequest,
+    CurrentQuestionState,
     QuestionApplied,
 } from "../../../shared/question/QuestionEvents";
 import { getAllQuestionManagedElementIds } from "../../../shared/question/QuestionManagedElementIds";
@@ -11,8 +12,8 @@ import { getQuestionTemplate } from "../../../shared/question/QuestionTemplate";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
 import { roomController } from "../room/RoomController";
-import { userService } from "../user/UserService";
 import { scoreState } from "../score/ScoreState";
+import { userService } from "../user/UserService";
 
 /**
  * ルームの問題適用と正解表示を処理する。
@@ -78,8 +79,7 @@ class QuestionController {
             const user = userService.getUser(participantUserId);
             return user ? [{ userId: participantUserId, userName: user.getName() }] : [];
         });
-        const answerBars = answerBarAssignmentState.reset(request.roomId, users, question.sliders.length);
-        scoreState.prepareQuestion(request.roomId, question, answerBars);
+        const answerBars = answerBarAssignmentState.reset(request.roomId, users, question.sliders);
         const payload: QuestionApplied = {
             question,
             answerBars,
@@ -110,7 +110,12 @@ class QuestionController {
             return;
         }
         room.revealAnswer();
-        const scores = scoreState.addQuestionScores(roomId, getQuestionTemplate(questionId)!, answerBarAssignmentState.getAll(roomId));
+        const scores = scoreState.addQuestionScores(
+            roomId,
+            getQuestionTemplate(questionId)!,
+            answerBarAssignmentState.getAll(roomId),
+            answerBarAssignmentState.getPositionsByLineId(roomId),
+        );
         socket.nsp.to(roomId).emit(SocketEvents.QUESTION_REVEALED, { questionId });
         socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "scored" });
     }
@@ -240,12 +245,12 @@ class QuestionController {
         if (!question) {
             return;
         }
-        socket.emit(SocketEvents.QUESTION_APPLIED, {
+        socket.emit(SocketEvents.CURRENT_QUESTION_STATE, {
             question,
             answerBars: answerBarAssignmentState.getAll(roomId),
             deleteExternalElements: false,
             scrollToContent: true,
-        } satisfies QuestionApplied);
+        } satisfies CurrentQuestionState);
         if (room.isAnswerRevealed()) {
             socket.emit(SocketEvents.QUESTION_REVEALED, { questionId });
         }

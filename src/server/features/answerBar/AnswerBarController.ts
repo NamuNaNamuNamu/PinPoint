@@ -1,5 +1,6 @@
 import type { Socket } from "socket.io";
 
+import type { AnswerBarPositionUpdateRequest } from "../../../shared/answerBar/AnswerBarEvents";
 import { getQuestionTemplate } from "../../../shared/question/QuestionTemplate";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { excalidrawCursorSyncController } from "../excalidrawCursor/ExcalidrawCursorSyncController";
@@ -49,23 +50,20 @@ export class AnswerBarController {
             return null;
         }
 
-        questionController.sendCurrent(socket, roomId);
-
         const questionId = room.getCurrentQuestionId();
         const question = questionId === undefined ? undefined : getQuestionTemplate(questionId);
-        if (!question || room.isCreatedBy(userId)) {
-            return response;
+        if (question && !room.isCreatedBy(userId)) {
+            const { assignment, isNew } = answerBarAssignmentState.getOrCreate(
+                roomId,
+                userId,
+                ownerUser.getName(),
+                question.sliders,
+            );
+            if (isNew) {
+                socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_ADDED, assignment);
+            }
         }
-
-        const { assignment, isNew } = answerBarAssignmentState.getOrCreate(
-            roomId,
-            userId,
-            ownerUser.getName(),
-            question.sliders.length,
-        );
-        if (isNew) {
-            socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_ADDED, assignment);
-        }
+        questionController.sendCurrent(socket, roomId);
         return response;
     }
 
@@ -112,6 +110,39 @@ export class AnswerBarController {
             socket.nsp
                 .to(roomId)
                 .emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: "snapshot" });
+        }
+    }
+
+    /** 所有者の位置更新を検証し、同一ルームへ正規化済み X 座標を通知する。 */
+    public updatePosition(
+        socket: Socket,
+        userId: number | undefined,
+        request: AnswerBarPositionUpdateRequest | undefined,
+    ): void {
+        if (!request || userId === undefined) {
+            return;
+        }
+        const roomId = roomController.getRoomIdByUserId(userId);
+        const room = roomId ? roomController.getRoom(roomId) : undefined;
+        const questionId = room?.getCurrentQuestionId();
+        const question = questionId === undefined ? undefined : getQuestionTemplate(questionId);
+        if (!roomId || !room || !question || room.isAnswerRevealed() || !room.hasUser(userId)) {
+            return;
+        }
+        const lineIndex = answerBarAssignmentState
+            .getAll(roomId)
+            .find((assignment) => assignment.answerBarId === request.answerBarId && assignment.ownerUserId === userId)
+            ?.lineIds.indexOf(request.lineId);
+        const x = answerBarAssignmentState.updatePosition(
+            roomId,
+            userId,
+            request.answerBarId,
+            request.lineId,
+            request.x,
+            lineIndex === undefined || lineIndex < 0 ? undefined : question.sliders[lineIndex],
+        );
+        if (x !== null) {
+            socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_POSITION_UPDATED, { ...request, x });
         }
     }
 

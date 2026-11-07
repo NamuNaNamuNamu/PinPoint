@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { AnswerBarAdded, AnswerBarOwnerNameUpdated, AnswerBarRemoved } from "../../../shared/answerBar/AnswerBarEvents";
+import { getAnswerBarSlotRatio } from "../../../shared/answerBar/answerBarSlot";
 
 /**
  * AnswerBar の割当先となるルーム ID。
@@ -25,6 +26,7 @@ type AnswerBarAssignment = {
     slot: AnswerBarSlot;
     lineIds: readonly string[];
     labelIds: readonly string[];
+    positionsByLineId: Record<string, number>;
     disconnectedAt: number | null;
     disconnectedToken: string | null;
 };
@@ -104,6 +106,15 @@ export class AnswerBarAssignmentState {
         );
     }
 
+    /** 指定ルームの採点用 AnswerBar 位置を読み取り専用 map として返す。 */
+    public getPositionsByLineId(roomId: RoomId): ReadonlyMap<string, number> {
+        return new Map(
+            (this.assignmentsByRoomId.get(roomId)?.getAll() ?? []).flatMap((assignment) =>
+                Object.entries(assignment.positionsByLineId),
+            ),
+        );
+    }
+
     /**
      * ルーム削除時に、AnswerBar 割当と既知要素 ID を破棄する。
      *
@@ -125,8 +136,9 @@ export class AnswerBarAssignmentState {
     public reset(
         roomId: RoomId,
         users: readonly { userId: number; userName: string }[],
-        sliderCount: number,
+        sliders: readonly { x: number; width: number }[] | number,
     ): readonly AnswerBarAdded[] {
+        const sliderDefinitions = this.toSliderDefinitions(sliders);
         const previous = this.assignmentsByRoomId.get(roomId)?.getAll() ?? [];
         const previousSlotByUserId = new Map(previous.map((assignment) => [assignment.ownerUserId, assignment.slot]));
         const roomAssignments = new RoomAssignments();
@@ -138,12 +150,14 @@ export class AnswerBarAssignmentState {
                 ownerUserId: user.userId,
                 ownerUserName: user.userName,
                 slot: previousSlotByUserId.get(user.userId) ?? index,
-                lineIds: Array.from({ length: sliderCount }, () => randomUUID()),
-                labelIds: Array.from({ length: sliderCount }, () => randomUUID()),
+                lineIds: Array.from({ length: sliderDefinitions.length }, () => randomUUID()),
+                labelIds: Array.from({ length: sliderDefinitions.length }, () => randomUUID()),
+                positionsByLineId: {},
                 disconnectedAt: null,
                 disconnectedToken: null,
             };
             roomAssignments.set(assignment);
+            assignment.positionsByLineId = this.createInitialPositions(sliderDefinitions, assignment.slot, assignment.lineIds);
             assignment.lineIds.forEach((id) => knownElementIds.add(id));
             assignment.labelIds.forEach((id) => knownElementIds.add(id));
         });
@@ -163,8 +177,9 @@ export class AnswerBarAssignmentState {
         roomId: RoomId,
         ownerUserId: OwnerUserId,
         ownerUserName: string,
-        sliderCount: number,
+        sliders: readonly { x: number; width: number }[] | number,
     ): { assignment: AnswerBarAdded; isNew: boolean } {
+        const sliderDefinitions = this.toSliderDefinitions(sliders);
         const roomAssignments = this.getOrCreateRoomAssignments(roomId);
         const existing = roomAssignments.getByOwnerUserId(ownerUserId);
         if (existing) {
@@ -178,11 +193,13 @@ export class AnswerBarAssignmentState {
             ownerUserId,
             ownerUserName,
             slot: this.getSmallestUnusedSlot(roomAssignments.getUsedSlots()),
-            lineIds: Array.from({ length: sliderCount }, () => randomUUID()),
-            labelIds: Array.from({ length: sliderCount }, () => randomUUID()),
+            lineIds: Array.from({ length: sliderDefinitions.length }, () => randomUUID()),
+            labelIds: Array.from({ length: sliderDefinitions.length }, () => randomUUID()),
+            positionsByLineId: {},
             disconnectedAt: null,
             disconnectedToken: null,
         };
+        assignment.positionsByLineId = this.createInitialPositions(sliderDefinitions, assignment.slot, assignment.lineIds);
         roomAssignments.set(assignment);
         const knownElementIds = this.getOrCreateKnownElementIds(roomId);
         assignment.lineIds.forEach((id) => knownElementIds.add(id));
@@ -274,6 +291,37 @@ export class AnswerBarAssignmentState {
     }
 
     /**
+     * 所有者の AnswerBar 位置を Slider 範囲内へ正規化して保存する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param ownerUserId 要求元ユーザー ID。
+     * @param answerBarId 更新対象 AnswerBar ID。
+     * @param lineId 更新対象 line ID。
+     * @param x 要求された X 座標。
+     * @param slider 更新対象 Slider の座標範囲。
+     * @returns 受理・正規化済み位置。検証に失敗した場合は `null`。
+     */
+    public updatePosition(
+        roomId: RoomId,
+        ownerUserId: OwnerUserId,
+        answerBarId: string,
+        lineId: string,
+        x: unknown,
+        slider: { x: number; width: number } | undefined,
+    ): number | null {
+        const assignment = this.assignmentsByRoomId.get(roomId)?.getByOwnerUserId(ownerUserId);
+        if (!assignment || assignment.answerBarId !== answerBarId || !assignment.lineIds.includes(lineId) || !slider) {
+            return null;
+        }
+        if (typeof x !== "number" || !Number.isFinite(x) || !Number.isFinite(slider.x) || !Number.isFinite(slider.width) || slider.width < 0) {
+            return null;
+        }
+        const normalizedX = Math.min(Math.max(x, slider.x), slider.x + slider.width);
+        assignment.positionsByLineId[lineId] = normalizedX;
+        return normalizedX;
+    }
+
+    /**
      * AnswerBar として既知だが、現在の割当に存在しない要素を scene 同期から除外する。
      *
      * 削除通知より前に生成された古い `SYNC_ELEMENTS` を別のクライアントが送っても、
@@ -282,7 +330,7 @@ export class AnswerBarAssignmentState {
      * @param roomId 対象ルーム ID。
      * @param elements 同期対象の要素。
      */
-    public excludeInactiveAnswerBarElements<T extends { id: string }>(
+    public excludeAnswerBarElements<T extends { id: string }>(
         roomId: RoomId,
         elements: readonly T[],
     ): readonly T[] {
@@ -291,15 +339,7 @@ export class AnswerBarAssignmentState {
             return elements;
         }
 
-        const activeElementIds = new Set(
-            this.getAll(roomId).flatMap((assignment) => [...assignment.lineIds, ...assignment.labelIds]),
-        );
-        return elements.filter((element) => {
-            if (!knownElementIds.has(element.id)) {
-                return true;
-            }
-            return activeElementIds.has(element.id) && !("isDeleted" in element && element.isDeleted === true);
-        });
+        return elements.filter((element) => !knownElementIds.has(element.id));
     }
 
     /**
@@ -359,6 +399,26 @@ export class AnswerBarAssignmentState {
     private toAddedEvent(assignment: AnswerBarAssignment): AnswerBarAdded {
         const { disconnectedAt: _disconnectedAt, disconnectedToken: _disconnectedToken, ...event } = assignment;
         return event;
+    }
+
+    /** slot と Slider 定義から、line ID ごとの初期位置を作成する。 */
+    private createInitialPositions(
+        sliders: readonly { x: number; width: number }[],
+        slot: AnswerBarSlot,
+        lineIds: readonly string[],
+    ): Record<string, number> {
+        return Object.fromEntries(
+            lineIds.flatMap((lineId, index) => {
+                const slider = sliders[index];
+                return slider ? [[lineId, slider.x + slider.width * getAnswerBarSlotRatio(slot)]] : [];
+            }),
+        );
+    }
+
+    private toSliderDefinitions(
+        sliders: readonly { x: number; width: number }[] | number,
+    ): readonly { x: number; width: number }[] {
+        return typeof sliders === "number" ? Array.from({ length: sliders }, () => ({ x: 0, width: 0 })) : sliders;
     }
 
     /**

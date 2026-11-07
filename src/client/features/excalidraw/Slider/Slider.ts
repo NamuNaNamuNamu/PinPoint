@@ -96,7 +96,7 @@ export class Slider {
             operatorUserId: params.operatorUserId,
             lineId: params.lineId,
             labelId: params.labelId,
-            x: this.getInitialX(params.slot),
+            x: params.positionsByLineId?.[params.lineId] ?? this.getInitialX(params.slot),
             y: this.y,
             labelY: this.getInitialLabelY(params.slot),
             height: this.height,

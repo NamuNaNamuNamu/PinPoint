@@ -2,9 +2,9 @@ import { jest } from "@jest/globals";
 import type { Socket } from "socket.io";
 
 const mockRoomController = { getRoom: jest.fn() };
-const mockAnswerBarAssignmentState = { getAll: jest.fn(), reset: jest.fn() };
+const mockAnswerBarAssignmentState = { getAll: jest.fn(), getPositionsByLineId: jest.fn(), reset: jest.fn() };
 const mockUserService = { getUser: jest.fn() };
-const mockScoreState = { prepareQuestion: jest.fn(), addQuestionScores: jest.fn(), reset: jest.fn(), get: jest.fn() };
+const mockScoreState = { addQuestionScores: jest.fn(), reset: jest.fn(), get: jest.fn() };
 
 jest.unstable_mockModule("../../../../src/server/features/room/RoomController", () => ({
     roomController: mockRoomController,
@@ -45,8 +45,7 @@ describe("QuestionController", () => {
         });
 
         expect(room.setCurrentQuestionId).toHaveBeenCalledWith(1);
-        expect(mockScoreState.prepareQuestion).toHaveBeenCalledWith("room-1", expect.objectContaining({ id: 1 }), []);
-        expect(mockAnswerBarAssignmentState.reset).toHaveBeenCalledWith("room-1", [], 3);
+        expect(mockAnswerBarAssignmentState.reset).toHaveBeenCalledWith("room-1", [], expect.any(Array));
         expect(socket.nsp.to).toHaveBeenCalledWith("room-1");
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(
             SocketEvents.QUESTION_APPLIED,
@@ -119,6 +118,7 @@ describe("QuestionController", () => {
         const socket = createSocket();
         mockRoomController.getRoom.mockReturnValue(room);
         mockAnswerBarAssignmentState.getAll.mockReturnValue([]);
+        mockAnswerBarAssignmentState.getPositionsByLineId.mockReturnValue(new Map());
 
         expect(
             questionController.controlCurrent(socket, 1, {

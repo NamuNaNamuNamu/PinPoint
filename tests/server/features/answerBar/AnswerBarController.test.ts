@@ -86,7 +86,7 @@ describe("AnswerBarController", () => {
 
         expect(new AnswerBarController().joinRoom(socket, 1, "room-1")).toBe("room-1");
         expect(getAll).toHaveBeenCalledWith("room-1");
-        expect(getOrCreate).toHaveBeenCalledWith("room-1", 1, "ゆう", 3);
+        expect(getOrCreate).toHaveBeenCalledWith("room-1", 1, "ゆう", expect.any(Array));
         expect(roomEmit).toHaveBeenCalledWith(
             "answer-bar-added",
             expect.objectContaining({ ownerUserName: "ゆう", labelIds: ["label-1", "label-2"] }),

@@ -1,6 +1,7 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import type { UserParams } from "../../server/features/user/User";
+import type { AnswerBarPositionUpdateRequest } from "../../shared/answerBar/AnswerBarEvents";
 import type { Cursor } from "../../shared/excalidraw/Cursor";
 import type {
     ApplyQuestionRequest,
@@ -31,6 +32,9 @@ class SocketController {
      * 次回の要素同期を予約するタイマー。
      */
     private syncElementsTimer: ReturnType<typeof setTimeout> | undefined;
+    private pendingAnswerBarPositions = new Map<string, AnswerBarPositionUpdateRequest>();
+    private lastAnswerBarPositionSentAt: number | undefined;
+    private answerBarPositionTimer: ReturnType<typeof setTimeout> | undefined;
 
     /**
      * Socket.IO の接続完了時に呼び出すリスナーを登録する。
@@ -271,6 +275,34 @@ class SocketController {
             this.syncElementsTimer = undefined;
             this.sendPendingSyncElements();
         }, delay);
+    }
+
+    /** 所有 AnswerBar の最新位置を最大毎秒 30 回でサーバーへ送る。 */
+    public syncAnswerBarPosition(position: AnswerBarPositionUpdateRequest): void {
+        this.pendingAnswerBarPositions.set(position.lineId, position);
+        const delay =
+            this.lastAnswerBarPositionSentAt === undefined
+                ? 0
+                : Math.max(0, SYNC_ELEMENTS_INTERVAL_MS - (performance.now() - this.lastAnswerBarPositionSentAt));
+        if (delay === 0) {
+            this.sendPendingAnswerBarPositions();
+        } else if (this.answerBarPositionTimer === undefined) {
+            this.answerBarPositionTimer = setTimeout(() => {
+                this.answerBarPositionTimer = undefined;
+                this.sendPendingAnswerBarPositions();
+            }, delay);
+        }
+    }
+
+    private sendPendingAnswerBarPositions(): void {
+        if (this.pendingAnswerBarPositions.size === 0) {
+            return;
+        }
+        this.lastAnswerBarPositionSentAt = performance.now();
+        this.pendingAnswerBarPositions.forEach((position) =>
+            socket.emit(SocketEvents.ANSWER_BAR_POSITION_UPDATE, position),
+        );
+        this.pendingAnswerBarPositions.clear();
     }
 
     /**
