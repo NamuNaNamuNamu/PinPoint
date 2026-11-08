@@ -15,6 +15,23 @@ body {
     bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
+.ConnectionStatus {
+    position: absolute;
+    z-index: 2;
+    top: calc(16px + env(safe-area-inset-top));
+    right: calc(16px + env(safe-area-inset-right));
+    max-width: calc(100dvw - 32px);
+    color: #e53935;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .ConnectionStatus {
+        top: calc(64px + env(safe-area-inset-top));
+    }
+}
+
 @media (max-width: 768px) {
     .CurrentScore {
         bottom: calc(80px + env(safe-area-inset-bottom));

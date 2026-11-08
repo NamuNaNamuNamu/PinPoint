@@ -3,6 +3,7 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { UserParams } from "../../server/features/user/User";
 import type { AnswerBarPositionUpdateRequest } from "../../shared/answerBar/AnswerBarEvents";
 import type { Cursor } from "../../shared/excalidraw/Cursor";
+import type { JoinRoomRequest } from "../../shared/room/RoomEvents";
 import type {
     ApplyQuestionRequest,
     ApplyQuestionResult,
@@ -48,6 +49,17 @@ class SocketController {
         return () => {
             socket.off("connect", listener);
         };
+    }
+
+    /**
+     * Socket.IO 切断時の通知リスナーを登録する。
+     *
+     * @param listener 切断時に実行する処理。
+     * @returns 登録したリスナーを解除する関数。
+     */
+    public onDisconnect(listener: () => void): () => void {
+        socket.on("disconnect", listener);
+        return () => socket.off("disconnect", listener);
     }
 
     /**
@@ -146,14 +158,19 @@ class SocketController {
      *
      * @param userId 参加するユーザー ID。
      * @param roomId 参加先のルーム ID。
+     * @param recovery 再接続時に送るローカル状態。初回参加時は省略する。
      * @returns 参加したルーム ID。参加に失敗した場合は `null`。
      */
-    public joinRoom(userId: number, roomId: string): Promise<string | null> {
+    public joinRoom(userId: number, roomId: string, recovery?: JoinRoomRequest["recovery"]): Promise<string | null> {
         console.log(`roomId: ${roomId} に参加しようとしています。\nsocketId: ${socket.id}`);
         return new Promise((resolve, _reject) => {
-            socket.emit(SocketEvents.JOIN_ROOM, { userId: userId, roomId: roomId }, (response: string | null) => {
-                resolve(response);
-            });
+            socket.emit(
+                SocketEvents.JOIN_ROOM,
+                { userId, roomId, recovery } satisfies JoinRoomRequest,
+                (response: string | null) => {
+                    resolve(response);
+                },
+            );
         });
     }
 

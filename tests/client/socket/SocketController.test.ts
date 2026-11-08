@@ -55,6 +55,16 @@ describe("SocketController", () => {
         expect(off).toHaveBeenCalledWith("connect", listener);
     });
 
+    test("切断リスナーを登録し、解除できること", () => {
+        const listener = jest.fn();
+
+        const removeListener = socketController.onDisconnect(listener);
+
+        expect(on).toHaveBeenCalledWith("disconnect", listener);
+        removeListener();
+        expect(off).toHaveBeenCalledWith("disconnect", listener);
+    });
+
     test("問題適用の ACK を返し、接続状態と Socket ID を取得できること", async () => {
         const request: ApplyQuestionRequest = { roomId: "room-1", questionId: 1, deleteExternalElements: true };
 

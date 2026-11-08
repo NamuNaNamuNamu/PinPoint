@@ -4,6 +4,7 @@ import type { ExcalidrawElement, OrderedExcalidrawElement } from "@excalidraw/ex
 
 import type {
     AnswerBarAdded,
+    AnswerBarPositionUpdateRequest,
     AnswerBarOwnerNameUpdated,
     AnswerBarPositionUpdated,
     AnswerBarRemoved,
@@ -99,6 +100,34 @@ class AnswerBarSceneController {
      */
     public hasElement(elementId: string): boolean {
         return this.elementSnapshots.has(elementId);
+    }
+
+    /**
+     * 自分の AnswerBar の現在位置を再接続時にサーバーへ送る形式で取得する。
+     *
+     * @returns 自分が所有する AnswerBar の位置更新要求。操作ユーザー未設定時は空配列。
+     */
+    public getOwnedPositionUpdates(): readonly AnswerBarPositionUpdateRequest[] {
+        if (this.operatorUserId === undefined) {
+            return [];
+        }
+        const positions = new Map(
+            excalidrawAPIHolder.getSceneElementsWithTombstones().map((element) => [element.id, element.x]),
+        );
+        const updates: AnswerBarPositionUpdateRequest[] = [];
+        sliders.forEach((slider) =>
+            slider.forEachAnswerBar((answerBar) => {
+                if (!answerBar.isOwnedBy(this.operatorUserId!)) {
+                    return;
+                }
+                const lineId = answerBar.getLineId();
+                const x = positions.get(lineId);
+                if (x !== undefined) {
+                    updates.push({ answerBarId: answerBar.getAnswerBarId(), lineId, x });
+                }
+            }),
+        );
+        return updates;
     }
 
     /**
@@ -356,9 +385,7 @@ class AnswerBarSceneController {
         return {
             ...element,
             opacity: isVisible ? (snapshot?.opacity ?? element.opacity) : 0,
-            locked: isLine
-                ? this.interactionLocked || !isVisible || !answerBar.isOwnedBy(this.operatorUserId!)
-                : true,
+            locked: isLine ? this.interactionLocked || !isVisible || !answerBar.isOwnedBy(this.operatorUserId!) : true,
         } as T;
     }
 

@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import type { AnswerBarAdded, AnswerBarOwnerNameUpdated, AnswerBarRemoved } from "../../../shared/answerBar/AnswerBarEvents";
+import type {
+    AnswerBarAdded,
+    AnswerBarOwnerNameUpdated,
+    AnswerBarRemoved,
+} from "../../../shared/answerBar/AnswerBarEvents";
 import { getAnswerBarSlotRatio } from "../../../shared/answerBar/answerBarSlot";
 
 /**
@@ -165,7 +169,11 @@ export class AnswerBarAssignmentState {
                 disconnectedToken: null,
             };
             roomAssignments.set(assignment);
-            assignment.positionsByLineId = this.createInitialPositions(sliderDefinitions, assignment.slot, assignment.lineIds);
+            assignment.positionsByLineId = this.createInitialPositions(
+                sliderDefinitions,
+                assignment.slot,
+                assignment.lineIds,
+            );
             assignment.lineIds.forEach((id) => knownElementIds.add(id));
             assignment.labelIds.forEach((id) => knownElementIds.add(id));
         });
@@ -207,7 +215,11 @@ export class AnswerBarAssignmentState {
             disconnectedAt: null,
             disconnectedToken: null,
         };
-        assignment.positionsByLineId = this.createInitialPositions(sliderDefinitions, assignment.slot, assignment.lineIds);
+        assignment.positionsByLineId = this.createInitialPositions(
+            sliderDefinitions,
+            assignment.slot,
+            assignment.lineIds,
+        );
         roomAssignments.set(assignment);
         const knownElementIds = this.getOrCreateKnownElementIds(roomId);
         assignment.lineIds.forEach((id) => knownElementIds.add(id));
@@ -231,6 +243,17 @@ export class AnswerBarAssignmentState {
         assignment.disconnectedAt = Date.now();
         assignment.disconnectedToken = randomUUID();
         return assignment.disconnectedToken;
+    }
+
+    /**
+     * 指定ユーザーの直近の切断時刻を取得する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param userId 対象ユーザー ID。
+     * @returns 切断保留中の時刻。割当または保留がない場合は `null`。
+     */
+    public getDisconnectedAt(roomId: RoomId, userId: OwnerUserId): number | null {
+        return this.assignmentsByRoomId.get(roomId)?.getByOwnerUserId(userId)?.disconnectedAt ?? null;
     }
 
     /**
@@ -322,7 +345,13 @@ export class AnswerBarAssignmentState {
         if (!assignment || assignment.answerBarId !== answerBarId || !assignment.lineIds.includes(lineId) || !slider) {
             return null;
         }
-        if (typeof x !== "number" || !Number.isFinite(x) || !Number.isFinite(slider.x) || !Number.isFinite(slider.width) || slider.width < 0) {
+        if (
+            typeof x !== "number" ||
+            !Number.isFinite(x) ||
+            !Number.isFinite(slider.x) ||
+            !Number.isFinite(slider.width) ||
+            slider.width < 0
+        ) {
             return null;
         }
         const normalizedX = Math.min(Math.max(x, slider.x), slider.x + slider.width);
@@ -339,10 +368,7 @@ export class AnswerBarAssignmentState {
      * @param roomId 対象ルーム ID。
      * @param elements 同期対象の要素。
      */
-    public excludeAnswerBarElements<T extends { id: string }>(
-        roomId: RoomId,
-        elements: readonly T[],
-    ): readonly T[] {
+    public excludeAnswerBarElements<T extends { id: string }>(roomId: RoomId, elements: readonly T[]): readonly T[] {
         const knownElementIds = this.knownElementIdsByRoomId.get(roomId);
         if (!knownElementIds) {
             return elements;

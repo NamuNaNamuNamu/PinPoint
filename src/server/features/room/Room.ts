@@ -15,6 +15,7 @@ export class Room {
     private users: User[] = [];
     private currentQuestionId: number | undefined;
     private answerRevealed = false;
+    private answerRevealedAt: number | undefined;
     private answerBarReveal = true;
     private scoreListEnabled = true;
     private readonly disconnectTokensByUserId = new Map<number, string>();
@@ -74,12 +75,14 @@ export class Room {
     public setCurrentQuestionId(questionId: number): void {
         this.currentQuestionId = questionId;
         this.answerRevealed = false;
+        this.answerRevealedAt = undefined;
         this.answerBarReveal = true;
     }
 
     /** 現在の問題の正解を表示済みにする。 */
     public revealAnswer(): void {
         this.answerRevealed = true;
+        this.answerRevealedAt = Date.now();
     }
 
     /**
@@ -89,6 +92,15 @@ export class Room {
      */
     public isAnswerRevealed(): boolean {
         return this.answerRevealed;
+    }
+
+    /**
+     * 現在問題の正解を公開した時刻を取得する。
+     *
+     * @returns 未公開の場合は `undefined`。
+     */
+    public getAnswerRevealedAt(): number | undefined {
+        return this.answerRevealedAt;
     }
 
     /**

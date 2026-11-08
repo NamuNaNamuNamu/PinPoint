@@ -3,6 +3,7 @@ import type { Socket } from "socket.io";
 import type { UpdateSocketIdRequestType } from "../../client/socket/SocketController";
 import type { Cursor } from "../../shared/excalidraw/Cursor";
 import type { ApplyQuestionResult } from "../../shared/question/QuestionEvents";
+import type { JoinRoomRequest } from "../../shared/room/RoomEvents";
 import { SocketEvents } from "../../shared/SocketEvents";
 import { answerBarController } from "../features/answerBar/AnswerBarController";
 import { excalidrawCursorSyncController } from "../features/excalidrawCursor/ExcalidrawCursorSyncController";
@@ -85,8 +86,9 @@ export class SocketController {
         });
 
         this.socket.on(SocketEvents.JOIN_ROOM, (message, callback) => {
-            const userId: number | undefined = message?.userId;
-            const roomId: string | undefined = message?.roomId;
+            const request = message as JoinRoomRequest | undefined;
+            const userId: number | undefined = request?.userId;
+            const roomId: string | undefined = request?.roomId;
             if (userId === undefined || !roomId) {
                 // レスポンス
                 callback(null);
@@ -96,7 +98,9 @@ export class SocketController {
             this.activeUserId = userId;
 
             // レスポンス
-            callback(answerBarController.joinRoom(this.socket, userId, roomId));
+            const joined = answerBarController.joinRoom(this.socket, userId, roomId, request?.recovery);
+            if (joined) excalidrawSyncController.restore(this.socket, roomId, request?.recovery?.elements ?? []);
+            callback(joined);
         });
 
         this.socket.on(SocketEvents.LEAVE_ROOM, (message, callback) => {

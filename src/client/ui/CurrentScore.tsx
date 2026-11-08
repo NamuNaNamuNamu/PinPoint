@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { useHasCurrentQuestion } from "../features/question/questionStore";
 import { animateNumber } from "../features/score/animateNumber";
+import { animateOpacity } from "../features/score/animateOpacity";
 import { scoreStore } from "../features/score/scoreStore";
 
 type Props = { userId: number | undefined };
@@ -19,6 +20,7 @@ export function CurrentScore({ userId }: Props) {
     const [displayedScore, setDisplayedScore] = useState(score ?? 0);
     const [isAnimating, setIsAnimating] = useState(false);
     const displayedScoreRef = useRef(displayedScore);
+    const [addedScore, setAddedScore] = useState<{ value: number; opacity: number }>();
 
     useEffect(() => {
         displayedScoreRef.current = displayedScore;
@@ -29,7 +31,7 @@ export function CurrentScore({ userId }: Props) {
             return;
         }
         const start = displayedScoreRef.current;
-        if (scoreSnapshot.reason !== "scored") {
+        if (scoreSnapshot.reason !== "scored" && scoreSnapshot.reason !== "recovered") {
             setDisplayedScore(score);
             setIsAnimating(false);
             return;
@@ -37,8 +39,22 @@ export function CurrentScore({ userId }: Props) {
         if (start === score) {
             return;
         }
+        const delta = score - start;
+        let removeOpacityAnimation: (() => void) | undefined;
+        let removeTimer: ReturnType<typeof setTimeout> | undefined;
+        let removeTextTimer: ReturnType<typeof setTimeout> | undefined;
+        if (delta > 0) {
+            setAddedScore({ value: delta, opacity: 1 });
+            removeTimer = setTimeout(() => {
+                removeOpacityAnimation = animateOpacity({
+                    duration: 1250,
+                    onUpdate: (opacity) => setAddedScore({ value: delta, opacity }),
+                });
+            }, 2500);
+            removeTextTimer = setTimeout(() => setAddedScore(undefined), 5000);
+        }
         setIsAnimating(true);
-        return animateNumber({
+        const removeNumberAnimation = animateNumber({
             start,
             end: score,
             duration: 5000,
@@ -49,6 +65,12 @@ export function CurrentScore({ userId }: Props) {
                 }
             },
         });
+        return () => {
+            removeNumberAnimation();
+            if (removeTimer) clearTimeout(removeTimer);
+            if (removeTextTimer) clearTimeout(removeTextTimer);
+            removeOpacityAnimation?.();
+        };
     }, [score, scoreSnapshot.reason]);
 
     if (!hasCurrentQuestion || score === undefined) {
@@ -71,6 +93,11 @@ export function CurrentScore({ userId }: Props) {
             }}
         >
             得点: {displayedScore}
+            {addedScore && (
+                <span style={{ color: "#1e88e5", fontSize: "0.5em", marginLeft: 6, opacity: addedScore.opacity }}>
+                    + {addedScore.value}
+                </span>
+            )}
         </div>
     );
 }

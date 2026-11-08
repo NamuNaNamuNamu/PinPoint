@@ -11,6 +11,7 @@ import { handlePointerChange } from "./features/excalidraw/handlePointerChange.t
 import { useExcalidrawSceneInitialization } from "./features/excalidraw/useExcalidrawSceneInitialization";
 import { useRoomConnection } from "./features/room/useRoomConnection";
 import { CurrentScore } from "./ui/CurrentScore";
+import { ConnectionStatus } from "./ui/ConnectionStatus";
 import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx";
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
                 />
             </Excalidraw>
             <CurrentScore userId={roomConnection.getOperatorUserId()} />
+            <ConnectionStatus status={roomConnection.connectionStatus} />
         </div>
     );
 }

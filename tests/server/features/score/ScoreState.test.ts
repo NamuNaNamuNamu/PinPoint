@@ -37,4 +37,25 @@ describe("ScoreState", () => {
         state.clear("room-1");
         expect(state.get("room-1")).toEqual([]);
     });
+
+    test("公開後の復帰位置で今回問題の得点だけを差し替えること", () => {
+        const state = new ScoreState();
+        state.addParticipant("room-1", 1, "Alice");
+        state.addQuestionScores("room-1", question, [assignment], new Map([["line-1", 100]]));
+
+        expect(state.replaceQuestionScore("room-1", question, assignment, new Map([["line-1", 400]]))).toEqual([
+            { userId: 1, userName: "Alice", score: 100 },
+        ]);
+    });
+
+    test("得点リセット後の復帰採点では server の 0 点を維持すること", () => {
+        const state = new ScoreState();
+        state.addParticipant("room-1", 1, "Alice");
+        state.addQuestionScores("room-1", question, [assignment], new Map([["line-1", 100]]));
+        state.reset("room-1");
+
+        expect(state.replaceQuestionScore("room-1", question, assignment, new Map([["line-1", 400]]))).toEqual([
+            { userId: 1, userName: "Alice", score: 0 },
+        ]);
+    });
 });

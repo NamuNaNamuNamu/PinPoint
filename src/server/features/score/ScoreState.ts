@@ -9,6 +9,8 @@ import { scoreCalculator } from "./ScoreCalculator";
 export class ScoreState {
     private readonly scoresByRoom = new Map<string, Map<number, ScoreEntry>>();
     private readonly activeUserIdsByRoom = new Map<string, Set<number>>();
+    private readonly questionScoresByRoom = new Map<string, Map<number, Map<number, number>>>();
+    private readonly resetRooms = new Set<string>();
 
     /**
      * 得点一覧の参加者としてユーザーを追加する。
@@ -80,14 +82,45 @@ export class ScoreState {
         assignments: readonly AnswerBarAdded[],
         positionsByLineId: ReadonlyMap<string, number>,
     ): readonly ScoreEntry[] {
+        this.resetRooms.delete(roomId);
         this.ensureEntries(roomId, assignments);
         const scores = this.scoresByRoom.get(roomId)!;
+        const questionScores = this.getQuestionScores(roomId, question.id);
         scoreCalculator.calculate(question, assignments, positionsByLineId).forEach((delta) => {
             const current = scores.get(delta.userId);
             if (current) {
                 current.score += delta.score;
+                questionScores.set(delta.userId, delta.score);
             }
         });
+        return this.get(roomId);
+    }
+
+    /**
+     * 公開後に復帰した回答者の今回問題の得点を差し替える。
+     *
+     * 得点リセット後は reset の server 状態を正とし、変更しない。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param question 採点対象の問題。
+     * @param assignment 復帰した回答者の AnswerBar 割当。
+     * @param positionsByLineId サーバー受理済みの回答位置。
+     * @returns 補正後の累積得点一覧。
+     */
+    public replaceQuestionScore(
+        roomId: string,
+        question: QuestionTemplate,
+        assignment: AnswerBarAdded,
+        positionsByLineId: ReadonlyMap<string, number>,
+    ): readonly ScoreEntry[] {
+        if (this.resetRooms.has(roomId)) return this.get(roomId);
+        this.ensureEntries(roomId, [assignment]);
+        const next = scoreCalculator.calculate(question, [assignment], positionsByLineId)[0]?.score ?? 0;
+        const questionScores = this.getQuestionScores(roomId, question.id);
+        const previous = questionScores.get(assignment.ownerUserId) ?? 0;
+        const entry = this.getScores(roomId).get(assignment.ownerUserId);
+        if (entry) entry.score += next - previous;
+        questionScores.set(assignment.ownerUserId, next);
         return this.get(roomId);
     }
 
@@ -101,6 +134,8 @@ export class ScoreState {
         this.scoresByRoom.get(roomId)?.forEach((entry) => {
             entry.score = 0;
         });
+        this.questionScoresByRoom.delete(roomId);
+        this.resetRooms.add(roomId);
         return this.get(roomId);
     }
 
@@ -125,6 +160,8 @@ export class ScoreState {
     public clear(roomId: string): void {
         this.scoresByRoom.delete(roomId);
         this.activeUserIdsByRoom.delete(roomId);
+        this.questionScoresByRoom.delete(roomId);
+        this.resetRooms.delete(roomId);
     }
 
     private ensureEntries(roomId: string, assignments: readonly AnswerBarAdded[]): void {
@@ -153,6 +190,14 @@ export class ScoreState {
         const activeUserIds = this.activeUserIdsByRoom.get(roomId) ?? new Set<number>();
         this.activeUserIdsByRoom.set(roomId, activeUserIds);
         return activeUserIds;
+    }
+
+    private getQuestionScores(roomId: string, questionId: number): Map<number, number> {
+        const byQuestion = this.questionScoresByRoom.get(roomId) ?? new Map<number, Map<number, number>>();
+        this.questionScoresByRoom.set(roomId, byQuestion);
+        const scores = byQuestion.get(questionId) ?? new Map<number, number>();
+        byQuestion.set(questionId, scores);
+        return scores;
     }
 }
 

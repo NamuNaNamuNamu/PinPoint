@@ -136,7 +136,7 @@ describe("AnswerBarSceneController", () => {
             elements: [
                 { id: "line-1", x: 200, isDeleted: true },
                 { id: "label-1", x: 200 },
-                { id: "line-1", x: 200 },
+                { id: "line-1", x: 200, locked: false, opacity: undefined },
             ],
         });
     });

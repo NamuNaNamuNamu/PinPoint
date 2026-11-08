@@ -1,4 +1,5 @@
 import { socketController } from "../../socket/SocketController";
+import type { JoinRoomRequest } from "../../../shared/room/RoomEvents";
 
 /**
  * Socket を通じて指定したルームへ参加し、参加結果を出力する。
@@ -7,8 +8,12 @@ import { socketController } from "../../socket/SocketController";
  * @param roomId 参加するルームの ID。
  * @returns 参加に成功したルーム ID。失敗時は `null`。
  */
-export async function joinRoom(userId: number, roomId: string): Promise<string | null> {
-    const response = await socketController.joinRoom(userId, roomId);
+export async function joinRoom(
+    userId: number,
+    roomId: string,
+    recovery?: JoinRoomRequest["recovery"],
+): Promise<string | null> {
+    const response = await socketController.joinRoom(userId, roomId, recovery);
 
     if (response) {
         const roomId = response;

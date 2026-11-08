@@ -12,6 +12,7 @@ import { getAllQuestionManagedElementIds } from "../../../shared/question/Questi
 import { getQuestionTemplate } from "../../../shared/question/QuestionTemplate";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
+import { externalElementsState } from "../excalidrawSync/ExternalElementsState";
 import { roomController } from "../room/RoomController";
 import { scoreState } from "../score/ScoreState";
 import { userService } from "../user/UserService";
@@ -74,6 +75,7 @@ class QuestionController {
         }
 
         room.setCurrentQuestionId(question.id);
+        if (request.deleteExternalElements) externalElementsState.clear(request.roomId);
         room.setAnswerBarReveal(request.answerBarReveal ?? true);
         const users = room.getUserIds().flatMap((participantUserId) => {
             if (room.isCreatedBy(participantUserId)) {
@@ -218,6 +220,7 @@ class QuestionController {
         }
 
         if (request.deleteExternalElements) {
+            externalElementsState.clear(request.roomId);
             socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS);
             if (room.isAnswerRevealed()) {
                 socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_REVEALED, { questionId });
@@ -243,15 +246,16 @@ class QuestionController {
      *
      * @param socket 通知先の Socket.IO 接続。
      * @param roomId 現在状態を取得するルーム ID。
+     * @param scoreReason 得点 snapshot の由来。復帰採点時はクライアントの加点演出に使用する。
      */
-    public sendCurrent(socket: Socket, roomId: string): void {
+    public sendCurrent(socket: Socket, roomId: string, scoreReason: "snapshot" | "recovered" = "snapshot"): void {
         const room = roomController.getRoom(roomId);
         const questionId = room?.getCurrentQuestionId();
         if (!room) {
             return;
         }
         socket.emit(SocketEvents.SCORE_LIST_ENABLED_UPDATED, { enabled: room.isScoreListEnabled() });
-        socket.emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: "snapshot" });
+        socket.emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: scoreReason });
         if (questionId === undefined) {
             return;
         }
@@ -263,7 +267,7 @@ class QuestionController {
             question,
             answerBars: answerBarAssignmentState.getAll(roomId),
             deleteExternalElements: false,
-            scrollToContent: true,
+            scrollToContent: false,
             answerBarReveal: room.isAnswerBarRevealed(),
         } satisfies CurrentQuestionState);
         if (room.isAnswerRevealed()) {

@@ -13,13 +13,15 @@ import type {
 
 type ConnectListener = () => void;
 type OnConnect = (listener: ConnectListener) => () => void;
+type OnDisconnect = (listener: ConnectListener) => () => void;
 type GetUser = (userId: number | undefined) => Promise<UserParams | undefined>;
 type UpdateSocketId = (userId: number | undefined) => Promise<UserParams | undefined>;
 type RegisterUser = (userName: string) => Promise<UserParams>;
 type ApplyQuestion = (request: ApplyQuestionRequest) => Promise<ApplyQuestionResult>;
 type ControlCurrentQuestion = (request: ControlCurrentQuestionRequest) => Promise<ApplyQuestionResult>;
 type ResetScores = (roomId: string) => Promise<ApplyQuestionResult>;
-type SetScoreListEnabled = (typeof import("../../../../src/client/socket/SocketController").socketController)["setScoreListEnabled"];
+type SetScoreListEnabled =
+    (typeof import("../../../../src/client/socket/SocketController").socketController)["setScoreListEnabled"];
 type RevealQuestion = (roomId: string) => void;
 type GetSocketId = () => string | undefined;
 type JoinRoom = (userId: number, roomId: string) => Promise<string | null>;
@@ -33,6 +35,7 @@ type RegisterQuestionListener = (operatorUserId: number) => void;
 type RegisterScoreListener = () => void;
 
 const onConnect = jest.fn<OnConnect>();
+const onDisconnect = jest.fn<OnDisconnect>();
 const getUser = jest.fn<GetUser>();
 const updateSocketId = jest.fn<UpdateSocketId>();
 const registerUser = jest.fn<RegisterUser>();
@@ -63,10 +66,12 @@ onConnect.mockImplementation((listener) => {
         }
     };
 });
+onDisconnect.mockImplementation(() => () => undefined);
 
 jest.unstable_mockModule("../../../../src/client/socket/SocketController", () => ({
     socketController: {
         onConnect,
+        onDisconnect,
         getUser,
         updateSocketId,
         registerUser,
@@ -77,6 +82,12 @@ jest.unstable_mockModule("../../../../src/client/socket/SocketController", () =>
         revealQuestion,
         getSocketId,
     },
+}));
+jest.unstable_mockModule("../../../../src/client/features/answerBar/AnswerBarSceneController", () => ({
+    answerBarSceneController: { getOwnedPositionUpdates: () => [] },
+}));
+jest.unstable_mockModule("../../../../src/client/features/excalidraw/ExcalidrawAPIHolder", () => ({
+    excalidrawAPIHolder: { getSceneElementsWithTombstones: () => [] },
 }));
 jest.unstable_mockModule("../../../../src/client/features/room/joinRoom", () => ({ joinRoom }));
 jest.unstable_mockModule("../../../../src/client/features/sessionStorage/sessionStorage", () => ({
@@ -171,7 +182,10 @@ describe("useRoomConnection", () => {
         });
 
         expect(joinRoom).toHaveBeenCalledTimes(2);
-        expect(joinRoom).toHaveBeenLastCalledWith(1, "room-1");
+        expect(joinRoom).toHaveBeenLastCalledWith(1, "room-1", {
+            answerBarPositions: [],
+            elements: [],
+        });
         expect(applyQuestion).toHaveBeenCalledTimes(1);
         expect(revealQuestion).toHaveBeenCalledTimes(1);
         expect(getInitialRoomCommand).toHaveBeenCalledTimes(1);
