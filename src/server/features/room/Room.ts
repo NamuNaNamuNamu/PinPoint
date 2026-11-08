@@ -15,6 +15,9 @@ export class Room {
     private users: User[] = [];
     private currentQuestionId: number | undefined;
     private answerRevealed = false;
+    private answerRevealedAt: number | undefined;
+    private answerBarReveal = true;
+    private cursorRevealed = true;
     private scoreListEnabled = true;
     private readonly disconnectTokensByUserId = new Map<number, string>();
 
@@ -73,11 +76,14 @@ export class Room {
     public setCurrentQuestionId(questionId: number): void {
         this.currentQuestionId = questionId;
         this.answerRevealed = false;
+        this.answerRevealedAt = undefined;
+        this.answerBarReveal = true;
     }
 
     /** 現在の問題の正解を表示済みにする。 */
     public revealAnswer(): void {
         this.answerRevealed = true;
+        this.answerRevealedAt = Date.now();
     }
 
     /**
@@ -87,6 +93,65 @@ export class Room {
      */
     public isAnswerRevealed(): boolean {
         return this.answerRevealed;
+    }
+
+    /**
+     * 現在問題の正解を公開した時刻を取得する。
+     *
+     * @returns 未公開の場合は `undefined`。
+     */
+    public getAnswerRevealedAt(): number | undefined {
+        return this.answerRevealedAt;
+    }
+
+    /**
+     * AnswerBar を全参加者へ公開する状態を更新する。
+     *
+     * `false` の場合、クライアントは自身が所有する AnswerBar だけを表示する。
+     *
+     * @param answerBarReveal 更新後の AnswerBar 公開状態。
+     * @returns 状態が変化した場合は `true`。
+     */
+    public setAnswerBarReveal(answerBarReveal: boolean): boolean {
+        if (this.answerBarReveal === answerBarReveal) {
+            return false;
+        }
+        this.answerBarReveal = answerBarReveal;
+        return true;
+    }
+
+    /**
+     * AnswerBar を全参加者へ公開しているかを返す。
+     *
+     * @returns 全参加者へ公開している場合は `true`。
+     */
+    public isAnswerBarRevealed(): boolean {
+        return this.answerBarReveal;
+    }
+
+    /**
+     * 共有カーソルを全参加者へ公開する状態を更新する。
+     *
+     * この状態は問題の切替ではリセットせず、ルームが破棄されるまで保持する。
+     *
+     * @param cursorRevealed 更新後の共有カーソル公開状態。
+     * @returns 状態が変化した場合は `true`。
+     */
+    public setCursorRevealed(cursorRevealed: boolean): boolean {
+        if (this.cursorRevealed === cursorRevealed) {
+            return false;
+        }
+        this.cursorRevealed = cursorRevealed;
+        return true;
+    }
+
+    /**
+     * 共有カーソルを全参加者へ公開しているかを返す。
+     *
+     * @returns 公開している場合は `true`。
+     */
+    public isCursorRevealed(): boolean {
+        return this.cursorRevealed;
     }
 
     /**

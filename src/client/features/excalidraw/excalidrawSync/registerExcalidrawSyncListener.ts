@@ -9,4 +9,7 @@ export function registerExcalidrawSyncListener(): void {
     socket.on(SocketEvents.SYNC_ELEMENTS, (elements) => {
         excalidrawSyncController.syncElements(elements);
     });
+    socket.on(SocketEvents.CURRENT_EXTERNAL_ELEMENTS, (elements) => {
+        excalidrawSyncController.syncElements(elements);
+    });
 }

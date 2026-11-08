@@ -1,7 +1,9 @@
 import type { Socket } from "socket.io";
 
-import type { Cursor, RemoteCursor } from "../../../shared/excalidraw/Cursor";
+import type { Cursor, CursorRevealUpdated, RemoteCursor } from "../../../shared/excalidraw/Cursor";
+import type { ApplyQuestionResult } from "../../../shared/question/QuestionEvents";
 import { SocketEvents } from "../../../shared/SocketEvents";
+import { roomController } from "../room/RoomController";
 import { userService } from "../user/UserService";
 
 /**
@@ -20,6 +22,11 @@ class ExcalidrawCursorSyncController {
             return;
         }
 
+        const room = roomController.getRoom(roomId);
+        if (!room?.isCursorRevealed()) {
+            return;
+        }
+
         const user = userService.getUserBySocketId(socket.id);
         if (!user) {
             return;
@@ -31,6 +38,45 @@ class ExcalidrawCursorSyncController {
             username: user.getName(),
         };
         socket.to(roomId).emit(SocketEvents.SYNC_CURSOR, remoteCursor);
+    }
+
+    /**
+     * 作成者の要求により、ルーム内の共有カーソル公開状態を更新する。
+     *
+     * 無効な入力、存在しないルーム、作成者以外、または未参加ユーザーの要求は
+     * 状態を変更しない。状態が変化した場合だけ、同一ルーム全体へ通知する。
+     *
+     * @param socket 更新要求を受信した Socket.IO 接続。
+     * @param userId 更新を要求した認証済みユーザー ID。
+     * @param roomId 更新対象のルーム ID。
+     * @param cursorRevealed 更新後の共有カーソル公開状態。
+     * @returns サーバーによる受理または拒否の結果。
+     */
+    public setCursorRevealed(
+        socket: Socket,
+        userId: number | undefined,
+        roomId: string | undefined,
+        cursorRevealed: unknown,
+    ): ApplyQuestionResult {
+        if (userId === undefined || !roomId || typeof cursorRevealed !== "boolean") {
+            return { ok: false, reason: "invalid-request" };
+        }
+        const room = roomController.getRoom(roomId);
+        if (!room) {
+            return { ok: false, reason: "room-not-found" };
+        }
+        if (!room.isCreatedBy(userId)) {
+            return { ok: false, reason: "not-creator" };
+        }
+        if (!room.hasUser(userId)) {
+            return { ok: false, reason: "not-member" };
+        }
+        if (room.setCursorRevealed(cursorRevealed)) {
+            socket.nsp.to(roomId).emit(SocketEvents.CURSOR_REVEAL_UPDATED, {
+                cursorRevealed: room.isCursorRevealed(),
+            } satisfies CursorRevealUpdated);
+        }
+        return { ok: true };
     }
 
     /**

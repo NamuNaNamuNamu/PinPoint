@@ -13,13 +13,17 @@ import type {
 
 type ConnectListener = () => void;
 type OnConnect = (listener: ConnectListener) => () => void;
+type OnDisconnect = (listener: ConnectListener) => () => void;
 type GetUser = (userId: number | undefined) => Promise<UserParams | undefined>;
 type UpdateSocketId = (userId: number | undefined) => Promise<UserParams | undefined>;
 type RegisterUser = (userName: string) => Promise<UserParams>;
 type ApplyQuestion = (request: ApplyQuestionRequest) => Promise<ApplyQuestionResult>;
 type ControlCurrentQuestion = (request: ControlCurrentQuestionRequest) => Promise<ApplyQuestionResult>;
 type ResetScores = (roomId: string) => Promise<ApplyQuestionResult>;
-type SetScoreListEnabled = (typeof import("../../../../src/client/socket/SocketController").socketController)["setScoreListEnabled"];
+type SetScoreListEnabled =
+    (typeof import("../../../../src/client/socket/SocketController").socketController)["setScoreListEnabled"];
+type SetCursorRevealed =
+    (typeof import("../../../../src/client/socket/SocketController").socketController)["setCursorRevealed"];
 type RevealQuestion = (roomId: string) => void;
 type GetSocketId = () => string | undefined;
 type JoinRoom = (userId: number, roomId: string) => Promise<string | null>;
@@ -33,6 +37,7 @@ type RegisterQuestionListener = (operatorUserId: number) => void;
 type RegisterScoreListener = () => void;
 
 const onConnect = jest.fn<OnConnect>();
+const onDisconnect = jest.fn<OnDisconnect>();
 const getUser = jest.fn<GetUser>();
 const updateSocketId = jest.fn<UpdateSocketId>();
 const registerUser = jest.fn<RegisterUser>();
@@ -40,6 +45,7 @@ const applyQuestion = jest.fn<ApplyQuestion>();
 const controlCurrentQuestion = jest.fn<ControlCurrentQuestion>();
 const resetScores = jest.fn<ResetScores>();
 const setScoreListEnabled = jest.fn<SetScoreListEnabled>();
+const setCursorRevealed = jest.fn<SetCursorRevealed>();
 const revealQuestion = jest.fn<RevealQuestion>();
 const getSocketId = jest.fn<GetSocketId>();
 const joinRoom = jest.fn<JoinRoom>();
@@ -63,10 +69,12 @@ onConnect.mockImplementation((listener) => {
         }
     };
 });
+onDisconnect.mockImplementation(() => () => undefined);
 
 jest.unstable_mockModule("../../../../src/client/socket/SocketController", () => ({
     socketController: {
         onConnect,
+        onDisconnect,
         getUser,
         updateSocketId,
         registerUser,
@@ -74,9 +82,16 @@ jest.unstable_mockModule("../../../../src/client/socket/SocketController", () =>
         controlCurrentQuestion,
         resetScores,
         setScoreListEnabled,
+        setCursorRevealed,
         revealQuestion,
         getSocketId,
     },
+}));
+jest.unstable_mockModule("../../../../src/client/features/answerBar/AnswerBarSceneController", () => ({
+    answerBarSceneController: { getOwnedPositionUpdates: () => [] },
+}));
+jest.unstable_mockModule("../../../../src/client/features/excalidraw/ExcalidrawAPIHolder", () => ({
+    excalidrawAPIHolder: { getSceneElementsWithTombstones: () => [] },
 }));
 jest.unstable_mockModule("../../../../src/client/features/room/joinRoom", () => ({ joinRoom }));
 jest.unstable_mockModule("../../../../src/client/features/sessionStorage/sessionStorage", () => ({
@@ -120,6 +135,7 @@ describe("useRoomConnection", () => {
         controlCurrentQuestion.mockResolvedValue({ ok: true });
         resetScores.mockResolvedValue({ ok: true });
         setScoreListEnabled.mockResolvedValue({ ok: true });
+        setCursorRevealed.mockResolvedValue({ ok: true });
         getSocketId.mockReturnValue("socket-1");
         joinRoom.mockResolvedValue("room-1");
         waitForInitialUrlControlReadiness.mockResolvedValue(undefined);
@@ -127,11 +143,13 @@ describe("useRoomConnection", () => {
             roomId: "room-1",
             questionId: 1,
             deleteExternalElements: true,
-            reveal: true,
+            answerReveal: true,
+            answerBarReveal: undefined,
             scrollToContent: true,
             hasScrollToContentParam: true,
             scoreReset: false,
             scoreListEnabled: undefined,
+            cursorRevealed: undefined,
         });
         container = document.createElement("div");
         document.body.append(container);
@@ -170,7 +188,10 @@ describe("useRoomConnection", () => {
         });
 
         expect(joinRoom).toHaveBeenCalledTimes(2);
-        expect(joinRoom).toHaveBeenLastCalledWith(1, "room-1");
+        expect(joinRoom).toHaveBeenLastCalledWith(1, "room-1", {
+            answerBarPositions: [],
+            elements: [],
+        });
         expect(applyQuestion).toHaveBeenCalledTimes(1);
         expect(revealQuestion).toHaveBeenCalledTimes(1);
         expect(getInitialRoomCommand).toHaveBeenCalledTimes(1);
@@ -191,11 +212,13 @@ describe("useRoomConnection", () => {
             roomId: "room-1",
             questionId: undefined,
             deleteExternalElements: true,
-            reveal: false,
+            answerReveal: false,
+            answerBarReveal: undefined,
             scrollToContent: true,
             hasScrollToContentParam: true,
             scoreReset: false,
             scoreListEnabled: undefined,
+            cursorRevealed: undefined,
         });
 
         await renderAndFlush(root);
@@ -214,11 +237,13 @@ describe("useRoomConnection", () => {
             roomId: "room-1",
             questionId: undefined,
             deleteExternalElements: false,
-            reveal: false,
+            answerReveal: false,
+            answerBarReveal: undefined,
             scrollToContent: false,
             hasScrollToContentParam: false,
             scoreReset: true,
             scoreListEnabled: undefined,
+            cursorRevealed: undefined,
         });
 
         await renderAndFlush(root);
@@ -232,16 +257,38 @@ describe("useRoomConnection", () => {
             roomId: "room-1",
             questionId: undefined,
             deleteExternalElements: false,
-            reveal: false,
+            answerReveal: false,
+            answerBarReveal: undefined,
             scrollToContent: false,
             hasScrollToContentParam: false,
             scoreReset: false,
             scoreListEnabled: false,
+            cursorRevealed: undefined,
         });
 
         await renderAndFlush(root);
 
         expect(setScoreListEnabled).toHaveBeenCalledWith("room-1", false);
+        expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
+    });
+
+    test("cursorRevealed が指定された URL は共有カーソル公開状態を要求すること", async () => {
+        getInitialRoomCommand.mockReturnValue({
+            roomId: "room-1",
+            questionId: undefined,
+            deleteExternalElements: false,
+            answerReveal: false,
+            answerBarReveal: undefined,
+            scrollToContent: false,
+            hasScrollToContentParam: false,
+            scoreReset: false,
+            scoreListEnabled: undefined,
+            cursorRevealed: false,
+        });
+
+        await renderAndFlush(root);
+
+        expect(setCursorRevealed).toHaveBeenCalledWith("room-1", false);
         expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
     });
 
@@ -276,6 +323,30 @@ describe("useRoomConnection", () => {
         expect(getUser).toHaveBeenCalledWith(1);
         expect(joinRoom).toHaveBeenCalledWith(1, "room-1");
         expect(applyQuestion).toHaveBeenCalledTimes(1);
+    });
+
+    test("問題 ID のない answerBarReveal=false は現在問題の公開状態だけを更新すること", async () => {
+        getInitialRoomCommand.mockReturnValue({
+            roomId: "room-1",
+            questionId: undefined,
+            deleteExternalElements: false,
+            answerReveal: false,
+            answerBarReveal: false,
+            scrollToContent: false,
+            hasScrollToContentParam: false,
+            scoreReset: false,
+            scoreListEnabled: undefined,
+            cursorRevealed: undefined,
+        });
+
+        await renderAndFlush(root);
+
+        expect(controlCurrentQuestion).toHaveBeenCalledWith({
+            roomId: "room-1",
+            deleteExternalElements: false,
+            scrollToContent: false,
+            answerBarReveal: false,
+        });
     });
 });
 

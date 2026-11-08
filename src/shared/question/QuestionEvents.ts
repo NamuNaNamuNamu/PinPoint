@@ -9,6 +9,7 @@ export type ApplyQuestionRequest = {
     questionId: number;
     deleteExternalElements: boolean;
     scrollToContent?: boolean;
+    answerBarReveal?: boolean;
 };
 
 /**
@@ -30,6 +31,7 @@ export type ControlCurrentQuestionRequest = {
     roomId: string;
     deleteExternalElements: boolean;
     scrollToContent: boolean;
+    answerBarReveal?: boolean;
 };
 
 /**
@@ -40,7 +42,15 @@ export type QuestionApplied = {
     answerBars: readonly AnswerBarAdded[];
     deleteExternalElements: boolean;
     scrollToContent: boolean;
+    answerBarReveal: boolean;
 };
+
+/**
+ * 途中参加・再接続時に送る現在問題のスナップショット。
+ *
+ * `answerBars[].positionsByLineId` には各 AnswerBar の最新の受理済み X 座標が含まれる。
+ */
+export type CurrentQuestionState = QuestionApplied;
 
 /** 現在の問題の正解を表示する通知。 */
 export type QuestionRevealed = { questionId: number };

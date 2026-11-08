@@ -10,6 +10,7 @@ const getSceneElementsWithTombstones = jest.fn();
 const getActiveSceneElements = jest.fn();
 const clearAnswerBars = jest.fn();
 const setInteractionLocked = jest.fn();
+const setAnswerBarReveal = jest.fn();
 const setSliders = jest.fn<SetSliders>();
 const sliders: Array<{ getSkeleton(): { id: string }[] }> = [];
 
@@ -27,7 +28,13 @@ jest.unstable_mockModule("@excalidraw/excalidraw", () => ({
     convertToExcalidrawElements: jest.fn((elements) => elements),
 }));
 jest.unstable_mockModule("../../../../src/client/features/answerBar/AnswerBarSceneController", () => ({
-    answerBarSceneController: { clear: clearAnswerBars, add: jest.fn(), hasElement: jest.fn(), setInteractionLocked },
+    answerBarSceneController: {
+        clear: clearAnswerBars,
+        add: jest.fn(),
+        hasElement: jest.fn(),
+        setAnswerBarReveal,
+        setInteractionLocked,
+    },
 }));
 jest.unstable_mockModule("../../../../src/client/features/excalidraw/Elements/Line/LineSkeletonFactory", () => ({
     lineSkeletonFactory: { createWith: jest.fn((element) => element) },
@@ -86,6 +93,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );
@@ -120,6 +128,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );
@@ -184,6 +193,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );
@@ -223,6 +233,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );
@@ -268,6 +279,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: true,
+                answerBarReveal: true,
             },
             1,
         );
@@ -303,6 +315,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );
@@ -336,6 +349,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );

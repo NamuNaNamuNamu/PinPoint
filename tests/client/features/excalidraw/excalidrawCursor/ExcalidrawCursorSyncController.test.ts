@@ -99,4 +99,34 @@ describe("ExcalidrawCursorSyncController", () => {
             collaborators: new Map(),
         });
     });
+
+    test("共有カーソルを非公開にすると描画済みカーソルを削除し、以後の更新を無視すること", () => {
+        excalidrawCursorSyncController.updateCursor({
+            socketId: "socket-1",
+            username: "Alice",
+            pointer: { x: 10, y: 20, tool: "pointer" },
+            button: "up",
+        });
+        const firstCallback = requestAnimationFrame.mock.calls[0]?.[0] as FrameRequestCallback;
+        firstCallback(0);
+
+        excalidrawCursorSyncController.setCursorRevealed(false);
+        excalidrawCursorSyncController.updateCursor({
+            socketId: "socket-2",
+            username: "Bob",
+            pointer: { x: 30, y: 40, tool: "laser" },
+            button: "down",
+        });
+
+        expect(excalidrawCursorSyncController.isCursorRevealed()).toBe(false);
+        expect(requestAnimationFrame).toHaveBeenCalledTimes(2);
+
+        const clearCallback = requestAnimationFrame.mock.calls[1]?.[0] as FrameRequestCallback;
+        clearCallback(16);
+
+        expect(updateScene).toHaveBeenLastCalledWith({ collaborators: new Map() });
+
+        excalidrawCursorSyncController.setCursorRevealed(true);
+        expect(excalidrawCursorSyncController.isCursorRevealed()).toBe(true);
+    });
 });

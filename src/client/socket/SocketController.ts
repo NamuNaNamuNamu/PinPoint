@@ -1,13 +1,16 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import type { UserParams } from "../../server/features/user/User";
+import type { AnswerBarPositionUpdateRequest } from "../../shared/answerBar/AnswerBarEvents";
 import type { Cursor } from "../../shared/excalidraw/Cursor";
 import type {
     ApplyQuestionRequest,
     ApplyQuestionResult,
     ControlCurrentQuestionRequest,
 } from "../../shared/question/QuestionEvents";
+import type { JoinRoomRequest } from "../../shared/room/RoomEvents";
 import { SocketEvents } from "../../shared/SocketEvents";
+import type { UpdateSocketIdRequest } from "../../shared/user/UserEvents";
 import { socket } from "./socket";
 
 /**
@@ -31,6 +34,9 @@ class SocketController {
      * 次回の要素同期を予約するタイマー。
      */
     private syncElementsTimer: ReturnType<typeof setTimeout> | undefined;
+    private pendingAnswerBarPositions = new Map<string, AnswerBarPositionUpdateRequest>();
+    private lastAnswerBarPositionSentAt: number | undefined;
+    private answerBarPositionTimer: ReturnType<typeof setTimeout> | undefined;
 
     /**
      * Socket.IO の接続完了時に呼び出すリスナーを登録する。
@@ -44,6 +50,17 @@ class SocketController {
         return () => {
             socket.off("connect", listener);
         };
+    }
+
+    /**
+     * Socket.IO 切断時の通知リスナーを登録する。
+     *
+     * @param listener 切断時に実行する処理。
+     * @returns 登録したリスナーを解除する関数。
+     */
+    public onDisconnect(listener: () => void): () => void {
+        socket.on("disconnect", listener);
+        return () => socket.off("disconnect", listener);
     }
 
     /**
@@ -102,7 +119,7 @@ class SocketController {
         return new Promise((resolve, _reject) => {
             socket.emit(
                 SocketEvents.UPDATE_SOCKET_ID,
-                { userId: userId, socketId: socket.id },
+                { userId } satisfies UpdateSocketIdRequest,
                 (response: UserParams | undefined) => {
                     resolve(response);
                 },
@@ -142,14 +159,19 @@ class SocketController {
      *
      * @param userId 参加するユーザー ID。
      * @param roomId 参加先のルーム ID。
+     * @param recovery 再接続時に送るローカル状態。初回参加時は省略する。
      * @returns 参加したルーム ID。参加に失敗した場合は `null`。
      */
-    public joinRoom(userId: number, roomId: string): Promise<string | null> {
+    public joinRoom(userId: number, roomId: string, recovery?: JoinRoomRequest["recovery"]): Promise<string | null> {
         console.log(`roomId: ${roomId} に参加しようとしています。\nsocketId: ${socket.id}`);
         return new Promise((resolve, _reject) => {
-            socket.emit(SocketEvents.JOIN_ROOM, { userId: userId, roomId: roomId }, (response: string | null) => {
-                resolve(response);
-            });
+            socket.emit(
+                SocketEvents.JOIN_ROOM,
+                { userId, roomId, recovery } satisfies JoinRoomRequest,
+                (response: string | null) => {
+                    resolve(response);
+                },
+            );
         });
     }
 
@@ -239,6 +261,25 @@ class SocketController {
     }
 
     /**
+     * 共有カーソルの公開状態を作成者として変更する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param cursorRevealed 更新後の共有カーソル公開状態。
+     * @returns サーバーによる受理または拒否の結果。
+     */
+    public setCursorRevealed(roomId: string, cursorRevealed: boolean): Promise<ApplyQuestionResult> {
+        return new Promise((resolve, _reject) => {
+            socket.emit(
+                SocketEvents.SET_CURSOR_REVEALED,
+                { roomId, cursorRevealed },
+                (response: ApplyQuestionResult) => {
+                    resolve(response);
+                },
+            );
+        });
+    }
+
+    /**
      * 作成者として現在の問題の正解表示を要求する。
      *
      * @param roomId 正解表示の対象ルーム ID。
@@ -271,6 +312,46 @@ class SocketController {
             this.syncElementsTimer = undefined;
             this.sendPendingSyncElements();
         }, delay);
+    }
+
+    /**
+     * 所有する AnswerBar の最新 X 座標を、専用イベントで最大毎秒 30 回サーバーへ送信する。
+     *
+     * 同じ line ID の送信待ちデータは最新値で置き換える。送信間隔内の複数 line ID は、
+     * 次回の送信時にそれぞれ 1 件ずつ送信する。
+     *
+     * @param position AnswerBar ID、line ID、正規化済み X 座標を含む位置更新要求。
+     */
+    public syncAnswerBarPosition(position: AnswerBarPositionUpdateRequest): void {
+        this.pendingAnswerBarPositions.set(position.lineId, position);
+        const delay =
+            this.lastAnswerBarPositionSentAt === undefined
+                ? 0
+                : Math.max(0, SYNC_ELEMENTS_INTERVAL_MS - (performance.now() - this.lastAnswerBarPositionSentAt));
+        if (delay === 0) {
+            this.sendPendingAnswerBarPositions();
+        } else if (this.answerBarPositionTimer === undefined) {
+            this.answerBarPositionTimer = setTimeout(() => {
+                this.answerBarPositionTimer = undefined;
+                this.sendPendingAnswerBarPositions();
+            }, delay);
+        }
+    }
+
+    /**
+     * 保持中の AnswerBar 位置更新を専用イベントで送信する。
+     *
+     * 送信対象がない場合は何もしない。
+     */
+    private sendPendingAnswerBarPositions(): void {
+        if (this.pendingAnswerBarPositions.size === 0) {
+            return;
+        }
+        this.lastAnswerBarPositionSentAt = performance.now();
+        this.pendingAnswerBarPositions.forEach((position) =>
+            socket.emit(SocketEvents.ANSWER_BAR_POSITION_UPDATE, position),
+        );
+        this.pendingAnswerBarPositions.clear();
     }
 
     /**
@@ -309,10 +390,5 @@ class SocketController {
         socket.emit(SocketEvents.SYNC_CURSOR, cursor);
     }
 }
-
-/**
- * Socket.IO 接続 ID を更新するリクエスト。
- */
-export type UpdateSocketIdRequestType = { userId: number | undefined; socketId: string };
 
 export const socketController = new SocketController();
