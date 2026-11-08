@@ -86,7 +86,7 @@ export function CurrentScore({ userId }: Props) {
                 pointerEvents: "none",
                 background: "var(--island-bg-color)",
                 borderRadius: 8,
-                padding: "8px 12px",
+                padding: "0px 12px 8px",
                 fontWeight: isAnimating ? 700 : undefined,
                 color: isAnimating ? "#E53935" : undefined,
                 fontSize: isAnimating ? "130%" : undefined,
