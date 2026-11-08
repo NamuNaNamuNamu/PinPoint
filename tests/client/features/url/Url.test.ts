@@ -48,6 +48,8 @@ describe("Url", () => {
             scrollToContent: false,
             hasScrollToContentParam: false,
             scoreReset: false,
+            scoreListEnabled: undefined,
+            cursorRevealed: undefined,
         });
     });
 
@@ -78,5 +80,16 @@ describe("Url", () => {
 
         window.history.replaceState(null, "", "/?room=room-1&answerBarReveal=invalid");
         expect(url.getInitialRoomCommand()).toEqual(expect.objectContaining({ answerBarReveal: undefined }));
+    });
+
+    test("cursorRevealed は true と false の明示時だけ公開状態として読み取ること", () => {
+        window.history.replaceState(null, "", "/?room=room-1&cursorRevealed=true");
+        expect(url.getInitialRoomCommand()).toEqual(expect.objectContaining({ cursorRevealed: true }));
+
+        window.history.replaceState(null, "", "/?room=room-1&cursorRevealed=false");
+        expect(url.getInitialRoomCommand()).toEqual(expect.objectContaining({ cursorRevealed: false }));
+
+        window.history.replaceState(null, "", "/?room=room-1&cursorRevealed=invalid");
+        expect(url.getInitialRoomCommand()).toEqual(expect.objectContaining({ cursorRevealed: undefined }));
     });
 });

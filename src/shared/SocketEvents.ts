@@ -25,6 +25,10 @@ export const SocketEvents = {
     SYNC_CURSOR: "sync-cursor",
     /** カーソルの削除を通知するイベント。 */
     REMOVE_CURSOR: "remove-cursor",
+    /** 共有カーソルの公開状態を変更する要求。 */
+    SET_CURSOR_REVEALED: "set-cursor-revealed",
+    /** 共有カーソルの公開状態を通知するイベント。 */
+    CURSOR_REVEAL_UPDATED: "cursor-reveal-updated",
     /** AnswerBar の追加を通知するイベント。 */
     ANSWER_BAR_ADDED: "answer-bar-added",
     /** AnswerBar の削除を通知するイベント。 */

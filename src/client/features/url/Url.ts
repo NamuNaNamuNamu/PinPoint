@@ -8,6 +8,7 @@ export type InitialRoomCommand = {
     hasScrollToContentParam: boolean;
     scoreReset: boolean;
     scoreListEnabled: boolean | undefined;
+    cursorRevealed: boolean | undefined;
 };
 
 class Url {
@@ -102,6 +103,16 @@ class Url {
     };
 
     /**
+     * URL の `cursorRevealed` を共有カーソルの公開状態として取得する。
+     *
+     * @returns `true` または `false` が明示された場合だけその値。未指定または無効値は `undefined`。
+     */
+    public getCursorRevealedFromParams = (): boolean | undefined => {
+        const value = new URLSearchParams(window.location.search).get("cursorRevealed");
+        return value === "true" ? true : value === "false" ? false : undefined;
+    };
+
+    /**
      * 現在の URL を、ページ遷移時に一度だけ実行する入室・問題操作として読み取る。
      *
      * @returns room パラメータがある場合はその操作内容。ない場合は `undefined`。
@@ -122,6 +133,7 @@ class Url {
             hasScrollToContentParam: this.hasScrollToContentParam(),
             scoreReset: this.shouldResetScores(),
             scoreListEnabled: this.getScoreListEnabledFromParams(),
+            cursorRevealed: this.getCursorRevealedFromParams(),
         };
     };
 

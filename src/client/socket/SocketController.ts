@@ -261,6 +261,25 @@ class SocketController {
     }
 
     /**
+     * 共有カーソルの公開状態を作成者として変更する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param cursorRevealed 更新後の共有カーソル公開状態。
+     * @returns サーバーによる受理または拒否の結果。
+     */
+    public setCursorRevealed(roomId: string, cursorRevealed: boolean): Promise<ApplyQuestionResult> {
+        return new Promise((resolve, _reject) => {
+            socket.emit(
+                SocketEvents.SET_CURSOR_REVEALED,
+                { roomId, cursorRevealed },
+                (response: ApplyQuestionResult) => {
+                    resolve(response);
+                },
+            );
+        });
+    }
+
+    /**
      * 作成者として現在の問題の正解表示を要求する。
      *
      * @param roomId 正解表示の対象ルーム ID。

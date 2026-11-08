@@ -39,6 +39,18 @@ describe("RoomState", () => {
         expect(room.isAnswerBarRevealed()).toBe(true);
     });
 
+    test("共有カーソルは既定で公開され、問題の切替後も公開状態を保持する", () => {
+        const room = roomState.addRoom(1);
+
+        expect(room.isCursorRevealed()).toBe(true);
+        expect(room.setCursorRevealed(false)).toBe(true);
+        expect(room.isCursorRevealed()).toBe(false);
+
+        room.setCurrentQuestionId(1);
+
+        expect(room.isCursorRevealed()).toBe(false);
+    });
+
     test("存在しないルームには参加できず、ユーザーを検索しない", () => {
         expect(roomState.join(1, "missing")).toBe(false);
         expect(mockUserService.getUser).not.toHaveBeenCalled();

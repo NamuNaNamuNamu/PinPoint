@@ -128,6 +128,17 @@ export class SocketController {
             excalidrawCursorSyncController.send(this.socket, message);
         });
 
+        this.socket.on(SocketEvents.SET_CURSOR_REVEALED, (message, callback) => {
+            callback(
+                excalidrawCursorSyncController.setCursorRevealed(
+                    this.socket,
+                    this.activeUserId,
+                    message?.roomId,
+                    message?.cursorRevealed,
+                ),
+            );
+        });
+
         this.socket.on(SocketEvents.APPLY_QUESTION, (message, callback: (result: ApplyQuestionResult) => void) => {
             const result = questionController.apply(this.socket, this.activeUserId, message);
             console.debug("[apply-question]", {

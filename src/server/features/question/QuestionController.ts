@@ -260,6 +260,7 @@ class QuestionController {
         if (!room) {
             return;
         }
+        socket.emit(SocketEvents.CURSOR_REVEAL_UPDATED, { cursorRevealed: room.isCursorRevealed() });
         socket.emit(SocketEvents.SCORE_LIST_ENABLED_UPDATED, { enabled: room.isScoreListEnabled() });
         socket.emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: scoreReason });
         if (questionId === undefined) {

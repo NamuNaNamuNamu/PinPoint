@@ -17,6 +17,7 @@ export class Room {
     private answerRevealed = false;
     private answerRevealedAt: number | undefined;
     private answerBarReveal = true;
+    private cursorRevealed = true;
     private scoreListEnabled = true;
     private readonly disconnectTokensByUserId = new Map<number, string>();
 
@@ -126,6 +127,31 @@ export class Room {
      */
     public isAnswerBarRevealed(): boolean {
         return this.answerBarReveal;
+    }
+
+    /**
+     * 共有カーソルを全参加者へ公開する状態を更新する。
+     *
+     * この状態は問題の切替ではリセットせず、ルームが破棄されるまで保持する。
+     *
+     * @param cursorRevealed 更新後の共有カーソル公開状態。
+     * @returns 状態が変化した場合は `true`。
+     */
+    public setCursorRevealed(cursorRevealed: boolean): boolean {
+        if (this.cursorRevealed === cursorRevealed) {
+            return false;
+        }
+        this.cursorRevealed = cursorRevealed;
+        return true;
+    }
+
+    /**
+     * 共有カーソルを全参加者へ公開しているかを返す。
+     *
+     * @returns 公開している場合は `true`。
+     */
+    public isCursorRevealed(): boolean {
+        return this.cursorRevealed;
     }
 
     /**

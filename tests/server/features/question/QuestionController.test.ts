@@ -232,11 +232,12 @@ describe("QuestionController", () => {
         });
     });
 
-    test("途中参加者へ送る現在問題 snapshot に AnswerBar 公開状態を含める", () => {
+    test("途中参加者へ送る現在問題 snapshot に AnswerBar 公開状態を含め、共有カーソル公開状態を通知する", () => {
         const room = {
             getCurrentQuestionId: jest.fn().mockReturnValue(1),
             isScoreListEnabled: jest.fn().mockReturnValue(true),
             isAnswerBarRevealed: jest.fn().mockReturnValue(false),
+            isCursorRevealed: jest.fn().mockReturnValue(false),
             isAnswerRevealed: jest.fn().mockReturnValue(false),
         };
         const socket = createSocket();
@@ -250,6 +251,23 @@ describe("QuestionController", () => {
             SocketEvents.CURRENT_QUESTION_STATE,
             expect.objectContaining({ answerBarReveal: false }),
         );
+        expect(socket.emit).toHaveBeenCalledWith(SocketEvents.CURSOR_REVEAL_UPDATED, { cursorRevealed: false });
+    });
+
+    test("問題未設定の途中参加者にも共有カーソル公開状態を通知する", () => {
+        const room = {
+            getCurrentQuestionId: jest.fn().mockReturnValue(undefined),
+            isCursorRevealed: jest.fn().mockReturnValue(false),
+            isScoreListEnabled: jest.fn().mockReturnValue(true),
+        };
+        const socket = createSocket();
+        mockRoomController.getRoom.mockReturnValue(room);
+        mockScoreState.get.mockReturnValue([]);
+
+        questionController.sendCurrent(socket, "room-1");
+
+        expect(socket.emit).toHaveBeenCalledWith(SocketEvents.CURSOR_REVEAL_UPDATED, { cursorRevealed: false });
+        expect(socket.emit).not.toHaveBeenCalledWith(SocketEvents.CURRENT_QUESTION_STATE, expect.anything());
     });
 
     test("初回入室の現在問題 snapshot はコンテンツへスクロールする指定を含められる", () => {
@@ -257,6 +275,7 @@ describe("QuestionController", () => {
             getCurrentQuestionId: jest.fn().mockReturnValue(1),
             isScoreListEnabled: jest.fn().mockReturnValue(true),
             isAnswerBarRevealed: jest.fn().mockReturnValue(true),
+            isCursorRevealed: jest.fn().mockReturnValue(true),
             isAnswerRevealed: jest.fn().mockReturnValue(false),
         };
         const socket = createSocket();

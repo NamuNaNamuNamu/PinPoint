@@ -81,6 +81,23 @@ describe("SocketController", () => {
         expect(socketController.isConnected()).toBe(true);
         expect(socketController.getSocketId()).toBe("socket-1");
     });
+
+    test("共有カーソル公開状態の変更要求に対する ACK を返すこと", async () => {
+        const result = socketController.setCursorRevealed("room-1", false);
+
+        expect(emit).toHaveBeenLastCalledWith(
+            SocketEvents.SET_CURSOR_REVEALED,
+            { roomId: "room-1", cursorRevealed: false },
+            expect.any(Function),
+        );
+        const acknowledgement = emit.mock.calls.at(-1)?.[2];
+        if (!isApplyQuestionAcknowledgement(acknowledgement)) {
+            throw new Error("set-cursor-revealed の ACK callback が渡されていません。");
+        }
+        acknowledgement({ ok: true });
+
+        await expect(result).resolves.toEqual({ ok: true });
+    });
 });
 
 function isApplyQuestionAcknowledgement(value: unknown): value is (response: ApplyQuestionResult) => void {

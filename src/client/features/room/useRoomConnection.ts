@@ -122,6 +122,13 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 }
             }
 
+            if (command.cursorRevealed !== undefined) {
+                const result = await socketController.setCursorRevealed(command.roomId, command.cursorRevealed);
+                if (!result.ok) {
+                    return;
+                }
+            }
+
             if (command.answerReveal) {
                 socketController.revealQuestion(command.roomId);
             }
