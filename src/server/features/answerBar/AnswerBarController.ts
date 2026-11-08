@@ -1,8 +1,8 @@
 import type { Socket } from "socket.io";
 
 import type { AnswerBarPositionUpdateRequest } from "../../../shared/answerBar/AnswerBarEvents";
-import type { JoinRoomRequest } from "../../../shared/room/RoomEvents";
 import { getQuestionTemplate } from "../../../shared/question/QuestionTemplate";
+import type { JoinRoomRequest } from "../../../shared/room/RoomEvents";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { excalidrawCursorSyncController } from "../excalidrawCursor/ExcalidrawCursorSyncController";
 import { questionController } from "../question/QuestionController";
@@ -104,7 +104,12 @@ export class AnswerBarController {
                 }
             }
         }
-        questionController.sendCurrent(socket, roomId, didRecoverScore ? "recovered" : "snapshot");
+        questionController.sendCurrent(
+            socket,
+            roomId,
+            didRecoverScore ? "recovered" : "snapshot",
+            recovery === undefined,
+        );
         return response;
     }
 

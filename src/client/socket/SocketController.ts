@@ -3,13 +3,14 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { UserParams } from "../../server/features/user/User";
 import type { AnswerBarPositionUpdateRequest } from "../../shared/answerBar/AnswerBarEvents";
 import type { Cursor } from "../../shared/excalidraw/Cursor";
-import type { JoinRoomRequest } from "../../shared/room/RoomEvents";
 import type {
     ApplyQuestionRequest,
     ApplyQuestionResult,
     ControlCurrentQuestionRequest,
 } from "../../shared/question/QuestionEvents";
+import type { JoinRoomRequest } from "../../shared/room/RoomEvents";
 import { SocketEvents } from "../../shared/SocketEvents";
+import type { UpdateSocketIdRequest } from "../../shared/user/UserEvents";
 import { socket } from "./socket";
 
 /**
@@ -118,7 +119,7 @@ class SocketController {
         return new Promise((resolve, _reject) => {
             socket.emit(
                 SocketEvents.UPDATE_SOCKET_ID,
-                { userId: userId, socketId: socket.id },
+                { userId } satisfies UpdateSocketIdRequest,
                 (response: UserParams | undefined) => {
                     resolve(response);
                 },
@@ -370,10 +371,5 @@ class SocketController {
         socket.emit(SocketEvents.SYNC_CURSOR, cursor);
     }
 }
-
-/**
- * Socket.IO 接続 ID を更新するリクエスト。
- */
-export type UpdateSocketIdRequestType = { userId: number | undefined; socketId: string };
 
 export const socketController = new SocketController();

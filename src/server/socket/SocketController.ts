@@ -1,10 +1,10 @@
 import type { Socket } from "socket.io";
 
-import type { UpdateSocketIdRequestType } from "../../client/socket/SocketController";
 import type { Cursor } from "../../shared/excalidraw/Cursor";
 import type { ApplyQuestionResult } from "../../shared/question/QuestionEvents";
 import type { JoinRoomRequest } from "../../shared/room/RoomEvents";
 import { SocketEvents } from "../../shared/SocketEvents";
+import type { UpdateSocketIdRequest } from "../../shared/user/UserEvents";
 import { answerBarController } from "../features/answerBar/AnswerBarController";
 import { excalidrawCursorSyncController } from "../features/excalidrawCursor/ExcalidrawCursorSyncController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
@@ -12,6 +12,7 @@ import { questionController } from "../features/question/QuestionController";
 import { roomController } from "../features/room/RoomController";
 import type { User } from "../features/user/User";
 import { userController } from "../features/user/UserController";
+import { userService } from "../features/user/UserService";
 
 /** 接続済みソケットのイベントハンドラーを登録する。 */
 export class SocketController {
@@ -54,10 +55,8 @@ export class SocketController {
             callback(user);
         });
 
-        this.socket.on(SocketEvents.UPDATE_SOCKET_ID, (message: UpdateSocketIdRequestType, callback) => {
-            const userId = message.userId;
-            const socketId = message.socketId;
-            const user: User | undefined = userController.updateSocketId(userId, socketId);
+        this.socket.on(SocketEvents.UPDATE_SOCKET_ID, (message: UpdateSocketIdRequest | undefined, callback) => {
+            const user: User | undefined = userController.updateSocketId(message?.userId, this.socket.id);
             this.activeUserId = user?.getId();
 
             // レスポンス
@@ -95,7 +94,11 @@ export class SocketController {
                 return;
             }
 
-            this.activeUserId = userId;
+            const user = userService.getUser(userId);
+            if (this.activeUserId !== userId || user?.getSocketId() !== this.socket.id) {
+                callback(null);
+                return;
+            }
 
             // レスポンス
             const joined = answerBarController.joinRoom(this.socket, userId, roomId, request?.recovery);

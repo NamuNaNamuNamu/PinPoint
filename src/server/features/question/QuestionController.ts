@@ -247,8 +247,14 @@ class QuestionController {
      * @param socket 通知先の Socket.IO 接続。
      * @param roomId 現在状態を取得するルーム ID。
      * @param scoreReason 得点 snapshot の由来。復帰採点時はクライアントの加点演出に使用する。
+     * @param scrollToContent `true` の場合、受信側は現在問題のコンテンツへ表示範囲を合わせる。
      */
-    public sendCurrent(socket: Socket, roomId: string, scoreReason: "snapshot" | "recovered" = "snapshot"): void {
+    public sendCurrent(
+        socket: Socket,
+        roomId: string,
+        scoreReason: "snapshot" | "recovered" = "snapshot",
+        scrollToContent = false,
+    ): void {
         const room = roomController.getRoom(roomId);
         const questionId = room?.getCurrentQuestionId();
         if (!room) {
@@ -267,7 +273,7 @@ class QuestionController {
             question,
             answerBars: answerBarAssignmentState.getAll(roomId),
             deleteExternalElements: false,
-            scrollToContent: false,
+            scrollToContent,
             answerBarReveal: room.isAnswerBarRevealed(),
         } satisfies CurrentQuestionState);
         if (room.isAnswerRevealed()) {

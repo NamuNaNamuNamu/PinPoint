@@ -94,7 +94,7 @@ export function CurrentScore({ userId }: Props) {
         >
             得点: {displayedScore}
             {addedScore && (
-                <span style={{ color: "#1e88e5", fontSize: "0.5em", marginLeft: 6, opacity: addedScore.opacity }}>
+                <span className="CurrentScore-added" style={{ opacity: addedScore.opacity }}>
                     + {addedScore.value}
                 </span>
             )}

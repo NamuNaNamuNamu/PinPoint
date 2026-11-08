@@ -23,6 +23,11 @@ const ANSWER_BAR_COLORS = [
 ] as const;
 
 /**
+ * AnswerBar の視認性とタッチ操作の対象範囲を広げる線幅。
+ */
+const ANSWER_BAR_STROKE_WIDTH = 3;
+
+/**
  * 1 人の回答者に対応する、Slider 内の 1 本の可動線と名前ラベルを表す。
  */
 export class AnswerBar {
@@ -69,6 +74,7 @@ export class AnswerBar {
                 y: params.y,
                 width: params.height,
                 strokeColor: color,
+                strokeWidth: ANSWER_BAR_STROKE_WIDTH,
                 locked: !this.isOwnedBy(params.operatorUserId),
             }),
             moveRange: params.moveRange,

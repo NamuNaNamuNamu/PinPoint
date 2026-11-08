@@ -252,6 +252,26 @@ describe("QuestionController", () => {
         );
     });
 
+    test("初回入室の現在問題 snapshot はコンテンツへスクロールする指定を含められる", () => {
+        const room = {
+            getCurrentQuestionId: jest.fn().mockReturnValue(1),
+            isScoreListEnabled: jest.fn().mockReturnValue(true),
+            isAnswerBarRevealed: jest.fn().mockReturnValue(true),
+            isAnswerRevealed: jest.fn().mockReturnValue(false),
+        };
+        const socket = createSocket();
+        mockRoomController.getRoom.mockReturnValue(room);
+        mockAnswerBarAssignmentState.getAll.mockReturnValue([]);
+        mockScoreState.get.mockReturnValue([]);
+
+        questionController.sendCurrent(socket, "room-1", "snapshot", true);
+
+        expect(socket.emit).toHaveBeenCalledWith(
+            SocketEvents.CURRENT_QUESTION_STATE,
+            expect.objectContaining({ scrollToContent: true }),
+        );
+    });
+
     test("管理外要素削除後も、解答表示済みの問題は正解マーカーを再表示する", () => {
         const room = {
             isCreatedBy: jest.fn().mockReturnValue(true),

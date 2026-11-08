@@ -45,5 +45,6 @@ describe("Slider", () => {
 
         expect(label.strokeColor).toBe(line.strokeColor);
         expect(label.strokeColor).toBe("#43A047");
+        expect(line.strokeWidth).toBe(3);
     });
 });
