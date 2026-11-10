@@ -5,7 +5,6 @@ import { type DisconnectReason, Server, Socket } from "socket.io";
 import { fileURLToPath } from "url";
 
 import { socketLogger } from "./logging/SocketLogger";
-import { getLocalIPAddress } from "./network/getLocalIPAddress";
 import { SocketController } from "./socket/SocketController";
 
 const { app, io, httpServer } = createServerEntryPoint();
@@ -19,8 +18,14 @@ socketLogger.setIo(io);
 
 prepareClientEntryPoint(app);
 
-httpServer.listen(3001, () => {
-    console.log(`Server started: http://${getLocalIPAddress()}:3001\n`);
+// httpServer.listen(3001, () => {
+//     console.log(`Server started: http://${getLocalIPAddress()}:3001\n`);
+// });
+
+const PORT = Number(process.env.PORT ?? 3001);
+
+httpServer.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server listening on port ${PORT}`);
 });
 
 /**
