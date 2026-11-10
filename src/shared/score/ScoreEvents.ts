@@ -8,5 +8,5 @@ export type ScoreEntry = { userId: number; userName: string; score: number };
  */
 export type ScoresUpdated = {
     scores: readonly ScoreEntry[];
-    reason: "scored" | "reset" | "snapshot";
+    reason: "scored" | "recovered" | "reset" | "snapshot";
 };

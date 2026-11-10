@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import type { AnswerBarAdded, AnswerBarOwnerNameUpdated, AnswerBarRemoved } from "../../../shared/answerBar/AnswerBarEvents";
+import type {
+    AnswerBarAdded,
+    AnswerBarOwnerNameUpdated,
+    AnswerBarRemoved,
+} from "../../../shared/answerBar/AnswerBarEvents";
+import { getAnswerBarSlotRatio } from "../../../shared/answerBar/answerBarSlot";
 
 /**
  * AnswerBar の割当先となるルーム ID。
@@ -25,6 +30,7 @@ type AnswerBarAssignment = {
     slot: AnswerBarSlot;
     lineIds: readonly string[];
     labelIds: readonly string[];
+    positionsByLineId: Record<string, number>;
     disconnectedAt: number | null;
     disconnectedToken: string | null;
 };
@@ -105,6 +111,23 @@ export class AnswerBarAssignmentState {
     }
 
     /**
+     * 指定ルームの採点用 AnswerBar 位置を、line ID をキーとする読み取り専用 map として返す。
+     *
+     * 戻り値は内部 map の複製であるため、呼び出し側の変更は状態に影響しない。割当がない
+     * 場合は空の map を返す。
+     *
+     * @param roomId 位置を取得するルーム ID。
+     * @returns line ID ごとのサーバー受理済み X 座標。
+     */
+    public getPositionsByLineId(roomId: RoomId): ReadonlyMap<string, number> {
+        return new Map(
+            (this.assignmentsByRoomId.get(roomId)?.getAll() ?? []).flatMap((assignment) =>
+                Object.entries(assignment.positionsByLineId),
+            ),
+        );
+    }
+
+    /**
      * ルーム削除時に、AnswerBar 割当と既知要素 ID を破棄する。
      *
      * @param roomId 削除されたルーム ID。
@@ -119,14 +142,15 @@ export class AnswerBarAssignmentState {
      *
      * @param roomId 対象ルーム ID。
      * @param users AnswerBar を割り当てる参加者。
-     * @param sliderCount 問題が持つ Slider 件数。
+     * @param sliders 問題が持つ Slider の X 座標と幅、または互換用の Slider 件数。
      * @returns 新しい割当一覧。
      */
     public reset(
         roomId: RoomId,
         users: readonly { userId: number; userName: string }[],
-        sliderCount: number,
+        sliders: readonly { x: number; width: number }[] | number,
     ): readonly AnswerBarAdded[] {
+        const sliderDefinitions = this.toSliderDefinitions(sliders);
         const previous = this.assignmentsByRoomId.get(roomId)?.getAll() ?? [];
         const previousSlotByUserId = new Map(previous.map((assignment) => [assignment.ownerUserId, assignment.slot]));
         const roomAssignments = new RoomAssignments();
@@ -138,12 +162,18 @@ export class AnswerBarAssignmentState {
                 ownerUserId: user.userId,
                 ownerUserName: user.userName,
                 slot: previousSlotByUserId.get(user.userId) ?? index,
-                lineIds: Array.from({ length: sliderCount }, () => randomUUID()),
-                labelIds: Array.from({ length: sliderCount }, () => randomUUID()),
+                lineIds: Array.from({ length: sliderDefinitions.length }, () => randomUUID()),
+                labelIds: Array.from({ length: sliderDefinitions.length }, () => randomUUID()),
+                positionsByLineId: {},
                 disconnectedAt: null,
                 disconnectedToken: null,
             };
             roomAssignments.set(assignment);
+            assignment.positionsByLineId = this.createInitialPositions(
+                sliderDefinitions,
+                assignment.slot,
+                assignment.lineIds,
+            );
             assignment.lineIds.forEach((id) => knownElementIds.add(id));
             assignment.labelIds.forEach((id) => knownElementIds.add(id));
         });
@@ -156,15 +186,16 @@ export class AnswerBarAssignmentState {
      * @param roomId 割当先のルーム ID。
      * @param ownerUserId AnswerBar の所有者 ID。
      * @param ownerUserName AnswerBar のそばに表示する所有者名。
-     * @param sliderCount 割り当てる Slider の件数。
+     * @param sliders 割り当てる Slider の X 座標と幅、または互換用の Slider 件数。
      * @returns 割当と、新規に作成したかどうか。
      */
     public getOrCreate(
         roomId: RoomId,
         ownerUserId: OwnerUserId,
         ownerUserName: string,
-        sliderCount: number,
+        sliders: readonly { x: number; width: number }[] | number,
     ): { assignment: AnswerBarAdded; isNew: boolean } {
+        const sliderDefinitions = this.toSliderDefinitions(sliders);
         const roomAssignments = this.getOrCreateRoomAssignments(roomId);
         const existing = roomAssignments.getByOwnerUserId(ownerUserId);
         if (existing) {
@@ -178,11 +209,17 @@ export class AnswerBarAssignmentState {
             ownerUserId,
             ownerUserName,
             slot: this.getSmallestUnusedSlot(roomAssignments.getUsedSlots()),
-            lineIds: Array.from({ length: sliderCount }, () => randomUUID()),
-            labelIds: Array.from({ length: sliderCount }, () => randomUUID()),
+            lineIds: Array.from({ length: sliderDefinitions.length }, () => randomUUID()),
+            labelIds: Array.from({ length: sliderDefinitions.length }, () => randomUUID()),
+            positionsByLineId: {},
             disconnectedAt: null,
             disconnectedToken: null,
         };
+        assignment.positionsByLineId = this.createInitialPositions(
+            sliderDefinitions,
+            assignment.slot,
+            assignment.lineIds,
+        );
         roomAssignments.set(assignment);
         const knownElementIds = this.getOrCreateKnownElementIds(roomId);
         assignment.lineIds.forEach((id) => knownElementIds.add(id));
@@ -206,6 +243,17 @@ export class AnswerBarAssignmentState {
         assignment.disconnectedAt = Date.now();
         assignment.disconnectedToken = randomUUID();
         return assignment.disconnectedToken;
+    }
+
+    /**
+     * 指定ユーザーの直近の切断時刻を取得する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param userId 対象ユーザー ID。
+     * @returns 切断保留中の時刻。割当または保留がない場合は `null`。
+     */
+    public getDisconnectedAt(roomId: RoomId, userId: OwnerUserId): number | null {
+        return this.assignmentsByRoomId.get(roomId)?.getByOwnerUserId(userId)?.disconnectedAt ?? null;
     }
 
     /**
@@ -274,32 +322,59 @@ export class AnswerBarAssignmentState {
     }
 
     /**
-     * AnswerBar として既知だが、現在の割当に存在しない要素を scene 同期から除外する。
+     * 所有者の AnswerBar 位置を Slider 範囲内へ正規化して保存する。
      *
-     * 削除通知より前に生成された古い `SYNC_ELEMENTS` を別のクライアントが送っても、
-     * 退出済み AnswerBar と名前ラベルが再生成されないようにする。
+     * @param roomId 対象ルーム ID。
+     * @param ownerUserId 要求元ユーザー ID。
+     * @param answerBarId 更新対象 AnswerBar ID。
+     * @param lineId 更新対象 line ID。
+     * @param x 要求された X 座標。
+     * @param slider 更新対象 Slider の座標範囲。
+     * @returns 受理・正規化済み位置。所有者、AnswerBar ID、line ID、座標、または Slider の
+     * 検証に失敗した場合は `null`。
+     */
+    public updatePosition(
+        roomId: RoomId,
+        ownerUserId: OwnerUserId,
+        answerBarId: string,
+        lineId: string,
+        x: unknown,
+        slider: { x: number; width: number } | undefined,
+    ): number | null {
+        const assignment = this.assignmentsByRoomId.get(roomId)?.getByOwnerUserId(ownerUserId);
+        if (!assignment || assignment.answerBarId !== answerBarId || !assignment.lineIds.includes(lineId) || !slider) {
+            return null;
+        }
+        if (
+            typeof x !== "number" ||
+            !Number.isFinite(x) ||
+            !Number.isFinite(slider.x) ||
+            !Number.isFinite(slider.width) ||
+            slider.width < 0
+        ) {
+            return null;
+        }
+        const normalizedX = Math.min(Math.max(x, slider.x), slider.x + slider.width);
+        assignment.positionsByLineId[lineId] = normalizedX;
+        return normalizedX;
+    }
+
+    /**
+     * AnswerBar として既知の要素を、通常の scene 同期から除外する。
+     *
+     * 現在・過去の AnswerBar は専用イベントで同期するため、遅延した `SYNC_ELEMENTS` が
+     * AnswerBar または名前ラベルを初期位置へ戻したり、退出済み要素を再生成したりしないようにする。
      *
      * @param roomId 対象ルーム ID。
      * @param elements 同期対象の要素。
      */
-    public excludeInactiveAnswerBarElements<T extends { id: string }>(
-        roomId: RoomId,
-        elements: readonly T[],
-    ): readonly T[] {
+    public excludeAnswerBarElements<T extends { id: string }>(roomId: RoomId, elements: readonly T[]): readonly T[] {
         const knownElementIds = this.knownElementIdsByRoomId.get(roomId);
         if (!knownElementIds) {
             return elements;
         }
 
-        const activeElementIds = new Set(
-            this.getAll(roomId).flatMap((assignment) => [...assignment.lineIds, ...assignment.labelIds]),
-        );
-        return elements.filter((element) => {
-            if (!knownElementIds.has(element.id)) {
-                return true;
-            }
-            return activeElementIds.has(element.id) && !("isDeleted" in element && element.isDeleted === true);
-        });
+        return elements.filter((element) => !knownElementIds.has(element.id));
     }
 
     /**
@@ -359,6 +434,39 @@ export class AnswerBarAssignmentState {
     private toAddedEvent(assignment: AnswerBarAssignment): AnswerBarAdded {
         const { disconnectedAt: _disconnectedAt, disconnectedToken: _disconnectedToken, ...event } = assignment;
         return event;
+    }
+
+    /**
+     * slot と Slider 定義から、line ID ごとの初期 X 座標を作成する。
+     *
+     * @param sliders AnswerBar を配置する Slider の X 座標と幅。
+     * @param slot 初期位置比率を決める論理 slot。
+     * @param lineIds Slider 定義順に対応する AnswerBar line ID。
+     * @returns line ID をキーとする初期 X 座標。
+     */
+    private createInitialPositions(
+        sliders: readonly { x: number; width: number }[],
+        slot: AnswerBarSlot,
+        lineIds: readonly string[],
+    ): Record<string, number> {
+        return Object.fromEntries(
+            lineIds.flatMap((lineId, index) => {
+                const slider = sliders[index];
+                return slider ? [[lineId, slider.x + slider.width * getAnswerBarSlotRatio(slot)]] : [];
+            }),
+        );
+    }
+
+    /**
+     * Slider 件数だけが渡された互換呼び出しを、初期位置 0 の Slider 定義へ正規化する。
+     *
+     * @param sliders Slider 定義、またはその件数。
+     * @returns 初期位置計算に使用する Slider 定義。
+     */
+    private toSliderDefinitions(
+        sliders: readonly { x: number; width: number }[] | number,
+    ): readonly { x: number; width: number }[] {
+        return typeof sliders === "number" ? Array.from({ length: sliders }, () => ({ x: 0, width: 0 })) : sliders;
     }
 
     /**

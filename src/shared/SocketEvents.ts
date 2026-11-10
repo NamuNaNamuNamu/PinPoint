@@ -20,22 +20,35 @@ export const SocketEvents = {
     GET_ROOM_ID: "get-room-id",
     /** Excalidraw 要素の同期を要求するイベント。 */
     SYNC_ELEMENTS: "send-elements",
+    CURRENT_EXTERNAL_ELEMENTS: "current-external-elements",
     /** カーソル位置の同期を要求・通知するイベント。 */
     SYNC_CURSOR: "sync-cursor",
     /** カーソルの削除を通知するイベント。 */
     REMOVE_CURSOR: "remove-cursor",
+    /** 共有カーソルの公開状態を変更する要求。 */
+    SET_CURSOR_REVEALED: "set-cursor-revealed",
+    /** 共有カーソルの公開状態を通知するイベント。 */
+    CURSOR_REVEAL_UPDATED: "cursor-reveal-updated",
     /** AnswerBar の追加を通知するイベント。 */
     ANSWER_BAR_ADDED: "answer-bar-added",
     /** AnswerBar の削除を通知するイベント。 */
     ANSWER_BAR_REMOVED: "answer-bar-removed",
     /** AnswerBar の所有者名更新を通知するイベント。 */
     ANSWER_BAR_OWNER_NAME_UPDATED: "answer-bar-owner-name-updated",
+    /** AnswerBar の位置更新を要求するイベント。 */
+    ANSWER_BAR_POSITION_UPDATE: "answer-bar-position-update",
+    /** サーバーが受理・正規化した AnswerBar の位置を通知するイベント。 */
+    ANSWER_BAR_POSITION_UPDATED: "answer-bar-position-updated",
+    /** AnswerBar を全参加者へ公開する状態の更新を通知するイベント。 */
+    ANSWER_BAR_REVEAL_UPDATED: "answer-bar-reveal-updated",
     /** 問題をルームへ適用するイベント。 */
     APPLY_QUESTION: "apply-question",
     /** 現在の問題の正解を表示するイベント。 */
     REVEAL_QUESTION: "reveal-question",
     /** サーバーが適用した問題を通知するイベント。 */
     QUESTION_APPLIED: "question-applied",
+    /** 途中参加者・再接続者へ現在問題を復元するイベント。 */
+    CURRENT_QUESTION_STATE: "current-question-state",
     /** サーバーが現在の問題の正解表示を通知するイベント。 */
     QUESTION_REVEALED: "question-revealed",
     /**

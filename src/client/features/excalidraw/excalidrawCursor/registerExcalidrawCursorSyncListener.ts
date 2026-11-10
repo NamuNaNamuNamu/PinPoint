@@ -1,4 +1,5 @@
 import { SocketEvents } from "../../../../shared/SocketEvents";
+import type { CursorRevealUpdated } from "../../../../shared/excalidraw/Cursor";
 import { socket } from "../../../socket/socket";
 import { excalidrawCursorSyncController } from "./ExcalidrawCursorSyncController";
 
@@ -12,5 +13,9 @@ export function registerExcalidrawCursorSyncListener(): void {
 
     socket.on(SocketEvents.REMOVE_CURSOR, (socketId) => {
         excalidrawCursorSyncController.removeCursor(socketId);
+    });
+
+    socket.on(SocketEvents.CURSOR_REVEAL_UPDATED, (event: CursorRevealUpdated) => {
+        excalidrawCursorSyncController.setCursorRevealed(event.cursorRevealed);
     });
 }

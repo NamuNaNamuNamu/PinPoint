@@ -1,9 +1,10 @@
 import type { Socket } from "socket.io";
 
-import type { UpdateSocketIdRequestType } from "../../client/socket/SocketController";
 import type { Cursor } from "../../shared/excalidraw/Cursor";
 import type { ApplyQuestionResult } from "../../shared/question/QuestionEvents";
+import type { JoinRoomRequest } from "../../shared/room/RoomEvents";
 import { SocketEvents } from "../../shared/SocketEvents";
+import type { UpdateSocketIdRequest } from "../../shared/user/UserEvents";
 import { answerBarController } from "../features/answerBar/AnswerBarController";
 import { excalidrawCursorSyncController } from "../features/excalidrawCursor/ExcalidrawCursorSyncController";
 import { excalidrawSyncController } from "../features/excalidrawSync/ExcalidrawSyncController";
@@ -11,6 +12,7 @@ import { questionController } from "../features/question/QuestionController";
 import { roomController } from "../features/room/RoomController";
 import type { User } from "../features/user/User";
 import { userController } from "../features/user/UserController";
+import { userService } from "../features/user/UserService";
 
 /** 接続済みソケットのイベントハンドラーを登録する。 */
 export class SocketController {
@@ -32,8 +34,8 @@ export class SocketController {
     /**
      * クライアントから受信する Socket.IO イベントのハンドラーを登録する。
      *
-     * AnswerBar の参加・退出・切断処理は `AnswerBarController` に委譲し、
-     * このクラスはイベントとアプリケーション処理の接続に専念する。
+     * AnswerBar の参加、退出、切断、位置更新は `AnswerBarController` に委譲し、このクラスは
+     * Socket.IO イベントとアプリケーション処理の接続に専念する。
      */
     public register(): void {
         this.socket.on(SocketEvents.REGISTER_USER, (message, callback) => {
@@ -53,10 +55,8 @@ export class SocketController {
             callback(user);
         });
 
-        this.socket.on(SocketEvents.UPDATE_SOCKET_ID, (message: UpdateSocketIdRequestType, callback) => {
-            const userId = message.userId;
-            const socketId = message.socketId;
-            const user: User | undefined = userController.updateSocketId(userId, socketId);
+        this.socket.on(SocketEvents.UPDATE_SOCKET_ID, (message: UpdateSocketIdRequest | undefined, callback) => {
+            const user: User | undefined = userController.updateSocketId(message?.userId, this.socket.id);
             this.activeUserId = user?.getId();
 
             // レスポンス
@@ -85,18 +85,25 @@ export class SocketController {
         });
 
         this.socket.on(SocketEvents.JOIN_ROOM, (message, callback) => {
-            const userId: number | undefined = message?.userId;
-            const roomId: string | undefined = message?.roomId;
+            const request = message as JoinRoomRequest | undefined;
+            const userId: number | undefined = request?.userId;
+            const roomId: string | undefined = request?.roomId;
             if (userId === undefined || !roomId) {
                 // レスポンス
                 callback(null);
                 return;
             }
 
-            this.activeUserId = userId;
+            const user = userService.getUser(userId);
+            if (this.activeUserId !== userId || user?.getSocketId() !== this.socket.id) {
+                callback(null);
+                return;
+            }
 
             // レスポンス
-            callback(answerBarController.joinRoom(this.socket, userId, roomId));
+            const joined = answerBarController.joinRoom(this.socket, userId, roomId, request?.recovery);
+            if (joined) excalidrawSyncController.restore(this.socket, roomId, request?.recovery?.elements ?? []);
+            callback(joined);
         });
 
         this.socket.on(SocketEvents.LEAVE_ROOM, (message, callback) => {
@@ -110,11 +117,26 @@ export class SocketController {
         });
 
         this.socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {
-            excalidrawSyncController.send(this.socket, message, this.activeUserId);
+            excalidrawSyncController.send(this.socket, message);
+        });
+
+        this.socket.on(SocketEvents.ANSWER_BAR_POSITION_UPDATE, (message) => {
+            answerBarController.updatePosition(this.socket, this.activeUserId, message);
         });
 
         this.socket.on(SocketEvents.SYNC_CURSOR, (message: Cursor) => {
             excalidrawCursorSyncController.send(this.socket, message);
+        });
+
+        this.socket.on(SocketEvents.SET_CURSOR_REVEALED, (message, callback) => {
+            callback(
+                excalidrawCursorSyncController.setCursorRevealed(
+                    this.socket,
+                    this.activeUserId,
+                    message?.roomId,
+                    message?.cursorRevealed,
+                ),
+            );
         });
 
         this.socket.on(SocketEvents.APPLY_QUESTION, (message, callback: (result: ApplyQuestionResult) => void) => {

@@ -19,6 +19,7 @@ const getUser = jest.fn<UserService["getUser"]>();
 const getRoomIdByUserId = jest.fn<RoomController["getRoomIdByUserId"]>();
 const getRoom = jest.fn<RoomController["getRoom"]>();
 const markDisconnected = jest.fn<AnswerBarAssignmentState["markDisconnected"]>();
+const getDisconnectedAt = jest.fn<AnswerBarAssignmentState["getDisconnectedAt"]>();
 const removeIfStillDisconnected = jest.fn<AnswerBarAssignmentState["removeIfStillDisconnected"]>();
 const updateParticipantName = jest.fn<ScoreState["updateParticipantName"]>();
 const getScores = jest.fn<ScoreState["get"]>();
@@ -33,6 +34,7 @@ jest.unstable_mockModule("../../../../src/server/features/answerBar/AnswerBarAss
         remove,
         updateOwnerUserName,
         markDisconnected,
+        getDisconnectedAt,
         removeIfStillDisconnected,
     },
 }));
@@ -53,6 +55,7 @@ describe("AnswerBarController", () => {
         getUser.mockReturnValue(createUser());
         getRoomIdByUserId.mockReturnValue(undefined);
         getRoom.mockReturnValue(createRoom());
+        getDisconnectedAt.mockReturnValue(null);
         getAll.mockReturnValue([]);
         getOrCreate.mockReturnValue({
             assignment: {
@@ -86,7 +89,7 @@ describe("AnswerBarController", () => {
 
         expect(new AnswerBarController().joinRoom(socket, 1, "room-1")).toBe("room-1");
         expect(getAll).toHaveBeenCalledWith("room-1");
-        expect(getOrCreate).toHaveBeenCalledWith("room-1", 1, "ゆう", 3);
+        expect(getOrCreate).toHaveBeenCalledWith("room-1", 1, "ゆう", expect.any(Array));
         expect(roomEmit).toHaveBeenCalledWith(
             "answer-bar-added",
             expect.objectContaining({ ownerUserName: "ゆう", labelIds: ["label-1", "label-2"] }),

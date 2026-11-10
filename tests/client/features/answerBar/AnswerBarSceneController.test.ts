@@ -15,6 +15,7 @@ type AnswerBarForSceneController = {
     getAnswerBarId(): string;
     getLineId(): string;
     getLabelId(): string;
+    isOwnedBy(operatorUserId: number): boolean;
     setOwnerUserName(ownerUserName: string): void;
 };
 
@@ -92,6 +93,7 @@ describe("AnswerBarSceneController", () => {
                 getAnswerBarId: () => "answer-bar-1",
                 getLineId: () => "line-1",
                 getLabelId: () => "label-1",
+                isOwnedBy: () => true,
                 setOwnerUserName,
             });
         });
@@ -112,6 +114,7 @@ describe("AnswerBarSceneController", () => {
                 getAnswerBarId: () => "answer-bar-1",
                 getLineId: () => "line-1",
                 getLabelId: () => "label-1",
+                isOwnedBy: () => true,
                 setOwnerUserName: jest.fn(),
             });
         });
@@ -133,7 +136,44 @@ describe("AnswerBarSceneController", () => {
             elements: [
                 { id: "line-1", x: 200, isDeleted: true },
                 { id: "label-1", x: 200 },
-                { id: "line-1", x: 200 },
+                { id: "line-1", x: 200, locked: false, opacity: undefined },
+            ],
+        });
+    });
+
+    test("answerBarReveal=false では所有者以外の AnswerBar と名前ラベルを非表示かつロックすること", () => {
+        forEachAnswerBar.mockImplementation((callback) => {
+            callback({
+                getAnswerBarId: () => "answer-bar-owner",
+                getLineId: () => "line-owner",
+                getLabelId: () => "label-owner",
+                isOwnedBy: (operatorUserId) => operatorUserId === 1,
+                setOwnerUserName: jest.fn(),
+            });
+            callback({
+                getAnswerBarId: () => "answer-bar-other",
+                getLineId: () => "line-other",
+                getLabelId: () => "label-other",
+                isOwnedBy: () => false,
+                setOwnerUserName: jest.fn(),
+            });
+        });
+        getSceneElementsIncludingDeleted.mockReturnValue([
+            { id: "line-owner", opacity: 100, locked: false },
+            { id: "label-owner", opacity: 25, locked: true },
+            { id: "line-other", opacity: 100, locked: true },
+            { id: "label-other", opacity: 25, locked: true },
+        ]);
+        answerBarSceneController.setOperatorUserId(1);
+
+        answerBarSceneController.setAnswerBarReveal(false);
+
+        expect(updateScene).toHaveBeenLastCalledWith({
+            elements: [
+                { id: "line-owner", opacity: 100, locked: false },
+                { id: "label-owner", opacity: 25, locked: true },
+                { id: "line-other", opacity: 0, locked: true },
+                { id: "label-other", opacity: 0, locked: true },
             ],
         });
     });

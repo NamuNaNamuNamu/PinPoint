@@ -65,8 +65,20 @@ describe("AnswerBarAssignmentState", () => {
         const created = state.getOrCreate("room-1", 1, "ゆう", 1);
         state.remove("room-1", 1);
 
-        expect(state.excludeInactiveAnswerBarElements("room-1", [
+        expect(state.excludeAnswerBarElements("room-1", [
             { id: "other" }, { id: created.assignment.lineIds[0] }, { id: created.assignment.labelIds[0] },
         ])).toEqual([{ id: "other" }]);
+    });
+
+    test("slot から初期 X を保存し、所有者だけの有限な位置を Slider 範囲へ丸めて snapshot に含めること", () => {
+        const created = state.getOrCreate("room-1", 1, "ゆう", [{ x: 100, width: 600 }]);
+        const lineId = created.assignment.lineIds[0]!;
+
+        expect(created.assignment.positionsByLineId?.[lineId]).toBe(400);
+        expect(state.updatePosition("room-1", 2, created.assignment.answerBarId, lineId, 200, { x: 100, width: 600 })).toBeNull();
+        expect(state.updatePosition("room-1", 1, created.assignment.answerBarId, lineId, 999, { x: 100, width: 600 })).toBe(700);
+        expect(state.updatePosition("room-1", 1, created.assignment.answerBarId, lineId, Number.NaN, { x: 100, width: 600 })).toBeNull();
+        expect(state.getAll("room-1")[0]?.positionsByLineId?.[lineId]).toBe(700);
+        expect(state.getPositionsByLineId("room-1").get(lineId)).toBe(700);
     });
 });
