@@ -1,5 +1,6 @@
 import type { ExcalidrawElement, OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
+import type { AnswerBarPositionUpdateRequest } from "../../../../shared/answerBar/AnswerBarEvents";
 import { Line } from "../Elements/Line/Line";
 import { lineSkeletonFactory } from "../Elements/Line/LineSkeletonFactory";
 import type { MoveRange } from "../Elements/Line/MoveRange";
@@ -55,6 +56,10 @@ export class AnswerBar {
      * slot から決まる名前ラベルの固定 Y 座標。
      */
     private readonly labelY: number;
+    /**
+     * 直近にサーバーへ通知した AnswerBar の X 座標。
+     */
+    private lastReportedX: number;
 
     /**
      * AnswerBar を初期化する。
@@ -66,6 +71,7 @@ export class AnswerBar {
         this.ownerUserId = params.ownerUserId;
         this.labelX = params.x;
         this.labelY = params.labelY;
+        this.lastReportedX = params.x;
         const color = ANSWER_BAR_COLORS[params.slot % ANSWER_BAR_COLORS.length];
         this.line = new Line({
             skeleton: lineSkeletonFactory.createWith({
@@ -160,14 +166,16 @@ export class AnswerBar {
     /**
      * 所有者だけに Line の座標・形状補正と名前ラベルの追従を委譲する。
      *
-     * scene 自体は更新せず、同じ変更通知に含める要素差分だけを返す。
+     * scene 自体は更新せず、同じ変更通知に含める要素差分と、前回通知時から X 座標が変わった
+     * 場合だけサーバーへ送る位置更新を返す。
      *
      * @param operatorUserId 操作するユーザー ID。
-     * @returns scene に反映する AnswerBar の要素差分。所有者以外の場合は空配列。
+     * @returns scene に反映する AnswerBar の要素差分と、必要な位置更新。所有者以外の場合は
+     * 空の差分と位置更新なしを返す。
      */
-    public getElementUpdates(operatorUserId: number): readonly ExcalidrawElement[] {
+    public getElementUpdates(operatorUserId: number): AnswerBarElementUpdates {
         if (!this.isOwnedBy(operatorUserId)) {
-            return [];
+            return { elements: [] };
         }
 
         const line = this.line.getNormalizedElement();
@@ -180,8 +188,25 @@ export class AnswerBar {
             updates.push(label.element);
         }
 
-        return updates;
+        const position = line.element.x === this.lastReportedX
+            ? undefined
+            : {
+                  answerBarId: this.answerBarId,
+                  lineId: this.line.getId(),
+                  x: line.element.x,
+              };
+        this.lastReportedX = line.element.x;
+
+        return { elements: updates, position };
     }
+}
+
+/** AnswerBar のローカル補正による scene 差分と位置同期要求。 */
+interface AnswerBarElementUpdates {
+    /** scene に反映する line または名前ラベルの差分。 */
+    elements: readonly ExcalidrawElement[];
+    /** 前回通知時から X 座標が変わった場合の位置同期要求。 */
+    position?: AnswerBarPositionUpdateRequest;
 }
 
 /**

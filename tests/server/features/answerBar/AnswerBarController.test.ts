@@ -15,6 +15,7 @@ const getAll = jest.fn<AnswerBarAssignmentState["getAll"]>();
 const getOrCreate = jest.fn<AnswerBarAssignmentState["getOrCreate"]>();
 const remove = jest.fn<AnswerBarAssignmentState["remove"]>();
 const updateOwnerUserName = jest.fn<AnswerBarAssignmentState["updateOwnerUserName"]>();
+const updatePosition = jest.fn<AnswerBarAssignmentState["updatePosition"]>();
 const getUser = jest.fn<UserService["getUser"]>();
 const getRoomIdByUserId = jest.fn<RoomController["getRoomIdByUserId"]>();
 const getRoom = jest.fn<RoomController["getRoom"]>();
@@ -33,6 +34,7 @@ jest.unstable_mockModule("../../../../src/server/features/answerBar/AnswerBarAss
         getOrCreate,
         remove,
         updateOwnerUserName,
+        updatePosition,
         markDisconnected,
         getDisconnectedAt,
         removeIfStillDisconnected,
@@ -169,6 +171,43 @@ describe("AnswerBarController", () => {
             scores: [{ userId: 1, userName: "ゆうこ", score: 10 }],
             reason: "snapshot",
         });
+    });
+
+    test("位置更新は送信元を除く同じルームへだけ通知すること", () => {
+        const peerEmit = jest.fn();
+        const socket = {
+            to: jest.fn(() => ({ emit: peerEmit })),
+            nsp: { to: jest.fn() },
+        } as any;
+        const room = createRoom();
+        room.addUser(createUser());
+        getRoomIdByUserId.mockReturnValue("room-1");
+        getRoom.mockReturnValue(room);
+        getAll.mockReturnValue([
+            {
+                answerBarId: "bar-1",
+                ownerUserId: 1,
+                ownerUserName: "ゆう",
+                lineIds: ["line-1"],
+                labelIds: ["label-1"],
+                slot: 0,
+            },
+        ]);
+        updatePosition.mockReturnValue(450);
+
+        new AnswerBarController().updatePosition(socket, 1, {
+            answerBarId: "bar-1",
+            lineId: "line-1",
+            x: 450,
+        });
+
+        expect(socket.to).toHaveBeenCalledWith("room-1");
+        expect(peerEmit).toHaveBeenCalledWith("answer-bar-position-updated", {
+            answerBarId: "bar-1",
+            lineId: "line-1",
+            x: 450,
+        });
+        expect(socket.nsp.to).not.toHaveBeenCalled();
     });
 
     test("古い Socket の切断では AnswerBar の削除猶予を開始しないこと", () => {

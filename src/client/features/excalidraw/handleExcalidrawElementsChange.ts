@@ -35,16 +35,13 @@ export function handleExcalidrawElementsChange(_elements: readonly ExcalidrawEle
     const answerBarElementUpdates = new Map<string, ExcalidrawElement>();
     sliders.forEach((slider: Slider) => {
         slider.forEachAnswerBar((answerBar) => {
-            answerBar.getElementUpdates(operatorUserId).forEach((element) => {
+            const updates = answerBar.getElementUpdates(operatorUserId);
+            updates.elements.forEach((element) => {
                 answerBarElementUpdates.set(element.id, element);
-                if (element.id === answerBar.getLineId()) {
-                    socketController.syncAnswerBarPosition({
-                        answerBarId: answerBar.getAnswerBarId(),
-                        lineId: element.id,
-                        x: element.x,
-                    });
-                }
             });
+            if (updates.position) {
+                socketController.syncAnswerBarPosition(updates.position);
+            }
         });
     });
 
@@ -55,6 +52,7 @@ export function handleExcalidrawElementsChange(_elements: readonly ExcalidrawEle
                 .getSceneElementsWithTombstones()
                 .map((element) => answerBarElementUpdates.get(element.id) ?? element),
         });
+        answerBarSceneController.rememberCurrentElements();
         return;
     }
 
