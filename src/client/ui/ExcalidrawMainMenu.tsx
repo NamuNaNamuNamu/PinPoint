@@ -5,7 +5,7 @@ import { useIsRoomCreator } from "../features/room/roomRoleStore";
 import { downloadScoreList } from "../features/score/downloadScoreList";
 import { useScoreListEnabled } from "../features/score/scoreListStore";
 import { socketController } from "../socket/SocketController";
-import { listOrderedIcon, usersIcon } from "./icons";
+import { fileDownIcon, fileQuestionIcon, listOrderedIcon, settings2Icon, userRoundCogIcon, usersIcon } from "./icons";
 import { ParticipantManagementDialog } from "./ParticipantManagementDialog";
 import { ProblemOperationDialog } from "./ProblemOperationDialog";
 import { RoomSettingsDialog } from "./RoomSettingsDialog";
@@ -57,23 +57,23 @@ function ExcalidrawMainMenu({ currentRoomId, onCurrentRoomIdChange }: Props) {
                     得点一覧
                 </MainMenu.Item>
                 {currentRoomId && isRoomCreator && (
-                    <MainMenu.Item icon={listOrderedIcon} onSelect={() => setIsProblemOperationOpen(true)}>
+                    <MainMenu.Item icon={fileQuestionIcon} onSelect={() => setIsProblemOperationOpen(true)}>
                         問題操作
                     </MainMenu.Item>
                 )}
                 {currentRoomId && isRoomCreator && (
-                    <MainMenu.Item icon={usersIcon} onSelect={() => setIsRoomSettingsOpen(true)}>
+                    <MainMenu.Item icon={settings2Icon} onSelect={() => setIsRoomSettingsOpen(true)}>
                         ルーム設定
                     </MainMenu.Item>
                 )}
                 {currentRoomId && isRoomCreator && (
-                    <MainMenu.Item icon={usersIcon} onSelect={() => setIsParticipantManagementOpen(true)}>
+                    <MainMenu.Item icon={userRoundCogIcon} onSelect={() => setIsParticipantManagementOpen(true)}>
                         参加者管理
                     </MainMenu.Item>
                 )}
                 {currentRoomId && isRoomCreator && (
                     <MainMenu.Item
-                        icon={listOrderedIcon}
+                        icon={fileDownIcon}
                         onSelect={() => {
                             void socketController.getScoreReport(currentRoomId).then((scores) => {
                                 if (scores) downloadScoreList(scores);
@@ -99,8 +99,12 @@ function ExcalidrawMainMenu({ currentRoomId, onCurrentRoomIdChange }: Props) {
                     closeDialog={() => setIsParticipantManagementOpen(false)}
                 />
             )}
-            {isProblemOperationOpen && currentRoomId && <ProblemOperationDialog roomId={currentRoomId} closeDialog={() => setIsProblemOperationOpen(false)} />}
-            {isRoomSettingsOpen && currentRoomId && <RoomSettingsDialog roomId={currentRoomId} closeDialog={() => setIsRoomSettingsOpen(false)} />}
+            {isProblemOperationOpen && currentRoomId && (
+                <ProblemOperationDialog roomId={currentRoomId} closeDialog={() => setIsProblemOperationOpen(false)} />
+            )}
+            {isRoomSettingsOpen && currentRoomId && (
+                <RoomSettingsDialog roomId={currentRoomId} closeDialog={() => setIsRoomSettingsOpen(false)} />
+            )}
         </>
     );
 }
