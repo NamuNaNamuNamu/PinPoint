@@ -1,6 +1,7 @@
 import { jest } from "@jest/globals";
 import type { Socket } from "socket.io";
 
+import { ServerLogEvents } from "../../../src/server/logging/ServerLogEvents";
 import { SocketEvents } from "../../../src/shared/SocketEvents";
 
 type Listener = (...args: unknown[]) => void;
@@ -29,6 +30,7 @@ const userController = {
     updateUserName: jest.fn(),
 };
 const userService = { getUser: jest.fn() };
+const serverLogger = { warn: jest.fn() };
 
 jest.unstable_mockModule("../../../src/server/features/answerBar/AnswerBarController", () => ({ answerBarController }));
 jest.unstable_mockModule("../../../src/server/features/excalidrawCursor/ExcalidrawCursorSyncController", () => ({
@@ -41,6 +43,7 @@ jest.unstable_mockModule("../../../src/server/features/question/QuestionControll
 jest.unstable_mockModule("../../../src/server/features/room/RoomController", () => ({ roomController }));
 jest.unstable_mockModule("../../../src/server/features/user/UserController", () => ({ userController }));
 jest.unstable_mockModule("../../../src/server/features/user/UserService", () => ({ userService }));
+jest.unstable_mockModule("../../../src/server/logging/ServerLogger", () => ({ serverLogger }));
 
 const { SocketController } = await import("../../../src/server/socket/SocketController");
 
@@ -53,6 +56,7 @@ describe("SocketController", () => {
         Object.values(roomController).forEach((mock) => mock.mockReset());
         Object.values(userController).forEach((mock) => mock.mockReset());
         Object.values(userService).forEach((mock) => mock.mockReset());
+        Object.values(serverLogger).forEach((mock) => mock.mockReset());
     });
 
     test("Socket ID 更新時はクライアント値ではなく接続中 Socket の ID を保存する", () => {
@@ -85,7 +89,7 @@ describe("SocketController", () => {
         const user = { getId: () => 1, getSocketId: () => "socket-current" };
         userController.updateSocketId.mockReturnValue(user);
         userService.getUser.mockReturnValue(user);
-        answerBarController.joinRoom.mockReturnValue("room-1");
+        answerBarController.joinRoom.mockReturnValue({ roomId: "room-1", isCreator: true });
         new SocketController(socket).register();
 
         listener(SocketEvents.UPDATE_SOCKET_ID)({ userId: 1 }, jest.fn());
@@ -93,7 +97,27 @@ describe("SocketController", () => {
         listener(SocketEvents.JOIN_ROOM)({ userId: 1, roomId: "room-1" }, acknowledgement);
 
         expect(answerBarController.joinRoom).toHaveBeenCalledWith(socket, 1, "room-1", undefined);
-        expect(acknowledgement).toHaveBeenCalledWith("room-1");
+        expect(acknowledgement).toHaveBeenCalledWith({ roomId: "room-1", isCreator: true });
+    });
+
+    test("問題適用が拒否された場合は構造化した拒否ログを出力する", () => {
+        const { socket, listener } = createSocket("socket-current");
+        questionController.apply.mockReturnValue({ ok: false, reason: "not-creator" });
+        new SocketController(socket).register();
+        const acknowledgement = jest.fn();
+
+        listener(SocketEvents.APPLY_QUESTION)(
+            { roomId: "room-1", questionId: 1, deleteExternalElements: false },
+            acknowledgement,
+        );
+
+        expect(serverLogger.warn).toHaveBeenCalledWith(ServerLogEvents.COMMAND_REJECTED, {
+            command: SocketEvents.APPLY_QUESTION,
+            userId: undefined,
+            roomId: "room-1",
+            reason: "not-creator",
+        });
+        expect(acknowledgement).toHaveBeenCalledWith({ ok: false, reason: "not-creator" });
     });
 });
 

@@ -8,7 +8,8 @@ import type {
     ApplyQuestionResult,
     ControlCurrentQuestionRequest,
 } from "../../shared/question/QuestionEvents";
-import type { JoinRoomRequest } from "../../shared/room/RoomEvents";
+import type { JoinRoomRequest, JoinRoomResponse, RoomParticipant } from "../../shared/room/RoomEvents";
+import type { ScoreEntry } from "../../shared/score/ScoreEvents";
 import { SocketEvents } from "../../shared/SocketEvents";
 import type { UpdateSocketIdRequest } from "../../shared/user/UserEvents";
 import { socket } from "./socket";
@@ -160,15 +161,19 @@ class SocketController {
      * @param userId 参加するユーザー ID。
      * @param roomId 参加先のルーム ID。
      * @param recovery 再接続時に送るローカル状態。初回参加時は省略する。
-     * @returns 参加したルーム ID。参加に失敗した場合は `null`。
+     * @returns 入室先と現在ユーザーのロール。参加に失敗した場合は `null`。
      */
-    public joinRoom(userId: number, roomId: string, recovery?: JoinRoomRequest["recovery"]): Promise<string | null> {
+    public joinRoom(
+        userId: number,
+        roomId: string,
+        recovery?: JoinRoomRequest["recovery"],
+    ): Promise<JoinRoomResponse | null> {
         console.log(`roomId: ${roomId} に参加しようとしています。\nsocketId: ${socket.id}`);
         return new Promise((resolve, _reject) => {
             socket.emit(
                 SocketEvents.JOIN_ROOM,
                 { userId, roomId, recovery } satisfies JoinRoomRequest,
-                (response: string | null) => {
+                (response: JoinRoomResponse | null) => {
                     resolve(response);
                 },
             );
@@ -201,6 +206,38 @@ class SocketController {
                 resolve(response);
             });
         });
+    }
+
+    /**
+     * 現在ルームのホストとして、参加者一覧を取得する。
+     *
+     * @param roomId 参加者を取得するルーム ID。
+     * @returns 参加者一覧。ホスト権限がない場合またはルームが見つからない場合は `undefined`。
+     */
+    public getRoomParticipants(roomId: string): Promise<readonly RoomParticipant[] | undefined> {
+        return new Promise((resolve) => socket.emit(SocketEvents.GET_ROOM_PARTICIPANTS, { roomId }, resolve));
+    }
+
+    /**
+     * ホストとして対象ユーザーを現在のルームから退出させる。
+     *
+     * @param roomId 強制退出の対象ルーム ID。
+     * @param targetUserId 強制退出させる参加者のユーザー ID。
+     * @returns 強制退出を受理した場合は `true`。
+     */
+    public kickUser(roomId: string, targetUserId: number): Promise<boolean> {
+        return new Promise((resolve) => socket.emit(SocketEvents.KICK_USER, { roomId, targetUserId }, resolve));
+    }
+
+    /**
+     * ホストによる強制退出通知を購読する。
+     *
+     * @param listener 強制退出されたルーム ID を受け取るリスナー。
+     * @returns 購読を解除する関数。
+     */
+    public onRoomKicked(listener: (message: { roomId: string }) => void): () => void {
+        socket.on(SocketEvents.ROOM_KICKED, listener);
+        return () => socket.off(SocketEvents.ROOM_KICKED, listener);
     }
 
     /**
@@ -242,6 +279,32 @@ class SocketController {
             socket.emit(SocketEvents.RESET_SCORES, { roomId }, (response: ApplyQuestionResult) => {
                 resolve(response);
             });
+        });
+    }
+
+    /**
+     * ホスト権限で指定参加者の累積得点を絶対値へ補正する。
+     *
+     * @param roomId 得点を補正するルーム ID。
+     * @param targetUserId 得点を補正する参加者のユーザー ID。
+     * @param score 補正後の 0 以上の累積得点。
+     * @returns サーバーによる受理または拒否の結果。
+     */
+    public setUserScore(roomId: string, targetUserId: number, score: number): Promise<ApplyQuestionResult> {
+        return new Promise((resolve) => {
+            socket.emit(SocketEvents.SET_USER_SCORE, { roomId, targetUserId, score }, resolve);
+        });
+    }
+
+    /**
+     * ホスト権限で HTML 出力用の得点スナップショットを取得する。
+     *
+     * @param roomId 得点を取得するルーム ID。
+     * @returns 得点スナップショット。ホスト権限がない場合は `undefined`。
+     */
+    public getScoreReport(roomId: string): Promise<readonly ScoreEntry[] | undefined> {
+        return new Promise((resolve) => {
+            socket.emit(SocketEvents.GET_SCORE_REPORT, { roomId }, resolve);
         });
     }
 

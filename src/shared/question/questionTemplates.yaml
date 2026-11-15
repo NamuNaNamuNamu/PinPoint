@@ -1,0 +1,25 @@
+questions:
+  - id: 1
+    question: 自分はインドア派かアウトドア派か
+    choiceLeft: インドア
+    choiceRight: アウトドア
+    sliders:
+      - name: かな
+        correctAnswerRatio: 0.5
+      - name: いおり
+        correctAnswerRatio: 0.35
+      - name: ゆう
+        correctAnswerRatio: 0.4
+  - id: 2
+    question: |-
+      友人と食事をしていたところ、友人の知り合いがたまたま通りかかりました。
+      友人とその人は仲良く話始めてしまいましたが、あなたならどうしますか。
+    choiceLeft: 話が終わるまで空気になる
+    choiceRight: 話に混じる
+    sliders:
+      - name: るな
+        correctAnswerRatio: 0.4
+      - name: ありさ
+        correctAnswerRatio: 0.5
+      - name: ひで
+        correctAnswerRatio: 0.5

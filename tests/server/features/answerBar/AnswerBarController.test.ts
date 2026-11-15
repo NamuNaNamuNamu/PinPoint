@@ -89,7 +89,7 @@ describe("AnswerBarController", () => {
             isNew: true,
         });
 
-        expect(new AnswerBarController().joinRoom(socket, 1, "room-1")).toBe("room-1");
+        expect(new AnswerBarController().joinRoom(socket, 1, "room-1")).toEqual({ roomId: "room-1", isCreator: false });
         expect(getAll).toHaveBeenCalledWith("room-1");
         expect(getOrCreate).toHaveBeenCalledWith("room-1", 1, "ゆう", expect.any(Array));
         expect(roomEmit).toHaveBeenCalledWith(
@@ -110,7 +110,7 @@ describe("AnswerBarController", () => {
         getRoomIdByUserId.mockReturnValue("room-old");
         remove.mockReturnValue({ answerBarId: "bar-old", lineIds: ["line-old"], labelIds: ["label-old"] });
 
-        expect(new AnswerBarController().joinRoom(socket, 1, "room-1")).toBe("room-1");
+        expect(new AnswerBarController().joinRoom(socket, 1, "room-1")).toEqual({ roomId: "room-1", isCreator: true });
 
         expect(remove).toHaveBeenCalledWith("room-old", 1);
         expect(oldRoomEmit).toHaveBeenCalledWith("answer-bar-removed", {

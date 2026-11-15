@@ -140,6 +140,25 @@ export class ScoreState {
     }
 
     /**
+     * 現在得点一覧に表示される参加者の累積得点を絶対値で補正する。
+     *
+     * @param roomId 対象ルーム ID。
+     * @param userId 補正対象ユーザー ID。
+     * @param score 補正後の0以上の整数得点。
+     * @returns 補正前後の得点。対象が表示中でない場合は `undefined`。
+     */
+    public setScore(roomId: string, userId: number, score: number): { previousScore: number; nextScore: number } | undefined {
+        if (!Number.isInteger(score) || score < 0 || !this.getActiveUserIds(roomId).has(userId)) {
+            return undefined;
+        }
+        const entry = this.scoresByRoom.get(roomId)?.get(userId);
+        if (!entry) return undefined;
+        const previousScore = entry.score;
+        entry.score = score;
+        return { previousScore, nextScore: score };
+    }
+
+    /**
      * 指定ルームの累積得点を取得する。
      *
      * @param roomId 対象ルーム ID。

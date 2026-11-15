@@ -231,6 +231,11 @@ export class Room {
         return true;
     }
 
+    /** 指定ユーザーが再接続猶予中かを返す。 */
+    public isDisconnecting(userId: number): boolean {
+        return this.disconnectTokensByUserId.has(userId);
+    }
+
     /**
      * 参加ユーザーのソケット ID 一覧を取得する。
      *
