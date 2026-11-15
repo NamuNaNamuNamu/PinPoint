@@ -1,3 +1,5 @@
+import { jest } from "@jest/globals";
+
 import { roomSettingsStore } from "../../../../src/client/features/room/roomSettingsStore";
 
 describe("roomSettingsStore", () => {

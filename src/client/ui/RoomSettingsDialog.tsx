@@ -10,7 +10,7 @@ export function RoomSettingsDialog({ roomId, closeDialog }: Props) {
     const { cursorRevealed, answerBarReveal } = useRoomSettings();
     const scoreListEnabled = useScoreListEnabled();
     const toggleAnswerBarReveal = async () => {
-        await socketController.controlCurrent({ roomId, deleteExternalElements: false, scrollToContent: false, answerBarReveal: !answerBarReveal });
+        await socketController.controlCurrentQuestion({ roomId, deleteExternalElements: false, scrollToContent: false, answerBarReveal: !answerBarReveal });
     };
     return (
         <Dialog onCloseRequest={closeDialog} title="ルーム設定" size="regular">

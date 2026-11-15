@@ -159,7 +159,10 @@ describe("QuestionController", () => {
                 scrollToContent: false,
             }),
         ).toEqual({ ok: true });
-        expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS);
+        expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(
+            SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS,
+            expect.objectContaining({ syncEpoch: expect.any(Number) }),
+        );
     });
 
     test("現在問題への制御は作成者以外、または問題未適用時には通知しない", () => {
@@ -307,7 +310,10 @@ describe("QuestionController", () => {
             scrollToContent: false,
         });
 
-        expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS);
+        expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(
+            SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS,
+            expect.objectContaining({ syncEpoch: expect.any(Number) }),
+        );
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.QUESTION_REVEALED, { questionId: 1 });
     });
 

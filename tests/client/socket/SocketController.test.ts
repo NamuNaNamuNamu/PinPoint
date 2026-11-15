@@ -1,6 +1,7 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { jest } from "@jest/globals";
 
+import type { ElementsSyncMessage } from "../../../src/shared/excalidraw/ElementsSyncEvents";
 import type { ApplyQuestionRequest, ApplyQuestionResult } from "../../../src/shared/question/QuestionEvents";
 import { SocketEvents } from "../../../src/shared/SocketEvents";
 
@@ -35,12 +36,18 @@ describe("SocketController", () => {
         socketController.syncElements(latestElements);
 
         expect(emit).toHaveBeenCalledTimes(1);
-        expect(emit).toHaveBeenLastCalledWith(SocketEvents.SYNC_ELEMENTS, firstElements);
+        expect(emit).toHaveBeenLastCalledWith(
+            SocketEvents.SYNC_ELEMENTS,
+            { epoch: 0, elements: firstElements } satisfies ElementsSyncMessage,
+        );
 
         jest.advanceTimersByTime(34);
 
         expect(emit).toHaveBeenCalledTimes(2);
-        expect(emit).toHaveBeenLastCalledWith(SocketEvents.SYNC_ELEMENTS, latestElements);
+        expect(emit).toHaveBeenLastCalledWith(
+            SocketEvents.SYNC_ELEMENTS,
+            { epoch: 0, elements: latestElements } satisfies ElementsSyncMessage,
+        );
     });
 
     test("接続完了リスナーを登録し、解除できること", () => {
