@@ -28,7 +28,12 @@ export const textSkeletonFactory = new TextSkeletonFactory();
  * テキスト要素の作成時に指定する可変プロパティ。
  * ExcalidrawElementSkeleton から id、x、y、text、locked、opacity、strokeColor だけを取り出した型
  */
-export type TextProps = Pick<TextSkeleton, "id" | "x" | "y" | "text" | "locked"> & {
+export type TextProps = {
+    id: TextSkeleton["id"];
+    x: TextSkeleton["x"];
+    y: TextSkeleton["y"];
+    text: TextSkeleton["text"];
+    locked: TextSkeleton["locked"];
     opacity?: TextSkeleton["opacity"];
     strokeColor?: TextSkeleton["strokeColor"];
     fontSize?: TextSkeleton["fontSize"];

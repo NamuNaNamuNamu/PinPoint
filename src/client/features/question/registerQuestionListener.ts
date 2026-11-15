@@ -1,19 +1,21 @@
-import type { QuestionApplied, QuestionRevealed } from "../../../shared/question/QuestionEvents";
+import type { CurrentQuestionState, QuestionApplied, QuestionRevealed } from "../../../shared/question/QuestionEvents";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { socket } from "../../socket/socket";
 import { questionSceneController } from "./QuestionSceneController";
 
 /**
- * サーバー主導の問題適用・正解表示イベントを登録する。
+ * サーバー主導の問題適用、再接続用現在状態、正解表示の各イベントを登録する。
  *
  * @param operatorUserId 現在操作しているユーザー ID。
  */
 export function registerQuestionListener(operatorUserId: number): void {
     socket.off(SocketEvents.QUESTION_APPLIED);
+    socket.off(SocketEvents.CURRENT_QUESTION_STATE);
     socket.off(SocketEvents.QUESTION_REVEALED);
     socket.off(SocketEvents.QUESTION_SCROLL_TO_CONTENT);
     socket.off(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS);
     socket.on(SocketEvents.QUESTION_APPLIED, (payload: QuestionApplied) => questionSceneController.apply(payload, operatorUserId));
+    socket.on(SocketEvents.CURRENT_QUESTION_STATE, (payload: CurrentQuestionState) => questionSceneController.apply(payload, operatorUserId));
     socket.on(SocketEvents.QUESTION_REVEALED, (payload: QuestionRevealed) => questionSceneController.reveal(payload));
     socket.on(SocketEvents.QUESTION_SCROLL_TO_CONTENT, () => questionSceneController.scrollToCurrentContent());
     socket.on(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS, () => questionSceneController.removeExternalElements());

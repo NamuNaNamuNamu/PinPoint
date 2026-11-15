@@ -63,6 +63,8 @@ export class Slider {
                 text: name,
                 locked: true,
                 opacity: 100,
+                fontSize: 28,
+                strokeColor: "#000000",
             }),
         });
     }
@@ -70,7 +72,8 @@ export class Slider {
     /**
      * AnswerBar を追加する。
      *
-     * 同じ AnswerBar、line ID、label ID が存在する場合は何もしない。
+     * 同じ AnswerBar、line ID、label ID が存在する場合は何もしない。`positionsByLineId` に
+     * line ID の X 座標がある場合は、slot に基づく初期位置ではなくその snapshot の位置で生成する。
      *
      * @param params AnswerBar の割当情報、この Slider 用の要素 ID、および操作ユーザー ID。
      * @returns 追加した AnswerBar。重複時は `undefined`。
@@ -94,7 +97,7 @@ export class Slider {
             operatorUserId: params.operatorUserId,
             lineId: params.lineId,
             labelId: params.labelId,
-            x: this.getInitialX(params.slot),
+            x: params.positionsByLineId?.[params.lineId] ?? this.getInitialX(params.slot),
             y: this.y,
             labelY: this.getInitialLabelY(params.slot),
             height: this.height,

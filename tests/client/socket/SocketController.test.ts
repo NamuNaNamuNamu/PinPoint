@@ -55,6 +55,16 @@ describe("SocketController", () => {
         expect(off).toHaveBeenCalledWith("connect", listener);
     });
 
+    test("切断リスナーを登録し、解除できること", () => {
+        const listener = jest.fn();
+
+        const removeListener = socketController.onDisconnect(listener);
+
+        expect(on).toHaveBeenCalledWith("disconnect", listener);
+        removeListener();
+        expect(off).toHaveBeenCalledWith("disconnect", listener);
+    });
+
     test("問題適用の ACK を返し、接続状態と Socket ID を取得できること", async () => {
         const request: ApplyQuestionRequest = { roomId: "room-1", questionId: 1, deleteExternalElements: true };
 
@@ -70,6 +80,23 @@ describe("SocketController", () => {
         await expect(result).resolves.toEqual({ ok: true });
         expect(socketController.isConnected()).toBe(true);
         expect(socketController.getSocketId()).toBe("socket-1");
+    });
+
+    test("共有カーソル公開状態の変更要求に対する ACK を返すこと", async () => {
+        const result = socketController.setCursorRevealed("room-1", false);
+
+        expect(emit).toHaveBeenLastCalledWith(
+            SocketEvents.SET_CURSOR_REVEALED,
+            { roomId: "room-1", cursorRevealed: false },
+            expect.any(Function),
+        );
+        const acknowledgement = emit.mock.calls.at(-1)?.[2];
+        if (!isApplyQuestionAcknowledgement(acknowledgement)) {
+            throw new Error("set-cursor-revealed の ACK callback が渡されていません。");
+        }
+        acknowledgement({ ok: true });
+
+        await expect(result).resolves.toEqual({ ok: true });
     });
 });
 

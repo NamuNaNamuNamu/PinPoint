@@ -18,3 +18,10 @@ export interface RemoteCursor extends Cursor {
     socketId: string;
     username: string;
 }
+
+/**
+ * ルーム内の共有カーソルを全参加者へ公開する状態を表す。
+ */
+export type CursorRevealUpdated = {
+    cursorRevealed: boolean;
+};

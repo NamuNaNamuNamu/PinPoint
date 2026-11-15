@@ -12,9 +12,9 @@ class LineSkeletonFactory {
      */
     createWith(lineProps: LineProps) {
         return {
+            ...linefixedProps,
             ...lineProps,
             ...this.getPoints(lineProps),
-            ...linefixedProps,
         };
     }
 
@@ -41,7 +41,10 @@ export const lineSkeletonFactory = new LineSkeletonFactory();
  * 線要素の作成時に指定する可変プロパティ。
  * ExcalidrawElementSkeleton から id、x、y、isLocked だけを取り出した型
  */
-export type LineProps = Required<Pick<ExcalidrawElementSkeleton, "id" | "x" | "y" | "width" | "strokeColor" | "locked">>;
+export type LineProps = Required<
+    Pick<ExcalidrawElementSkeleton, "id" | "x" | "y" | "width" | "strokeColor" | "locked">
+> &
+    Pick<ExcalidrawElementSkeleton, "strokeWidth">;
 
 const linefixedProps = {
     type: "line",

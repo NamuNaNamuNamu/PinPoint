@@ -1,0 +1,423 @@
+questions:
+  - id: 1
+    question: |-
+      "Q. 職場の飲み会に来たあなた。かれこれ20分ほどテーブルに
+      残ったままのトマト一切れが気になってしまう。あなたなら..."
+    choiceLeft: "食べない"
+    choiceRight: "食べる"
+    sliders:
+      - name: "アーサー"
+        correctAnswerRatio: 1.0
+      - name: "おおたかおる"
+        correctAnswerRatio: 0
+      - name: "たかはししん"
+        correctAnswerRatio: 1.0
+      - name: "池田陽香"
+        correctAnswerRatio: 0.7
+  - id: 2
+    question: |-
+      "Q. 仕事やプライベートでつまずき、悩みが尽きない毎日。あなたなら..."
+    choiceLeft: "予定をたくさん入れる"
+    choiceRight: "ゆっくり休む"
+    sliders:
+      - name: "安澤奏"
+        correctAnswerRatio: 0.8
+      - name: "北夏希"
+        correctAnswerRatio: 0.3
+      - name: "しもだ ゆうき"
+        correctAnswerRatio: 0
+      - name: "影山泰一"
+        correctAnswerRatio: 0.7
+  - id: 3
+    question: |-
+      "Q. サッカーの試合中、ドリブルでゴール前までボールを運びました。
+      その時自分と同じぐらいのレベルの味方がパスを要求しました。シュートは..."
+    choiceLeft: "自分で打つ"
+    choiceRight: "味方にパスをする"
+    sliders:
+      - name: "山本史緒莉"
+        correctAnswerRatio: 0.5
+      - name: "橋本ありさ"
+        correctAnswerRatio: 0.3
+      - name: "アーサー"
+        correctAnswerRatio: 0.5
+      - name: "坂本　詩音"
+        correctAnswerRatio: 0.7
+      - name: "おおたかおる"
+        correctAnswerRatio: 0.1
+      - name: "たかはししん"
+        correctAnswerRatio: 0.9
+      - name: "安澤奏"
+        correctAnswerRatio: 0.6
+      - name: "しもだ ゆうき"
+        correctAnswerRatio: 0
+      - name: "池田陽香"
+        correctAnswerRatio: 0.95
+      - name: "北夏希"
+        correctAnswerRatio: 0.35
+      - name: "やまざき　あい"
+        correctAnswerRatio: 0.8
+      - name: "両田莉奈"
+        correctAnswerRatio: 0.8
+      - name: "西野日奈子"
+        correctAnswerRatio: 0.88
+      - name: "小橋川光"
+        correctAnswerRatio: 0.7
+      - name: "竹田　耕太郎"
+        correctAnswerRatio: 0.8
+      - name: "影山泰一"
+        correctAnswerRatio: 0.2
+      - name: "まってぃ"
+        correctAnswerRatio: 0.25
+      - name: "Reyhan Jethro Onggo"
+        correctAnswerRatio: 0.5
+      - name: "鳥越正太郎"
+        correctAnswerRatio: 0.35
+      - name: "安澤 依織"
+        correctAnswerRatio: 0
+      - name: "くぼた"
+        correctAnswerRatio: 0.8
+  - id: 4
+    question: |-
+      "Q. 連日残業中のあなた。今日は週に一度の大好きなドラマの放送日。
+      今から職場を出発すればぎりぎり間に合いそうですが、
+      まだ職場には厳しい上司がいます。あなたなら..."
+    choiceLeft: "なんとかして帰る"
+    choiceRight: "今日はあきらめる"
+    sliders:
+      - name: "山本史緒莉"
+        correctAnswerRatio: 0
+      - name: "橋本ありさ"
+        correctAnswerRatio: 0.35
+      - name: "アーサー"
+        correctAnswerRatio: 0.3
+      - name: "坂本　詩音"
+        correctAnswerRatio: 0.8
+      - name: "おおたかおる"
+        correctAnswerRatio: 0
+      - name: "たかはししん"
+        correctAnswerRatio: 0.75
+      - name: "安澤奏"
+        correctAnswerRatio: 0
+      - name: "しもだ ゆうき"
+        correctAnswerRatio: 1.0
+      - name: "池田陽香"
+        correctAnswerRatio: 0.8
+      - name: "北夏希"
+        correctAnswerRatio: 0.8
+      - name: "やまざき　あい"
+        correctAnswerRatio: 0.2
+      - name: "両田莉奈"
+        correctAnswerRatio: 1.0
+      - name: "西野日奈子"
+        correctAnswerRatio: 0.02
+      - name: "小橋川光"
+        correctAnswerRatio: 1.0
+      - name: "竹田　耕太郎"
+        correctAnswerRatio: 1.0
+      - name: "影山泰一"
+        correctAnswerRatio: 0.9
+      - name: "まってぃ"
+        correctAnswerRatio: 0.15
+      - name: "Reyhan Jethro Onggo"
+        correctAnswerRatio: 0
+      - name: "鳥越正太郎"
+        correctAnswerRatio: 0
+      - name: "安澤 依織"
+        correctAnswerRatio: 0.25
+      - name: "くぼた"
+        correctAnswerRatio: 0.9
+  - id: 5
+    question: |-
+      "Q. 別れた恋人から久しぶりに会わないかと連絡が来ました。
+      恋人とは円満な別れ方をしていますが、相手が復縁したいかは不明です。あなたの行動は..."
+    choiceLeft: "断る"
+    choiceRight: "とりあえず会ってみる"
+    sliders:
+      - name: "山本史緒莉"
+        correctAnswerRatio: 0.5
+      - name: "橋本ありさ"
+        correctAnswerRatio: 0
+      - name: "アーサー"
+        correctAnswerRatio: 0.65
+      - name: "坂本　詩音"
+        correctAnswerRatio: 0.3
+      - name: "おおたかおる"
+        correctAnswerRatio: 0
+      - name: "たかはししん"
+        correctAnswerRatio: 0
+      - name: "安澤奏"
+        correctAnswerRatio: 0.9
+      - name: "しもだ ゆうき"
+        correctAnswerRatio: 0
+      - name: "池田陽香"
+        correctAnswerRatio: 0.45
+      - name: "北夏希"
+        correctAnswerRatio: 0.1
+      - name: "やまざき　あい"
+        correctAnswerRatio: 0
+      - name: "両田莉奈"
+        correctAnswerRatio: 0.8
+      - name: "西野日奈子"
+        correctAnswerRatio: 0.8
+      - name: "小橋川光"
+        correctAnswerRatio: 0
+      - name: "竹田　耕太郎"
+        correctAnswerRatio: 1.0
+      - name: "影山泰一"
+        correctAnswerRatio: 0.84
+      - name: "まってぃ"
+        correctAnswerRatio: 0.8
+      - name: "Reyhan Jethro Onggo"
+        correctAnswerRatio: 0.5
+      - name: "鳥越正太郎"
+        correctAnswerRatio: 0
+      - name: "安澤 依織"
+        correctAnswerRatio: 0.75
+      - name: "くぼた"
+        correctAnswerRatio: 0.8
+  - id: 6
+    question: |-
+      "Q. あなたの通っている学校で2ヶ月後に定期テストがあります。
+      あなたはいつから勉強を始めますか？"
+    choiceLeft: "明日"
+    choiceRight: "前日の夜"
+    sliders:
+      - name: "山本史緒莉"
+        correctAnswerRatio: 1.0
+      - name: "橋本ありさ"
+        correctAnswerRatio: 0.8
+      - name: "アーサー"
+        correctAnswerRatio: 0.8
+      - name: "坂本　詩音"
+        correctAnswerRatio: 0.5
+      - name: "おおたかおる"
+        correctAnswerRatio: 0.9
+      - name: "たかはししん"
+        correctAnswerRatio: 0.5
+      - name: "安澤奏"
+        correctAnswerRatio: 0.3
+      - name: "しもだ ゆうき"
+        correctAnswerRatio: 0.95
+      - name: "池田陽香"
+        correctAnswerRatio: 0.95
+      - name: "北夏希"
+        correctAnswerRatio: 0.8
+      - name: "やまざき　あい"
+        correctAnswerRatio: 0.6
+      - name: "両田莉奈"
+        correctAnswerRatio: 0.3
+      - name: "西野日奈子"
+        correctAnswerRatio: 0.96
+      - name: "小橋川光"
+        correctAnswerRatio: 0.8
+      - name: "竹田　耕太郎"
+        correctAnswerRatio: 0.2
+      - name: "影山泰一"
+        correctAnswerRatio: 0.3
+      - name: "まってぃ"
+        correctAnswerRatio: 0.7
+      - name: "Reyhan Jethro Onggo"
+        correctAnswerRatio: 0.35
+      - name: "鳥越正太郎"
+        correctAnswerRatio: 0.75
+      - name: "安澤 依織"
+        correctAnswerRatio: 1.0
+      - name: "くぼた"
+        correctAnswerRatio: 0.8
+  - id: 7
+    question: |-
+      "Q. 意中の異性と初めて映画を見に来たあなた。
+      本編が終わりエンドロールが流れ始めました。あなたは..."
+    choiceLeft: "終わるまで静かに待つ"
+    choiceRight: "コミュニケーションを図る"
+    sliders:
+      - name: "山本史緒莉"
+        correctAnswerRatio: 0
+      - name: "橋本ありさ"
+        correctAnswerRatio: 0
+      - name: "アーサー"
+        correctAnswerRatio: 0.8
+      - name: "坂本　詩音"
+        correctAnswerRatio: 0.2
+      - name: "おおたかおる"
+        correctAnswerRatio: 0
+      - name: "たかはししん"
+        correctAnswerRatio: 0
+      - name: "安澤奏"
+        correctAnswerRatio: 0
+      - name: "しもだ ゆうき"
+        correctAnswerRatio: 0
+      - name: "池田陽香"
+        correctAnswerRatio: 0
+      - name: "北夏希"
+        correctAnswerRatio: 0
+      - name: "やまざき　あい"
+        correctAnswerRatio: 0
+      - name: "両田莉奈"
+        correctAnswerRatio: 0
+      - name: "西野日奈子"
+        correctAnswerRatio: 0
+      - name: "小橋川光"
+        correctAnswerRatio: 0
+      - name: "竹田　耕太郎"
+        correctAnswerRatio: 0
+      - name: "影山泰一"
+        correctAnswerRatio: 0.4
+      - name: "まってぃ"
+        correctAnswerRatio: 0
+      - name: "Reyhan Jethro Onggo"
+        correctAnswerRatio: 0.3
+      - name: "鳥越正太郎"
+        correctAnswerRatio: 0
+      - name: "安澤 依織"
+        correctAnswerRatio: 0
+      - name: "くぼた"
+        correctAnswerRatio: 0.05
+  - id: 8
+    question: |-
+      "Q. 絶対に負けられないバレーボールの試合の直前。
+      監督から最後に一言。あなたが言われて燃えるのは..."
+    choiceLeft: "みんなお前を信じてる"
+    choiceRight: "そろそろ活躍してもらっていい？"
+    sliders:
+      - name: "山本史緒莉"
+        correctAnswerRatio: 1.0
+      - name: "橋本ありさ"
+        correctAnswerRatio: 0.2
+      - name: "アーサー"
+        correctAnswerRatio: 0.6
+      - name: "坂本　詩音"
+        correctAnswerRatio: 0.2
+      - name: "おおたかおる"
+        correctAnswerRatio: 1.0
+      - name: "たかはししん"
+        correctAnswerRatio: 0.5
+      - name: "安澤奏"
+        correctAnswerRatio: 0.4
+      - name: "しもだ ゆうき"
+        correctAnswerRatio: 0.5
+      - name: "池田陽香"
+        correctAnswerRatio: 0.51
+      - name: "北夏希"
+        correctAnswerRatio: 0.1
+      - name: "やまざき　あい"
+        correctAnswerRatio: 0.8
+      - name: "両田莉奈"
+        correctAnswerRatio: 0
+      - name: "西野日奈子"
+        correctAnswerRatio: 0.2
+      - name: "小橋川光"
+        correctAnswerRatio: 0
+      - name: "竹田　耕太郎"
+        correctAnswerRatio: 0
+      - name: "影山泰一"
+        correctAnswerRatio: 0.1
+      - name: "まってぃ"
+        correctAnswerRatio: 0.2
+      - name: "Reyhan Jethro Onggo"
+        correctAnswerRatio: 0
+      - name: "鳥越正太郎"
+        correctAnswerRatio: 0.7
+      - name: "安澤 依織"
+        correctAnswerRatio: 1.0
+      - name: "くぼた"
+        correctAnswerRatio: 0
+  - id: 9
+    question: |-
+      "Q. 友達から突然「今からめちゃくちゃ面白いことしよう。
+      内容はまだ言えないけど、とりあえず来て！」と連絡が。返事は..."
+    choiceLeft: "いや、まず何するか教えて"
+    choiceRight: "了解！どこ行けばいい？"
+    sliders:
+      - name: "山本史緒莉"
+        correctAnswerRatio: 1.0
+      - name: "橋本ありさ"
+        correctAnswerRatio: 0.9
+      - name: "アーサー"
+        correctAnswerRatio: 0.7
+      - name: "坂本　詩音"
+        correctAnswerRatio: 0.4
+      - name: "おおたかおる"
+        correctAnswerRatio: 1.0
+      - name: "たかはししん"
+        correctAnswerRatio: 0.75
+      - name: "安澤奏"
+        correctAnswerRatio: 0.46
+      - name: "しもだ ゆうき"
+        correctAnswerRatio: 0
+      - name: "池田陽香"
+        correctAnswerRatio: 1.0
+      - name: "北夏希"
+        correctAnswerRatio: 0.1
+      - name: "やまざき　あい"
+        correctAnswerRatio: 0.6
+      - name: "両田莉奈"
+        correctAnswerRatio: 1.0
+      - name: "西野日奈子"
+        correctAnswerRatio: 0.86
+      - name: "小橋川光"
+        correctAnswerRatio: 1.0
+      - name: "竹田　耕太郎"
+        correctAnswerRatio: 1.0
+      - name: "影山泰一"
+        correctAnswerRatio: 0.8
+      - name: "まってぃ"
+        correctAnswerRatio: 0.4
+      - name: "Reyhan Jethro Onggo"
+        correctAnswerRatio: 0.7
+      - name: "鳥越正太郎"
+        correctAnswerRatio: 0.7
+      - name: "安澤 依織"
+        correctAnswerRatio: 0.9
+      - name: "くぼた"
+        correctAnswerRatio: 0.8
+  - id: 10
+    question: |-
+      "Q. あなたは今、カンダダンメンバー全員での飲み会に参加しています。
+      あなたはどちらかと言えば..."
+    choiceLeft: "話題を提供して場を回す"
+    choiceRight: "みんなの話を笑って聞く"
+    sliders:
+      - name: "山本史緒莉"
+        correctAnswerRatio: 0.5
+      - name: "橋本ありさ"
+        correctAnswerRatio: 0.75
+      - name: "アーサー"
+        correctAnswerRatio: 0.9
+      - name: "坂本　詩音"
+        correctAnswerRatio: 0.8
+      - name: "おおたかおる"
+        correctAnswerRatio: 0.7
+      - name: "たかはししん"
+        correctAnswerRatio: 0.75
+      - name: "安澤奏"
+        correctAnswerRatio: 0.8
+      - name: "しもだ ゆうき"
+        correctAnswerRatio: 1.0
+      - name: "池田陽香"
+        correctAnswerRatio: 0.51
+      - name: "北夏希"
+        correctAnswerRatio: 1.0
+      - name: "やまざき　あい"
+        correctAnswerRatio: 0.9
+      - name: "両田莉奈"
+        correctAnswerRatio: 1.0
+      - name: "西野日奈子"
+        correctAnswerRatio: 0.99
+      - name: "小橋川光"
+        correctAnswerRatio: 0.7
+      - name: "竹田　耕太郎"
+        correctAnswerRatio: 1.0
+      - name: "影山泰一"
+        correctAnswerRatio: 0.95
+      - name: "まってぃ"
+        correctAnswerRatio: 0.65
+      - name: "Reyhan Jethro Onggo"
+        correctAnswerRatio: 0.85
+      - name: "鳥越正太郎"
+        correctAnswerRatio: 0.8
+      - name: "安澤 依織"
+        correctAnswerRatio: 0.4
+      - name: "くぼた"
+        correctAnswerRatio: 0.45

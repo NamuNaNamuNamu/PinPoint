@@ -1,4 +1,5 @@
-import { roomLogger } from "../../logging/RoomLogger";
+import { ServerLogEvents } from "../../logging/ServerLogEvents";
+import { serverLogger } from "../../logging/ServerLogger";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
 import { scoreState } from "../score/ScoreState";
 import { userService } from "../user/UserService";
@@ -41,12 +42,11 @@ export class RoomService {
         const success = roomState.join(userId, roomId);
 
         if (success) {
-            roomLogger.outputRoomState({
-                event: "入室",
+            const user = userService.getUser(userId);
+            serverLogger.info(ServerLogEvents.ROOM_JOINED, {
+                roomId,
                 userId,
-                socketId:
-                    userService.getUser(userId)?.getSocketId() ??
-                    "userService.getUser(userId) は必ず成功する設計のため、ここには入ってこない。",
+                ...(user ? { userName: user.getName(), socketId: user.getSocketId() } : {}),
             });
         }
 
@@ -83,10 +83,12 @@ export class RoomService {
         roomState.leave(userId);
         this.clearRoomDataIfDeleted(roomId);
 
-        roomLogger.outputRoomState({
-            event: "退出",
-            userId: userId,
-            socketId: userService.getUser(userId)?.getSocketId() ?? "取得失敗しました",
+        const user = userService.getUser(userId);
+        serverLogger.info(ServerLogEvents.ROOM_LEFT, {
+            roomId,
+            userId,
+            ...(user ? { userName: user.getName(), socketId: user.getSocketId() } : {}),
+            reason: "explicit",
         });
     }
 
@@ -97,7 +99,18 @@ export class RoomService {
      * @returns 対象ルーム ID と世代トークン。ルーム外の場合は `undefined`。
      */
     public markDisconnected(userId: number): { roomId: string; token: string } | undefined {
-        return roomState.markDisconnected(userId);
+        const pending = roomState.markDisconnected(userId);
+        const user = userService.getUser(userId);
+        if (pending && user) {
+            serverLogger.info(ServerLogEvents.ROOM_DISCONNECT_GRACE_STARTED, {
+                roomId: pending.roomId,
+                userId,
+                userName: user.getName(),
+                socketId: user.getSocketId(),
+                graceMs: 30_000,
+            });
+        }
+        return pending;
     }
 
     /**

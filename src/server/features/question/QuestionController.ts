@@ -1,18 +1,23 @@
 import type { Socket } from "socket.io";
 
+import type { AnswerBarRevealUpdated } from "../../../shared/answerBar/AnswerBarEvents";
 import type {
     ApplyQuestionRequest,
     ApplyQuestionResult,
     ControlCurrentQuestionRequest,
+    CurrentQuestionState,
     QuestionApplied,
 } from "../../../shared/question/QuestionEvents";
 import { getAllQuestionManagedElementIds } from "../../../shared/question/QuestionManagedElementIds";
 import { getQuestionTemplate } from "../../../shared/question/QuestionTemplate";
 import { SocketEvents } from "../../../shared/SocketEvents";
+import { ServerLogEvents } from "../../logging/ServerLogEvents";
+import { serverLogger } from "../../logging/ServerLogger";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
+import { externalElementsState } from "../excalidrawSync/ExternalElementsState";
 import { roomController } from "../room/RoomController";
-import { userService } from "../user/UserService";
 import { scoreState } from "../score/ScoreState";
+import { userService } from "../user/UserService";
 
 /**
  * ルームの問題適用と正解表示を処理する。
@@ -51,7 +56,8 @@ class QuestionController {
             !request ||
             userId === undefined ||
             (request.deleteExternalElements !== true && request.deleteExternalElements !== false) ||
-            (request.scrollToContent !== undefined && typeof request.scrollToContent !== "boolean")
+            (request.scrollToContent !== undefined && typeof request.scrollToContent !== "boolean") ||
+            (request.answerBarReveal !== undefined && typeof request.answerBarReveal !== "boolean")
         ) {
             return { ok: false, reason: "invalid-request" };
         }
@@ -71,6 +77,8 @@ class QuestionController {
         }
 
         room.setCurrentQuestionId(question.id);
+        if (request.deleteExternalElements) externalElementsState.clear(request.roomId);
+        room.setAnswerBarReveal(request.answerBarReveal ?? true);
         const users = room.getUserIds().flatMap((participantUserId) => {
             if (room.isCreatedBy(participantUserId)) {
                 return [];
@@ -78,15 +86,16 @@ class QuestionController {
             const user = userService.getUser(participantUserId);
             return user ? [{ userId: participantUserId, userName: user.getName() }] : [];
         });
-        const answerBars = answerBarAssignmentState.reset(request.roomId, users, question.sliders.length);
-        scoreState.prepareQuestion(request.roomId, question, answerBars);
+        const answerBars = answerBarAssignmentState.reset(request.roomId, users, question.sliders);
         const payload: QuestionApplied = {
             question,
             answerBars,
             deleteExternalElements: request.deleteExternalElements,
             scrollToContent: request.scrollToContent ?? false,
+            answerBarReveal: room.isAnswerBarRevealed(),
         };
         socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_APPLIED, payload);
+        serverLogger.info(ServerLogEvents.QUESTION_APPLIED, { roomId: request.roomId, questionId: question.id, userId });
         return { ok: true };
     }
 
@@ -110,9 +119,24 @@ class QuestionController {
             return;
         }
         room.revealAnswer();
-        const scores = scoreState.addQuestionScores(roomId, getQuestionTemplate(questionId)!, answerBarAssignmentState.getAll(roomId));
+        const scores = scoreState.addQuestionScores(
+            roomId,
+            getQuestionTemplate(questionId)!,
+            answerBarAssignmentState.getAll(roomId),
+            answerBarAssignmentState.getPositionsByLineId(roomId),
+        );
         socket.nsp.to(roomId).emit(SocketEvents.QUESTION_REVEALED, { questionId });
         socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "scored" });
+        serverLogger.info(ServerLogEvents.QUESTION_REVEALED, {
+            roomId,
+            questionId,
+            userId,
+            participants: (room as { getUserIds?: () => readonly number[] }).getUserIds?.().flatMap((participantUserId) => {
+                const participant = userService.getUser(participantUserId);
+                return participant ? [{ userId: participant.getId(), userName: participant.getName(), role: room.isCreatedBy(participantUserId) ? "creator" : "participant" }] : [];
+            }) ?? [],
+        });
+        serverLogger.info(ServerLogEvents.QUESTION_SCORED, { roomId, questionId, scores });
     }
 
     /**
@@ -136,7 +160,35 @@ class QuestionController {
         }
         const scores = scoreState.reset(roomId);
         socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "reset" });
+        serverLogger.info(ServerLogEvents.SCORES_RESET, { roomId, userId });
         return { ok: true };
+    }
+
+    /** ホストが現在表示中の参加者の累積得点を絶対値で補正する。 */
+    public setUserScore(socket: Socket, userId: number | undefined, roomId: unknown, targetUserId: unknown, score: unknown): ApplyQuestionResult {
+        if (userId === undefined || typeof roomId !== "string" || typeof targetUserId !== "number" || typeof score !== "number" || !Number.isInteger(targetUserId) || !Number.isInteger(score) || score < 0) {
+            return { ok: false, reason: "invalid-request" };
+        }
+        const room = roomController.getRoom(roomId);
+        if (!room) return { ok: false, reason: "room-not-found" };
+        if (!room.isCreatedBy(userId)) return { ok: false, reason: "not-creator" };
+        if (!room.hasUser(userId)) return { ok: false, reason: "not-member" };
+        const corrected = scoreState.setScore(roomId, targetUserId, score);
+        const target = userService.getUser(targetUserId);
+        if (!corrected || !target) return { ok: false, reason: "invalid-request" };
+        const scores = scoreState.get(roomId);
+        socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "corrected" });
+        serverLogger.info(ServerLogEvents.SCORES_CORRECTED, {
+            roomId, userId, targetUserId, targetUserName: target.getName(), ...corrected,
+        });
+        return { ok: true };
+    }
+
+    /** ホストにのみ、HTMLレポート用の現在得点を返す。 */
+    public getScoreReport(userId: number | undefined, roomId: unknown): readonly import("../../../shared/score/ScoreEvents").ScoreEntry[] | undefined {
+        if (userId === undefined || typeof roomId !== "string") return undefined;
+        const room = roomController.getRoom(roomId);
+        return room?.isCreatedBy(userId) && room.hasUser(userId) ? scoreState.get(roomId) : undefined;
     }
 
     /**
@@ -190,7 +242,8 @@ class QuestionController {
             !request ||
             userId === undefined ||
             (request.deleteExternalElements !== true && request.deleteExternalElements !== false) ||
-            (request.scrollToContent !== true && request.scrollToContent !== false)
+            (request.scrollToContent !== true && request.scrollToContent !== false) ||
+            (request.answerBarReveal !== undefined && typeof request.answerBarReveal !== "boolean")
         ) {
             return { ok: false, reason: "invalid-request" };
         }
@@ -208,6 +261,7 @@ class QuestionController {
         }
 
         if (request.deleteExternalElements) {
+            externalElementsState.clear(request.roomId);
             socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS);
             if (room.isAnswerRevealed()) {
                 socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_REVEALED, { questionId });
@@ -216,23 +270,40 @@ class QuestionController {
         if (request.scrollToContent) {
             socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_SCROLL_TO_CONTENT);
         }
+        if (request.answerBarReveal !== undefined && room.setAnswerBarReveal(request.answerBarReveal)) {
+            socket.nsp.to(request.roomId).emit(SocketEvents.ANSWER_BAR_REVEAL_UPDATED, {
+                answerBarReveal: room.isAnswerBarRevealed(),
+            } satisfies AnswerBarRevealUpdated);
+        }
         return { ok: true };
     }
 
     /**
-     * 途中参加者へ現在の問題状態を送信する。
+     * 途中参加者または再接続者へ、現在の問題状態を専用 snapshot として送信する。
+     *
+     * 現在問題がある場合、問題定義、AnswerBar 割当、line ID ごとのサーバー受理済み X 座標を
+     * `CURRENT_QUESTION_STATE` で送信する。ルームまたは問題が存在しない場合は、送信可能な
+     * score-list・score snapshot 以外の問題通知を行わない。
      *
      * @param socket 通知先の Socket.IO 接続。
      * @param roomId 現在状態を取得するルーム ID。
+     * @param scoreReason 得点 snapshot の由来。復帰採点時はクライアントの加点演出に使用する。
+     * @param scrollToContent `true` の場合、受信側は現在問題のコンテンツへ表示範囲を合わせる。
      */
-    public sendCurrent(socket: Socket, roomId: string): void {
+    public sendCurrent(
+        socket: Socket,
+        roomId: string,
+        scoreReason: "snapshot" | "recovered" = "snapshot",
+        scrollToContent = false,
+    ): void {
         const room = roomController.getRoom(roomId);
         const questionId = room?.getCurrentQuestionId();
         if (!room) {
             return;
         }
+        socket.emit(SocketEvents.CURSOR_REVEAL_UPDATED, { cursorRevealed: room.isCursorRevealed() });
         socket.emit(SocketEvents.SCORE_LIST_ENABLED_UPDATED, { enabled: room.isScoreListEnabled() });
-        socket.emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: "snapshot" });
+        socket.emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: scoreReason });
         if (questionId === undefined) {
             return;
         }
@@ -240,12 +311,13 @@ class QuestionController {
         if (!question) {
             return;
         }
-        socket.emit(SocketEvents.QUESTION_APPLIED, {
+        socket.emit(SocketEvents.CURRENT_QUESTION_STATE, {
             question,
             answerBars: answerBarAssignmentState.getAll(roomId),
             deleteExternalElements: false,
-            scrollToContent: true,
-        } satisfies QuestionApplied);
+            scrollToContent,
+            answerBarReveal: room.isAnswerBarRevealed(),
+        } satisfies CurrentQuestionState);
         if (room.isAnswerRevealed()) {
             socket.emit(SocketEvents.QUESTION_REVEALED, { questionId });
         }

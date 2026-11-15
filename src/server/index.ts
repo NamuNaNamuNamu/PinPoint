@@ -4,7 +4,8 @@ import path from "path";
 import { type DisconnectReason, Server, Socket } from "socket.io";
 import { fileURLToPath } from "url";
 
-import { socketLogger } from "./logging/SocketLogger";
+import { ServerLogEvents } from "./logging/ServerLogEvents";
+import { serverLogger } from "./logging/ServerLogger";
 import { getLocalIPAddress } from "./network/getLocalIPAddress";
 import { SocketController } from "./socket/SocketController";
 
@@ -15,12 +16,17 @@ io.on("connection", (socket) => {
     onConnect(socket);
 });
 
-socketLogger.setIo(io);
-
 prepareClientEntryPoint(app);
 
-httpServer.listen(3001, () => {
-    console.log(`Server started: http://${getLocalIPAddress()}:3001\n`);
+const PORT = Number(process.env.PORT ?? 3001);
+
+httpServer.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server listening on port ${PORT}`);
+
+    if (process.env.NODE_ENV !== "production") {
+        console.log(`Local:   http://localhost:${PORT}`);
+        console.log(`Network: http://${getLocalIPAddress()}:${PORT}\n`);
+    }
 });
 
 /**
@@ -50,8 +56,7 @@ function onConnect(socket: Socket) {
     const socketController = new SocketController(socket);
     socketController.register();
 
-    socketLogger.outputAllSockets({
-        event: "接続",
+    serverLogger.info(ServerLogEvents.SOCKET_CONNECTED, {
         socketId: socket.id,
     });
 
@@ -69,9 +74,9 @@ function onConnect(socket: Socket) {
  * @param reason Socket.IOが通知した切断理由
  */
 function onDisconnect(socket: Socket, reason: DisconnectReason) {
-    socketLogger.outputAllSockets({
-        event: `切断（理由: ${reason}）`,
+    serverLogger.info(ServerLogEvents.SOCKET_DISCONNECTED, {
         socketId: socket.id,
+        reason,
     });
 }
 

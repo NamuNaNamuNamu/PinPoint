@@ -1,6 +1,7 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type { ComponentProps } from "react";
 import { socketController } from "../../socket/SocketController";
+import { excalidrawCursorSyncController } from "./excalidrawCursor/ExcalidrawCursorSyncController";
 
 type PointerUpdatePayload = Parameters<NonNullable<ComponentProps<typeof Excalidraw>["onPointerUpdate"]>>[0];
 
@@ -13,6 +14,10 @@ let lastSentAt = 0;
  * @param payload Excalidraw の onPointerUpdate が通知するポインター情報。
  */
 export function handlePointerChange(payload: PointerUpdatePayload): void {
+    if (!excalidrawCursorSyncController.isCursorRevealed()) {
+        return;
+    }
+
     if (payload.pointersMap.size >= 2) {
         return;
     }

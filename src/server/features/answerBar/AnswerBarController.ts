@@ -1,6 +1,8 @@
 import type { Socket } from "socket.io";
 
+import type { AnswerBarPositionUpdateRequest } from "../../../shared/answerBar/AnswerBarEvents";
 import { getQuestionTemplate } from "../../../shared/question/QuestionTemplate";
+import type { JoinRoomRequest, JoinRoomResponse, RoomParticipant } from "../../../shared/room/RoomEvents";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { excalidrawCursorSyncController } from "../excalidrawCursor/ExcalidrawCursorSyncController";
 import { questionController } from "../question/QuestionController";
@@ -21,9 +23,15 @@ export class AnswerBarController {
      * @param socket 参加する Socket.IO 接続。
      * @param userId 参加するユーザー ID。
      * @param roomId 参加対象のルーム ID。
-     * @returns 成功時はルーム ID、失敗時は `null`。
+     * @param recovery 再接続者が保持する AnswerBar と scene の復元候補。
+     * @returns 成功時は入室先と現在ユーザーのロール。失敗時は `null`。
      */
-    public joinRoom(socket: Socket, userId: number, roomId: string): string | null {
+    public joinRoom(
+        socket: Socket,
+        userId: number,
+        roomId: string,
+        recovery?: JoinRoomRequest["recovery"],
+    ): JoinRoomResponse | null {
         const ownerUser = userService.getUser(userId);
         if (!ownerUser) {
             return null;
@@ -44,29 +52,118 @@ export class AnswerBarController {
             roomController.leaveRoom(socket, previousRoomId);
         }
 
+        const disconnectedAt = answerBarAssignmentState.getDisconnectedAt(roomId, userId);
         const response = roomController.joinRoom(socket, userId, roomId);
         if (!response) {
             return null;
         }
-
-        questionController.sendCurrent(socket, roomId);
-
         const questionId = room.getCurrentQuestionId();
         const question = questionId === undefined ? undefined : getQuestionTemplate(questionId);
-        if (!question || room.isCreatedBy(userId)) {
-            return response;
+        let didRecoverScore = false;
+        if (question && !room.isCreatedBy(userId)) {
+            const { assignment, isNew } = answerBarAssignmentState.getOrCreate(
+                roomId,
+                userId,
+                ownerUser.getName(),
+                question.sliders,
+            );
+            if (isNew) {
+                socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_ADDED, assignment);
+            }
+            const afterDisconnect = (room.getAnswerRevealedAt() ?? 0) > (disconnectedAt ?? Number.MAX_SAFE_INTEGER);
+            // 未公開ならローカル位置をそのまま復元する。公開済みの場合は、切断後に公開された
+            // ときだけ復元を許可し、公開済みで切断した場合は server snapshot を正とする。
+            if (!room.isAnswerRevealed() || afterDisconnect) {
+                let recovered = false;
+                recovery?.answerBarPositions.forEach((request) => {
+                    if (request.answerBarId !== assignment.answerBarId) return;
+                    const index = assignment.lineIds.indexOf(request.lineId);
+                    const x = answerBarAssignmentState.updatePosition(
+                        roomId,
+                        userId,
+                        request.answerBarId,
+                        request.lineId,
+                        request.x,
+                        index < 0 ? undefined : question.sliders[index],
+                    );
+                    if (x !== null) {
+                        recovered = true;
+                        socket.to(roomId).emit(SocketEvents.ANSWER_BAR_POSITION_UPDATED, { ...request, x });
+                    }
+                });
+                if (recovered) {
+                    const scores = scoreState.replaceQuestionScore(
+                        roomId,
+                        question,
+                        assignment,
+                        answerBarAssignmentState.getPositionsByLineId(roomId),
+                    );
+                    socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "recovered" });
+                    didRecoverScore = true;
+                }
+            }
         }
-
-        const { assignment, isNew } = answerBarAssignmentState.getOrCreate(
+        questionController.sendCurrent(
+            socket,
             roomId,
-            userId,
-            ownerUser.getName(),
-            question.sliders.length,
+            didRecoverScore ? "recovered" : "snapshot",
+            recovery === undefined,
         );
-        if (isNew) {
-            socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_ADDED, assignment);
+        return { roomId: response, isCreator: room.isCreatedBy(userId) };
+    }
+
+    /**
+     * ホスト向けに、参加中と再接続猶予中を含む参加者を返す。
+     *
+     * @param userId 一覧を要求するユーザー ID。
+     * @param roomId 参加者を取得するルーム ID。
+     * @returns 参加者一覧。要求者がルームのホストでない場合または対象が不正な場合は `undefined`。
+     */
+    public getParticipants(userId: number | undefined, roomId: unknown): readonly RoomParticipant[] | undefined {
+        if (userId === undefined || typeof roomId !== "string") return undefined;
+        const room = roomController.getRoom(roomId);
+        if (!room || !room.isCreatedBy(userId) || !room.hasUser(userId)) return undefined;
+        return room.getUserIds().flatMap((participantUserId) => {
+            const user = userService.getUser(participantUserId);
+            return user
+                ? [{
+                    userId: participantUserId,
+                    userName: user.getName(),
+                    isCreator: room.isCreatedBy(participantUserId),
+                    connectionStatus: room.isDisconnecting(participantUserId) ? "reconnecting" : "connected",
+                }]
+                : [];
+        });
+    }
+
+    /**
+     * ホストが残留参加者を退出させる。
+     *
+     * 強制退出後の再参加は禁止しない。
+     *
+     * @param socket 強制退出の通知と Socket.IO の退出に使用する接続。
+     * @param actorUserId 強制退出を要求するホストのユーザー ID。
+     * @param roomId 強制退出の対象ルーム ID。
+     * @param targetUserId 強制退出させる参加者のユーザー ID。
+     * @returns 強制退出を実行した場合は `true`。権限または対象が不正な場合は `false`。
+     */
+    public kickUser(socket: Socket, actorUserId: number | undefined, roomId: unknown, targetUserId: unknown): boolean {
+        if (actorUserId === undefined || typeof roomId !== "string" || typeof targetUserId !== "number" || !Number.isInteger(targetUserId)) return false;
+        const room = roomController.getRoom(roomId);
+        if (!room || !room.isCreatedBy(actorUserId) || !room.hasUser(actorUserId) || room.isCreatedBy(targetUserId) || !room.hasUser(targetUserId)) return false;
+        const targetUser = userService.getUser(targetUserId);
+        const removed = answerBarAssignmentState.remove(roomId, targetUserId);
+        if (removed) socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_REMOVED, removed);
+        roomController.leaveUser(targetUserId);
+        socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: "snapshot" });
+        const targetSocket = targetUser ? socket.nsp.sockets.get(targetUser.getSocketId()) : undefined;
+        if (targetSocket) {
+            excalidrawCursorSyncController.remove(targetSocket);
+            targetSocket.leave(roomId);
+            targetSocket.emit(SocketEvents.ROOM_KICKED, { roomId });
+            targetSocket.disconnect(true);
         }
-        return response;
+        return true;
     }
 
     /**
@@ -112,6 +209,48 @@ export class AnswerBarController {
             socket.nsp
                 .to(roomId)
                 .emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: "snapshot" });
+        }
+    }
+
+    /**
+     * 所有者からの AnswerBar 位置更新を検証し、受理した正規化済み X 座標を送信元以外の同一ルームへ通知する。
+     *
+     * 現在問題が存在しない場合、回答公開後、要求元が room 内の参加者でない場合、または
+     * `AnswerBarAssignmentState` による所有者・line ID・座標の検証に失敗した場合は何もしない。
+     *
+     * @param socket 更新要求を受信した Socket.IO 接続。
+     * @param userId 更新を要求した認証済みユーザー ID。
+     * @param request AnswerBar ID、line ID、X 座標を含む位置更新要求。
+     */
+    public updatePosition(
+        socket: Socket,
+        userId: number | undefined,
+        request: AnswerBarPositionUpdateRequest | undefined,
+    ): void {
+        if (!request || userId === undefined) {
+            return;
+        }
+        const roomId = roomController.getRoomIdByUserId(userId);
+        const room = roomId ? roomController.getRoom(roomId) : undefined;
+        const questionId = room?.getCurrentQuestionId();
+        const question = questionId === undefined ? undefined : getQuestionTemplate(questionId);
+        if (!roomId || !room || !question || room.isAnswerRevealed() || !room.hasUser(userId)) {
+            return;
+        }
+        const lineIndex = answerBarAssignmentState
+            .getAll(roomId)
+            .find((assignment) => assignment.answerBarId === request.answerBarId && assignment.ownerUserId === userId)
+            ?.lineIds.indexOf(request.lineId);
+        const x = answerBarAssignmentState.updatePosition(
+            roomId,
+            userId,
+            request.answerBarId,
+            request.lineId,
+            request.x,
+            lineIndex === undefined || lineIndex < 0 ? undefined : question.sliders[lineIndex],
+        );
+        if (x !== null) {
+            socket.to(roomId).emit(SocketEvents.ANSWER_BAR_POSITION_UPDATED, { ...request, x });
         }
     }
 

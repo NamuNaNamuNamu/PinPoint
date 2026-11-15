@@ -18,10 +18,35 @@ import { questionStore } from "./questionStore";
  * 正解旗の三角形先端から上端までの高さ。
  */
 const CORRECT_ANSWER_FLAG_HEIGHT = 14;
-/** 正解線と正解旗で共通利用する色。 */
+/**
+ * 正解線と正解旗で共通利用する色。
+ */
 const CORRECT_ANSWER_COLOR = "#E53935";
-/** 正解旗の幅。 */
+
+/**
+ * 正解線の既定幅 2px を 1.5 倍にした線幅。
+ */
+const CORRECT_ANSWER_STROKE_WIDTH = 3;
+
+/**
+ * 正解旗の幅。
+ */
 const CORRECT_ANSWER_FLAG_WIDTH = 24;
+
+/**
+ * 正解ラベルに使用するフォントサイズ。
+ */
+const CORRECT_ANSWER_LABEL_FONT_SIZE = 20;
+
+/**
+ * 正解ラベルのレイアウト計算に用いる高さ。
+ */
+const CORRECT_ANSWER_LABEL_HEIGHT = 26;
+
+/**
+ * 正解ラベル下端と正解旗上端の間隔。
+ */
+const CORRECT_ANSWER_LABEL_TO_FLAG_GAP = 4;
 /**
  * 選択肢テキストに使用するフォントサイズ。
  */
@@ -64,6 +89,7 @@ class QuestionSceneController {
         this.currentQuestion = payload.question;
         questionStore.set(true);
         setSliders(payload.question.sliders);
+        answerBarSceneController.setAnswerBarReveal(payload.answerBarReveal);
         const elements = convertToExcalidrawElements(this.getQuestionSkeletons(), { regenerateIds: false });
         elements.forEach((element) => this.managedElementIds.add(element.id));
         api.updateScene({ elements: [...previous, ...elements] });
@@ -79,7 +105,7 @@ class QuestionSceneController {
     }
 
     /**
-     * 現在の問題の各 Slider に、操作不能な赤い正解線と下向き三角形の旗を表示する。
+     * 現在の問題の各 Slider に、操作不能な赤い正解線、正解ラベル、および下向き三角形の旗を表示する。
      *
      * 旗の三角形先端は正解線の上端に一致する。
      *
@@ -101,6 +127,20 @@ class QuestionSceneController {
                     x: slider.x + slider.width * slider.correctAnswerRatio,
                     y: slider.y,
                     width: slider.height,
+                    strokeColor: CORRECT_ANSWER_COLOR,
+                    strokeWidth: CORRECT_ANSWER_STROKE_WIDTH,
+                    locked: true,
+                }),
+                textSkeletonFactory.createWith({
+                    id: `correct-answer-label-${slider.id}`,
+                    x: slider.x + slider.width * slider.correctAnswerRatio,
+                    y:
+                        slider.y -
+                        CORRECT_ANSWER_FLAG_HEIGHT -
+                        CORRECT_ANSWER_LABEL_TO_FLAG_GAP -
+                        CORRECT_ANSWER_LABEL_HEIGHT,
+                    text: "正解",
+                    fontSize: CORRECT_ANSWER_LABEL_FONT_SIZE,
                     strokeColor: CORRECT_ANSWER_COLOR,
                     locked: true,
                 }),
@@ -191,15 +231,23 @@ class QuestionSceneController {
             return [];
         }
         const centerX = firstSlider.x + firstSlider.width / 2;
-        const choiceY = firstSlider.y - CORRECT_ANSWER_FLAG_HEIGHT - CHOICE_TO_FLAG_GAP - CHOICE_TEXT_HEIGHT;
+        const choiceY =
+            firstSlider.y -
+            CORRECT_ANSWER_FLAG_HEIGHT -
+            CORRECT_ANSWER_LABEL_TO_FLAG_GAP -
+            CORRECT_ANSWER_LABEL_HEIGHT -
+            CHOICE_TO_FLAG_GAP -
+            CHOICE_TEXT_HEIGHT;
         return [
             textSkeletonFactory.createWith({
                 id: `question-${question.id}`,
                 x: centerX,
-                y: 80,
+                y: 50,
                 text: question.question,
                 locked: true,
-                fontSize: 20,
+                opacity: 50,
+                fontSize: 28,
+                strokeColor: "#202020",
             }),
             textSkeletonFactory.createWith({
                 id: `choice-left-${question.id}`,
@@ -208,6 +256,7 @@ class QuestionSceneController {
                 text: question.choiceLeft,
                 locked: true,
                 fontSize: CHOICE_FONT_SIZE,
+                strokeColor: "#000000",
             }),
             textSkeletonFactory.createWith({
                 id: `choice-right-${question.id}`,
@@ -216,6 +265,7 @@ class QuestionSceneController {
                 text: question.choiceRight,
                 locked: true,
                 fontSize: CHOICE_FONT_SIZE,
+                strokeColor: "#000000",
             }),
             ...sliders.flatMap((slider) => slider.getSkeleton()),
         ];

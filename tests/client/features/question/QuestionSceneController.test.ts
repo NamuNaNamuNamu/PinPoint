@@ -10,6 +10,7 @@ const getSceneElementsWithTombstones = jest.fn();
 const getActiveSceneElements = jest.fn();
 const clearAnswerBars = jest.fn();
 const setInteractionLocked = jest.fn();
+const setAnswerBarReveal = jest.fn();
 const setSliders = jest.fn<SetSliders>();
 const sliders: Array<{ getSkeleton(): { id: string }[] }> = [];
 
@@ -27,7 +28,13 @@ jest.unstable_mockModule("@excalidraw/excalidraw", () => ({
     convertToExcalidrawElements: jest.fn((elements) => elements),
 }));
 jest.unstable_mockModule("../../../../src/client/features/answerBar/AnswerBarSceneController", () => ({
-    answerBarSceneController: { clear: clearAnswerBars, add: jest.fn(), hasElement: jest.fn(), setInteractionLocked },
+    answerBarSceneController: {
+        clear: clearAnswerBars,
+        add: jest.fn(),
+        hasElement: jest.fn(),
+        setAnswerBarReveal,
+        setInteractionLocked,
+    },
 }));
 jest.unstable_mockModule("../../../../src/client/features/excalidraw/Elements/Line/LineSkeletonFactory", () => ({
     lineSkeletonFactory: { createWith: jest.fn((element) => element) },
@@ -86,6 +93,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );
@@ -120,6 +128,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );
@@ -136,6 +145,16 @@ describe("QuestionSceneController", () => {
                     x: 400,
                     y: 220,
                     width: 48,
+                    strokeColor: "#E53935",
+                    strokeWidth: 3,
+                    locked: true,
+                },
+                {
+                    id: "correct-answer-label-slider-1",
+                    x: 400,
+                    y: 176,
+                    text: "正解",
+                    fontSize: 20,
                     strokeColor: "#E53935",
                     locked: true,
                 },
@@ -184,6 +203,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );
@@ -196,8 +216,9 @@ describe("QuestionSceneController", () => {
         if (!leftChoice) {
             throw new Error("選択肢テキストが生成されていません。");
         }
-        expect(leftChoice).toEqual(expect.objectContaining({ y: 156, fontSize: 30 }));
-        expect(220 - 14 - (leftChoice.y + 38)).toBeGreaterThanOrEqual(12);
+        expect(leftChoice).toEqual(expect.objectContaining({ y: 126, fontSize: 30 }));
+        // ラベル（26px）と旗との 4px 間隔を追加しても、選択肢との 12px 間隔を維持する。
+        expect(220 - 14 - 4 - 26 - (leftChoice.y + 38)).toBeGreaterThanOrEqual(12);
     });
 
     test("clear は問題管理要素と AnswerBar を除去し、外部要素を保持すること", () => {
@@ -223,6 +244,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );
@@ -268,6 +290,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: true,
+                answerBarReveal: true,
             },
             1,
         );
@@ -303,6 +326,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );
@@ -336,6 +360,7 @@ describe("QuestionSceneController", () => {
                 answerBars: [],
                 deleteExternalElements: false,
                 scrollToContent: false,
+                answerBarReveal: true,
             },
             1,
         );

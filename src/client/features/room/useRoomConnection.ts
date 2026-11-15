@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { socketController } from "../../socket/SocketController";
+import { answerBarSceneController } from "../answerBar/AnswerBarSceneController";
 import { registerAnswerBarListener } from "../answerBar/registerAnswerBarListener";
+import { excalidrawAPIHolder } from "../excalidraw/ExcalidrawAPIHolder";
 import { registerQuestionListener } from "../question/registerQuestionListener";
 import { registerScoreListener } from "../score/registerScoreListener";
 import { registerScoreListListener } from "../score/registerScoreListListener";
@@ -9,12 +11,17 @@ import { userSessionStorage } from "../sessionStorage/sessionStorage";
 import { type InitialRoomCommand, url } from "../url/Url";
 import { waitForInitialUrlControlReadiness } from "../url/waitForInitialUrlControlReadiness";
 import { joinRoom } from "./joinRoom";
+import { roomRoleStore } from "./roomRoleStore";
 
 type Props = {
     enabled: boolean;
 };
 
 export interface RoomConnection {
+    /**
+     * 接続済み・再接続中・再参加不能のいずれかを示す。
+     */
+    readonly connectionStatus: "connected" | "reconnecting" | "left";
     /**
      * 現在参加中のルーム ID。
      *
@@ -48,6 +55,7 @@ export interface RoomConnection {
  */
 export function useRoomConnection({ enabled }: Props): RoomConnection {
     const [currentRoomId, setCurrentRoomId] = useState<string | undefined>();
+    const [connectionStatus, setConnectionStatus] = useState<"connected" | "reconnecting" | "left">("connected");
     const currentRoomIdRef = useRef<string | undefined>(undefined);
     const hasStartedInitialNavigationRef = useRef(false);
     const hasCompletedInitialNavigationRef = useRef(false);
@@ -55,6 +63,7 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
 
     const onCurrentRoomIdChange = useCallback((roomId: string | undefined) => {
         currentRoomIdRef.current = roomId;
+        if (!roomId) roomRoleStore.set(false);
         setCurrentRoomId(roomId);
     }, []);
 
@@ -78,6 +87,7 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                     questionId: command.questionId,
                     deleteExternalElements: command.deleteExternalElements,
                     scrollToContent: command.scrollToContent,
+                    ...(command.answerBarReveal === undefined ? {} : { answerBarReveal: command.answerBarReveal }),
                 });
                 console.debug("[initial-room-command] apply-question acknowledged", {
                     socketId: socketController.getSocketId(),
@@ -86,11 +96,16 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 if (!result.ok) {
                     return;
                 }
-            } else if (command.deleteExternalElements || command.hasScrollToContentParam) {
+            } else if (
+                command.deleteExternalElements ||
+                command.hasScrollToContentParam ||
+                command.answerBarReveal !== undefined
+            ) {
                 const result = await socketController.controlCurrentQuestion({
                     roomId: command.roomId,
                     deleteExternalElements: command.deleteExternalElements,
                     scrollToContent: command.scrollToContent,
+                    ...(command.answerBarReveal === undefined ? {} : { answerBarReveal: command.answerBarReveal }),
                 });
                 if (!result.ok) {
                     return;
@@ -111,7 +126,28 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 }
             }
 
-            if (command.reveal) {
+            if (command.cursorRevealed !== undefined) {
+                const result = await socketController.setCursorRevealed(command.roomId, command.cursorRevealed);
+                if (!result.ok) {
+                    return;
+                }
+            }
+
+            if (command.scoreSetUser !== undefined && command.scoreSetValue !== undefined) {
+                const result = await socketController.setUserScore(
+                    command.roomId,
+                    command.scoreSetUser,
+                    command.scoreSetValue,
+                );
+                if (!result.ok) return;
+            }
+
+            if (command.kickUser !== undefined) {
+                const kicked = await socketController.kickUser(command.roomId, command.kickUser);
+                if (!kicked) return;
+            }
+
+            if (command.answerReveal) {
                 socketController.revealQuestion(command.roomId);
             }
 
@@ -149,8 +185,12 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 return;
             }
 
-            const joinedRoomId = await joinRoom(userId, roomId);
-            onCurrentRoomIdChange(joinedRoomId ?? undefined);
+            const joinedRoom = await joinRoom(userId, roomId, {
+                answerBarPositions: answerBarSceneController.getOwnedPositionUpdates(),
+                elements: excalidrawAPIHolder.getSceneElementsWithTombstones(),
+            });
+            onCurrentRoomIdChange(joinedRoom?.roomId);
+            setConnectionStatus(joinedRoom ? "connected" : "left");
         };
 
         const initializeInitialNavigation = async (): Promise<void> => {
@@ -163,14 +203,14 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 return;
             }
 
-            const joinedRoomId = await joinRoom(userId, command.roomId);
-            onCurrentRoomIdChange(joinedRoomId ?? undefined);
-            if (!joinedRoomId) {
+            const joinedRoom = await joinRoom(userId, command.roomId);
+            onCurrentRoomIdChange(joinedRoom?.roomId);
+            if (!joinedRoom) {
                 hasCompletedInitialNavigationRef.current = true;
                 return;
             }
 
-            if (command.roomId === joinedRoomId) {
+            if (command.roomId === joinedRoom.roomId) {
                 await executeInitialRoomCommand(command);
             }
 
@@ -180,14 +220,27 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
         const removeConnectListener = socketController.onConnect(() => {
             void restoreConnection();
         });
+        const removeDisconnectListener = socketController.onDisconnect(() => {
+            if (currentRoomIdRef.current) setConnectionStatus("reconnecting");
+        });
+        const removeRoomKickedListener = socketController.onRoomKicked?.((message) => {
+            if (message.roomId === currentRoomIdRef.current) {
+                onCurrentRoomIdChange(undefined);
+                setConnectionStatus("left");
+            }
+        });
 
         if (!hasStartedInitialNavigationRef.current) {
             hasStartedInitialNavigationRef.current = true;
             void initializeInitialNavigation();
         }
 
-        return removeConnectListener;
+        return () => {
+            removeConnectListener();
+            removeDisconnectListener();
+            removeRoomKickedListener?.();
+        };
     }, [enabled, onCurrentRoomIdChange]);
 
-    return { currentRoomId, onCurrentRoomIdChange, getOperatorUserId };
+    return { currentRoomId, connectionStatus, onCurrentRoomIdChange, getOperatorUserId };
 }

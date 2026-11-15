@@ -9,6 +9,7 @@ import { excalidrawSyncController } from "../excalidrawSync/ExcalidrawSyncContro
  */
 class ExcalidrawCursorSyncController {
     private collaborators = new Map<SocketId, Collaborator>();
+    private cursorRevealed = true;
     /**
      * 予約済みの描画フレーム ID。
      */
@@ -20,6 +21,10 @@ class ExcalidrawCursorSyncController {
      * @param cursor サーバーが接続 ID と表示名を付加したカーソル情報。
      */
     public updateCursor(cursor: RemoteCursor): void {
+        if (!this.cursorRevealed) {
+            return;
+        }
+
         this.collaborators.set(cursor.socketId as SocketId, {
             pointer: cursor.pointer,
             button: cursor.button,
@@ -35,6 +40,10 @@ class ExcalidrawCursorSyncController {
      * @param socketId 退出または切断した接続 ID。
      */
     public removeCursor(socketId: string): void {
+        if (!this.cursorRevealed) {
+            return;
+        }
+
         this.collaborators.delete(socketId as SocketId);
 
         this.scheduleUpdateScene();
@@ -47,6 +56,30 @@ class ExcalidrawCursorSyncController {
         this.collaborators.clear();
 
         this.scheduleUpdateScene();
+    }
+
+    /**
+     * 共有カーソルの公開状態を反映する。
+     *
+     * 非公開へ切り替えた場合は、すでに描画済みのリモートカーソルを削除し、
+     * 以後のカーソル更新・削除通知を無視する。
+     *
+     * @param cursorRevealed 共有カーソルを公開する場合は `true`。
+     */
+    public setCursorRevealed(cursorRevealed: boolean): void {
+        this.cursorRevealed = cursorRevealed;
+        if (!cursorRevealed) {
+            this.clear();
+        }
+    }
+
+    /**
+     * 共有カーソルを公開しているかを返す。
+     *
+     * @returns 公開している場合は `true`。
+     */
+    public isCursorRevealed(): boolean {
+        return this.cursorRevealed;
     }
 
     /**
