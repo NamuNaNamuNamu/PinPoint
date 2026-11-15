@@ -26,9 +26,13 @@ type TextFieldProps = {
 type FilledButtonProps = {
     children?: ReactNode;
     className?: string;
+    color?: "primary" | "danger" | "warning" | "muted" | "success";
     disabled?: boolean;
+    icon?: ReactNode;
     label?: string;
     onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+    size?: "medium" | "large";
+    variant?: "filled" | "outlined" | "icon";
 };
 
 const questionTemplates = [
@@ -68,8 +72,28 @@ jest.unstable_mockModule("../../../src/client/ui/ShareDialog/TextField", () => (
     ),
 }));
 jest.unstable_mockModule("../../../src/client/ui/ShareDialog/FilledButton", () => ({
-    FilledButton: ({ children, className, disabled, label, onClick }: FilledButtonProps) => (
-        <button aria-label={label} className={className} disabled={disabled} type="button" onClick={onClick}>
+    FilledButton: ({
+        children,
+        className,
+        color = "primary",
+        disabled,
+        icon,
+        label,
+        onClick,
+        size = "medium",
+        variant = "filled",
+    }: FilledButtonProps) => (
+        <button
+            aria-label={label}
+            className={className}
+            data-color={color}
+            data-has-icon={icon === undefined ? "false" : "true"}
+            data-size={size}
+            data-variant={variant}
+            disabled={disabled}
+            type="button"
+            onClick={onClick}
+        >
             {children ?? label}
         </button>
     ),
@@ -153,6 +177,21 @@ describe("ProblemOperationDialog", () => {
             scrollToContent: true,
             answerBarReveal: false,
         });
+    });
+
+    test("解答の表示は適用と同じ primary filled large でアイコンを表示しないこと", async () => {
+        await renderDialog(root);
+
+        const applyButton = container.querySelector('button[aria-label="適用"]');
+        const revealButton = container.querySelector('button[aria-label="表示"]');
+
+        expect(applyButton?.getAttribute("data-color")).toBe("primary");
+        expect(applyButton?.getAttribute("data-variant")).toBe("filled");
+        expect(applyButton?.getAttribute("data-size")).toBe("large");
+        expect(revealButton?.getAttribute("data-color")).toBe("primary");
+        expect(revealButton?.getAttribute("data-variant")).toBe("filled");
+        expect(revealButton?.getAttribute("data-size")).toBe("large");
+        expect(revealButton?.getAttribute("data-has-icon")).toBe("false");
     });
 });
 
