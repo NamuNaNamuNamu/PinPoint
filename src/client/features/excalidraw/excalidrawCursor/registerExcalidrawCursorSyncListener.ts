@@ -2,6 +2,7 @@ import { SocketEvents } from "../../../../shared/SocketEvents";
 import type { CursorRevealUpdated } from "../../../../shared/excalidraw/Cursor";
 import { socket } from "../../../socket/socket";
 import { excalidrawCursorSyncController } from "./ExcalidrawCursorSyncController";
+import { roomSettingsStore } from "../../room/roomSettingsStore";
 
 /**
  * サーバーから通知される共同カーソルの更新・削除イベントを登録する。
@@ -17,5 +18,6 @@ export function registerExcalidrawCursorSyncListener(): void {
 
     socket.on(SocketEvents.CURSOR_REVEAL_UPDATED, (event: CursorRevealUpdated) => {
         excalidrawCursorSyncController.setCursorRevealed(event.cursorRevealed);
+        roomSettingsStore.setCursorRevealed(event.cursorRevealed);
     });
 }

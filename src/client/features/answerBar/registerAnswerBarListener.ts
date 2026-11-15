@@ -8,6 +8,7 @@ import type {
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { socket } from "../../socket/socket";
 import { answerBarSceneController } from "./AnswerBarSceneController";
+import { roomSettingsStore } from "../room/roomSettingsStore";
 
 /**
  * サーバーから通知される AnswerBar の追加、削除、所有者名、および位置更新イベントを登録する。
@@ -38,5 +39,6 @@ export function registerAnswerBarListener(operatorUserId: number): void {
     });
     socket.on(SocketEvents.ANSWER_BAR_REVEAL_UPDATED, (event: AnswerBarRevealUpdated) => {
         answerBarSceneController.setAnswerBarReveal(event.answerBarReveal);
+        roomSettingsStore.setAnswerBarReveal(event.answerBarReveal);
     });
 }
