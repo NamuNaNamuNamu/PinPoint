@@ -7,6 +7,8 @@ import { useScoreListEnabled } from "../features/score/scoreListStore";
 import { socketController } from "../socket/SocketController";
 import { listOrderedIcon, usersIcon } from "./icons";
 import { ParticipantManagementDialog } from "./ParticipantManagementDialog";
+import { ProblemOperationDialog } from "./ProblemOperationDialog";
+import { RoomSettingsDialog } from "./RoomSettingsDialog";
 import { ScoreListDialog } from "./ScoreListDialog";
 import { ShareDialog } from "./ShareDialog/ShareDialog";
 
@@ -24,6 +26,8 @@ function ExcalidrawMainMenu({ currentRoomId, onCurrentRoomIdChange }: Props) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isScoreListOpen, setIsScoreListOpen] = useState(false);
     const [isParticipantManagementOpen, setIsParticipantManagementOpen] = useState(false);
+    const [isProblemOperationOpen, setIsProblemOperationOpen] = useState(false);
+    const [isRoomSettingsOpen, setIsRoomSettingsOpen] = useState(false);
     const scoreListEnabled = useScoreListEnabled();
     const isRoomCreator = useIsRoomCreator();
     const scoreListAvailable = currentRoomId !== undefined && scoreListEnabled;
@@ -52,6 +56,16 @@ function ExcalidrawMainMenu({ currentRoomId, onCurrentRoomIdChange }: Props) {
                 >
                     得点一覧
                 </MainMenu.Item>
+                {currentRoomId && isRoomCreator && (
+                    <MainMenu.Item icon={listOrderedIcon} onSelect={() => setIsProblemOperationOpen(true)}>
+                        問題操作
+                    </MainMenu.Item>
+                )}
+                {currentRoomId && isRoomCreator && (
+                    <MainMenu.Item icon={usersIcon} onSelect={() => setIsRoomSettingsOpen(true)}>
+                        ルーム設定
+                    </MainMenu.Item>
+                )}
                 {currentRoomId && isRoomCreator && (
                     <MainMenu.Item icon={usersIcon} onSelect={() => setIsParticipantManagementOpen(true)}>
                         参加者管理
@@ -85,6 +99,8 @@ function ExcalidrawMainMenu({ currentRoomId, onCurrentRoomIdChange }: Props) {
                     closeDialog={() => setIsParticipantManagementOpen(false)}
                 />
             )}
+            {isProblemOperationOpen && currentRoomId && <ProblemOperationDialog roomId={currentRoomId} closeDialog={() => setIsProblemOperationOpen(false)} />}
+            {isRoomSettingsOpen && currentRoomId && <RoomSettingsDialog roomId={currentRoomId} closeDialog={() => setIsRoomSettingsOpen(false)} />}
         </>
     );
 }
