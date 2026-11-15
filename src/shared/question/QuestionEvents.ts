@@ -43,6 +43,8 @@ export type QuestionApplied = {
     deleteExternalElements: boolean;
     scrollToContent: boolean;
     answerBarReveal: boolean;
+    /** 外部要素同期で有効な世代。 */
+    syncEpoch?: number;
 };
 
 /**

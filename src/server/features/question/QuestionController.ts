@@ -14,6 +14,7 @@ import { SocketEvents } from "../../../shared/SocketEvents";
 import { ServerLogEvents } from "../../logging/ServerLogEvents";
 import { serverLogger } from "../../logging/ServerLogger";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
+import { excalidrawSyncController } from "../excalidrawSync/ExcalidrawSyncController";
 import { externalElementsState } from "../excalidrawSync/ExternalElementsState";
 import { roomController } from "../room/RoomController";
 import { scoreState } from "../score/ScoreState";
@@ -77,7 +78,9 @@ class QuestionController {
         }
 
         room.setCurrentQuestionId(question.id);
-        if (request.deleteExternalElements) externalElementsState.clear(request.roomId);
+        const syncEpoch = request.deleteExternalElements
+            ? excalidrawSyncController.reset(request.roomId)
+            : externalElementsState.getEpoch(request.roomId);
         room.setAnswerBarReveal(request.answerBarReveal ?? true);
         const users = room.getUserIds().flatMap((participantUserId) => {
             if (room.isCreatedBy(participantUserId)) {
@@ -93,9 +96,14 @@ class QuestionController {
             deleteExternalElements: request.deleteExternalElements,
             scrollToContent: request.scrollToContent ?? false,
             answerBarReveal: room.isAnswerBarRevealed(),
+            syncEpoch,
         };
         socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_APPLIED, payload);
-        serverLogger.info(ServerLogEvents.QUESTION_APPLIED, { roomId: request.roomId, questionId: question.id, userId });
+        serverLogger.info(ServerLogEvents.QUESTION_APPLIED, {
+            roomId: request.roomId,
+            questionId: question.id,
+            userId,
+        });
         return { ok: true };
     }
 
@@ -131,10 +139,19 @@ class QuestionController {
             roomId,
             questionId,
             userId,
-            participants: (room as { getUserIds?: () => readonly number[] }).getUserIds?.().flatMap((participantUserId) => {
-                const participant = userService.getUser(participantUserId);
-                return participant ? [{ userId: participant.getId(), userName: participant.getName(), role: room.isCreatedBy(participantUserId) ? "creator" : "participant" }] : [];
-            }) ?? [],
+            participants:
+                (room as { getUserIds?: () => readonly number[] }).getUserIds?.().flatMap((participantUserId) => {
+                    const participant = userService.getUser(participantUserId);
+                    return participant
+                        ? [
+                              {
+                                  userId: participant.getId(),
+                                  userName: participant.getName(),
+                                  role: room.isCreatedBy(participantUserId) ? "creator" : "participant",
+                              },
+                          ]
+                        : [];
+                }) ?? [],
         });
         serverLogger.info(ServerLogEvents.QUESTION_SCORED, { roomId, questionId, scores });
     }
@@ -165,8 +182,22 @@ class QuestionController {
     }
 
     /** ホストが現在表示中の参加者の累積得点を絶対値で補正する。 */
-    public setUserScore(socket: Socket, userId: number | undefined, roomId: unknown, targetUserId: unknown, score: unknown): ApplyQuestionResult {
-        if (userId === undefined || typeof roomId !== "string" || typeof targetUserId !== "number" || typeof score !== "number" || !Number.isInteger(targetUserId) || !Number.isInteger(score) || score < 0) {
+    public setUserScore(
+        socket: Socket,
+        userId: number | undefined,
+        roomId: unknown,
+        targetUserId: unknown,
+        score: unknown,
+    ): ApplyQuestionResult {
+        if (
+            userId === undefined ||
+            typeof roomId !== "string" ||
+            typeof targetUserId !== "number" ||
+            typeof score !== "number" ||
+            !Number.isInteger(targetUserId) ||
+            !Number.isInteger(score) ||
+            score < 0
+        ) {
             return { ok: false, reason: "invalid-request" };
         }
         const room = roomController.getRoom(roomId);
@@ -179,13 +210,20 @@ class QuestionController {
         const scores = scoreState.get(roomId);
         socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "corrected" });
         serverLogger.info(ServerLogEvents.SCORES_CORRECTED, {
-            roomId, userId, targetUserId, targetUserName: target.getName(), ...corrected,
+            roomId,
+            userId,
+            targetUserId,
+            targetUserName: target.getName(),
+            ...corrected,
         });
         return { ok: true };
     }
 
     /** ホストにのみ、HTMLレポート用の現在得点を返す。 */
-    public getScoreReport(userId: number | undefined, roomId: unknown): readonly import("../../../shared/score/ScoreEvents").ScoreEntry[] | undefined {
+    public getScoreReport(
+        userId: number | undefined,
+        roomId: unknown,
+    ): readonly import("../../../shared/score/ScoreEvents").ScoreEntry[] | undefined {
         if (userId === undefined || typeof roomId !== "string") return undefined;
         const room = roomController.getRoom(roomId);
         return room?.isCreatedBy(userId) && room.hasUser(userId) ? scoreState.get(roomId) : undefined;
@@ -261,8 +299,8 @@ class QuestionController {
         }
 
         if (request.deleteExternalElements) {
-            externalElementsState.clear(request.roomId);
-            socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS);
+            const syncEpoch = excalidrawSyncController.reset(request.roomId);
+            socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS, { syncEpoch });
             if (room.isAnswerRevealed()) {
                 socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_REVEALED, { questionId });
             }
@@ -317,6 +355,7 @@ class QuestionController {
             deleteExternalElements: false,
             scrollToContent,
             answerBarReveal: room.isAnswerBarRevealed(),
+            syncEpoch: externalElementsState.getEpoch(roomId),
         } satisfies CurrentQuestionState);
         if (room.isAnswerRevealed()) {
             socket.emit(SocketEvents.QUESTION_REVEALED, { questionId });

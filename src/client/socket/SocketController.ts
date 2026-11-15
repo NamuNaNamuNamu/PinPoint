@@ -3,6 +3,7 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { UserParams } from "../../server/features/user/User";
 import type { AnswerBarPositionUpdateRequest } from "../../shared/answerBar/AnswerBarEvents";
 import type { Cursor } from "../../shared/excalidraw/Cursor";
+import type { ElementsSyncMessage } from "../../shared/excalidraw/ElementsSyncEvents";
 import type {
     ApplyQuestionRequest,
     ApplyQuestionResult,
@@ -35,6 +36,7 @@ class SocketController {
      * 次回の要素同期を予約するタイマー。
      */
     private syncElementsTimer: ReturnType<typeof setTimeout> | undefined;
+    private syncEpoch = 0;
     private pendingAnswerBarPositions = new Map<string, AnswerBarPositionUpdateRequest>();
     private lastAnswerBarPositionSentAt: number | undefined;
     private answerBarPositionTimer: ReturnType<typeof setTimeout> | undefined;
@@ -378,6 +380,21 @@ class SocketController {
     }
 
     /**
+     * サーバーが通知した外部要素同期世代を反映し、旧世代の送信予約を破棄する。
+     *
+     * @param epoch サーバーが通知した同期世代。
+     */
+    public setSyncEpoch(epoch: number): void {
+        if (epoch <= this.syncEpoch) {
+            return;
+        }
+        this.syncEpoch = epoch;
+        this.pendingSyncElements = undefined;
+        if (this.syncElementsTimer !== undefined) clearTimeout(this.syncElementsTimer);
+        this.syncElementsTimer = undefined;
+    }
+
+    /**
      * 所有する AnswerBar の最新 X 座標を、専用イベントで最大毎秒 30 回サーバーへ送信する。
      *
      * 同じ line ID の送信待ちデータは最新値で置き換える。送信間隔内の複数 line ID は、
@@ -441,7 +458,7 @@ class SocketController {
 
         this.pendingSyncElements = undefined;
         this.lastSyncElementsSentAt = performance.now();
-        socket.emit(SocketEvents.SYNC_ELEMENTS, elements);
+        socket.emit(SocketEvents.SYNC_ELEMENTS, { epoch: this.syncEpoch, elements } satisfies ElementsSyncMessage);
     }
 
     /**
