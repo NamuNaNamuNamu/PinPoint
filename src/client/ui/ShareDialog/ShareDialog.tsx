@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { excalidrawCursorSyncController } from "../../features/excalidraw/excalidrawCursor/ExcalidrawCursorSyncController";
 import { questionSceneController } from "../../features/question/QuestionSceneController";
+import { joinRoom } from "../../features/room/joinRoom";
 import { userSessionStorage } from "../../features/sessionStorage/sessionStorage";
 import { url } from "../../features/url/Url";
 import { useSuccessStatus } from "../../hooks/useCopiedIndicator";
@@ -59,12 +60,11 @@ type ShareDialogInnerProps = {
 const startCollaborating = async (onCurrentRoomIdChange: (roomId: string | undefined) => void): Promise<void> => {
     const userId = userSessionStorage.getUserId();
     const room = await socketController.createRoom();
-    const response = userId ? await socketController.joinRoom(userId, room.id) : null;
+    const response = userId ? await joinRoom(userId, room.id) : null;
 
     if (response) {
-        const roomId = response;
-        onCurrentRoomIdChange(roomId);
-        url.replaceRoomUrl(roomId);
+        onCurrentRoomIdChange(response.roomId);
+        url.replaceRoomUrl(response.roomId);
     }
 };
 

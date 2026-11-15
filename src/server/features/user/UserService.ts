@@ -1,5 +1,6 @@
+import { ServerLogEvents } from "../../logging/ServerLogEvents";
+import { serverLogger } from "../../logging/ServerLogger";
 import { User } from "./User";
-import { userLogger } from "../../logging/UserLogger";
 import { userState } from "./UserState";
 
 export class UserService {
@@ -26,9 +27,10 @@ export class UserService {
         userState.addUser(user);
         this.nextId++;
 
-        userLogger.outputUserState({
-            event: "追加",
+        serverLogger.info(ServerLogEvents.USER_REGISTERED, {
             userId: user.getId(),
+            userName: user.getName(),
+            socketId: user.getSocketId(),
         });
 
         return user;
@@ -80,9 +82,11 @@ export class UserService {
 
             user.setSocketId(socketId);
             userState.updateUser(user);
-            userLogger.outputUserState({
-                event: `socketId 更新 (${socketIdBefore} -> ${socketId})`,
+            serverLogger.info(ServerLogEvents.USER_SOCKET_ID_UPDATED, {
                 userId: user.getId(),
+                userName: user.getName(),
+                previousSocketId: socketIdBefore,
+                socketId,
             });
         }
 
@@ -113,9 +117,11 @@ export class UserService {
         const userNameBefore = user.getName();
         user.setName(normalizedUserName);
         userState.updateUser(user);
-        userLogger.outputUserState({
-            event: `名前更新 (${userNameBefore} -> ${normalizedUserName})`,
+        serverLogger.info(ServerLogEvents.USER_NAME_UPDATED, {
             userId: user.getId(),
+            previousUserName: userNameBefore,
+            userName: normalizedUserName,
+            socketId: user.getSocketId(),
         });
 
         return user;

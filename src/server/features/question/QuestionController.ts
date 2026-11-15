@@ -11,6 +11,8 @@ import type {
 import { getAllQuestionManagedElementIds } from "../../../shared/question/QuestionManagedElementIds";
 import { getQuestionTemplate } from "../../../shared/question/QuestionTemplate";
 import { SocketEvents } from "../../../shared/SocketEvents";
+import { ServerLogEvents } from "../../logging/ServerLogEvents";
+import { serverLogger } from "../../logging/ServerLogger";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
 import { externalElementsState } from "../excalidrawSync/ExternalElementsState";
 import { roomController } from "../room/RoomController";
@@ -93,6 +95,7 @@ class QuestionController {
             answerBarReveal: room.isAnswerBarRevealed(),
         };
         socket.nsp.to(request.roomId).emit(SocketEvents.QUESTION_APPLIED, payload);
+        serverLogger.info(ServerLogEvents.QUESTION_APPLIED, { roomId: request.roomId, questionId: question.id, userId });
         return { ok: true };
     }
 
@@ -124,6 +127,16 @@ class QuestionController {
         );
         socket.nsp.to(roomId).emit(SocketEvents.QUESTION_REVEALED, { questionId });
         socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "scored" });
+        serverLogger.info(ServerLogEvents.QUESTION_REVEALED, {
+            roomId,
+            questionId,
+            userId,
+            participants: (room as { getUserIds?: () => readonly number[] }).getUserIds?.().flatMap((participantUserId) => {
+                const participant = userService.getUser(participantUserId);
+                return participant ? [{ userId: participant.getId(), userName: participant.getName(), role: room.isCreatedBy(participantUserId) ? "creator" : "participant" }] : [];
+            }) ?? [],
+        });
+        serverLogger.info(ServerLogEvents.QUESTION_SCORED, { roomId, questionId, scores });
     }
 
     /**
@@ -147,7 +160,35 @@ class QuestionController {
         }
         const scores = scoreState.reset(roomId);
         socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "reset" });
+        serverLogger.info(ServerLogEvents.SCORES_RESET, { roomId, userId });
         return { ok: true };
+    }
+
+    /** ホストが現在表示中の参加者の累積得点を絶対値で補正する。 */
+    public setUserScore(socket: Socket, userId: number | undefined, roomId: unknown, targetUserId: unknown, score: unknown): ApplyQuestionResult {
+        if (userId === undefined || typeof roomId !== "string" || typeof targetUserId !== "number" || typeof score !== "number" || !Number.isInteger(targetUserId) || !Number.isInteger(score) || score < 0) {
+            return { ok: false, reason: "invalid-request" };
+        }
+        const room = roomController.getRoom(roomId);
+        if (!room) return { ok: false, reason: "room-not-found" };
+        if (!room.isCreatedBy(userId)) return { ok: false, reason: "not-creator" };
+        if (!room.hasUser(userId)) return { ok: false, reason: "not-member" };
+        const corrected = scoreState.setScore(roomId, targetUserId, score);
+        const target = userService.getUser(targetUserId);
+        if (!corrected || !target) return { ok: false, reason: "invalid-request" };
+        const scores = scoreState.get(roomId);
+        socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores, reason: "corrected" });
+        serverLogger.info(ServerLogEvents.SCORES_CORRECTED, {
+            roomId, userId, targetUserId, targetUserName: target.getName(), ...corrected,
+        });
+        return { ok: true };
+    }
+
+    /** ホストにのみ、HTMLレポート用の現在得点を返す。 */
+    public getScoreReport(userId: number | undefined, roomId: unknown): readonly import("../../../shared/score/ScoreEvents").ScoreEntry[] | undefined {
+        if (userId === undefined || typeof roomId !== "string") return undefined;
+        const room = roomController.getRoom(roomId);
+        return room?.isCreatedBy(userId) && room.hasUser(userId) ? scoreState.get(roomId) : undefined;
     }
 
     /**

@@ -10,6 +10,7 @@ import type {
     ApplyQuestionResult,
     ControlCurrentQuestionRequest,
 } from "../../../../src/shared/question/QuestionEvents";
+import type { JoinRoomResponse } from "../../../../src/shared/room/RoomEvents";
 
 type ConnectListener = () => void;
 type OnConnect = (listener: ConnectListener) => () => void;
@@ -26,7 +27,7 @@ type SetCursorRevealed =
     (typeof import("../../../../src/client/socket/SocketController").socketController)["setCursorRevealed"];
 type RevealQuestion = (roomId: string) => void;
 type GetSocketId = () => string | undefined;
-type JoinRoom = (userId: number, roomId: string) => Promise<string | null>;
+type JoinRoom = (userId: number, roomId: string) => Promise<JoinRoomResponse | null>;
 type GetUserIdForCurrentNavigation = () => number | undefined;
 type SetUserId = (userId: number) => void;
 type GetInitialRoomCommand = () => InitialRoomCommand | undefined;
@@ -137,7 +138,7 @@ describe("useRoomConnection", () => {
         setScoreListEnabled.mockResolvedValue({ ok: true });
         setCursorRevealed.mockResolvedValue({ ok: true });
         getSocketId.mockReturnValue("socket-1");
-        joinRoom.mockResolvedValue("room-1");
+        joinRoom.mockResolvedValue({ roomId: "room-1", isCreator: true });
         waitForInitialUrlControlReadiness.mockResolvedValue(undefined);
         getInitialRoomCommand.mockReturnValue({
             roomId: "room-1",

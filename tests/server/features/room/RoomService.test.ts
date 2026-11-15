@@ -1,4 +1,5 @@
 import { jest } from "@jest/globals";
+import { User } from "../../../../src/server/features/user/User";
 
 const mockRoomState = {
     addRoom: jest.fn(),
@@ -11,12 +12,12 @@ const mockRoomState = {
     leaveIfStillDisconnected: jest.fn(),
 };
 const mockUserService = { getUser: jest.fn() };
-const mockRoomLogger = { outputRoomState: jest.fn() };
+const mockServerLogger = { info: jest.fn() };
 const mockAnswerBarAssignmentState = { clear: jest.fn() };
 const mockScoreState = { clear: jest.fn() };
 jest.unstable_mockModule("../../../../src/server/features/room/RoomState", () => ({ roomState: mockRoomState }));
 jest.unstable_mockModule("../../../../src/server/features/user/UserService", () => ({ userService: mockUserService }));
-jest.unstable_mockModule("../../../../src/server/logging/RoomLogger", () => ({ roomLogger: mockRoomLogger }));
+jest.unstable_mockModule("../../../../src/server/logging/ServerLogger", () => ({ serverLogger: mockServerLogger }));
 jest.unstable_mockModule("../../../../src/server/features/answerBar/AnswerBarAssignmentState", () => ({
     answerBarAssignmentState: mockAnswerBarAssignmentState,
 }));
@@ -29,7 +30,7 @@ describe("RoomService", () => {
         roomService = new RoomService();
         Object.values(mockRoomState).forEach((fn) => fn.mockReset());
         mockUserService.getUser.mockReset();
-        mockRoomLogger.outputRoomState.mockReset();
+        mockServerLogger.info.mockReset();
         mockAnswerBarAssignmentState.clear.mockReset();
         mockScoreState.clear.mockReset();
     });
@@ -45,48 +46,42 @@ describe("RoomService", () => {
 
     test("joinRoom は成功時に socketId を含む入室ログを出力する", () => {
         mockRoomState.join.mockReturnValue(true);
-        mockUserService.getUser.mockReturnValue({ getSocketId: () => "socket-1" });
+        mockUserService.getUser.mockReturnValue(new User({ id: 1, name: "Alice", socketId: "socket-1" }));
         expect(roomService.joinRoom(1, "room-1")).toBe(true);
         expect(mockRoomState.join).toHaveBeenCalledWith(1, "room-1");
-        expect(mockRoomLogger.outputRoomState).toHaveBeenCalledWith({ event: "入室", userId: 1, socketId: "socket-1" });
+        expect(mockServerLogger.info).toHaveBeenCalledWith("room.joined", { roomId: "room-1", userId: 1, userName: "Alice", socketId: "socket-1" });
     });
 
-    test("joinRoom は成功後にユーザーを取得できなくても既定値でログを出力する", () => {
+    test("joinRoom は成功後にユーザーを取得できない場合も参加状態を返す", () => {
         mockRoomState.join.mockReturnValue(true);
         expect(roomService.joinRoom(1, "room-1")).toBe(true);
-        expect(mockRoomLogger.outputRoomState).toHaveBeenCalledWith(
-            expect.objectContaining({ event: "入室", userId: 1 }),
-        );
+        expect(mockServerLogger.info).toHaveBeenCalledWith("room.joined", { roomId: "room-1", userId: 1 });
     });
 
     test("joinRoom は失敗時にログを出力せず false を返すこと", () => {
         mockRoomState.join.mockReturnValue(false);
         expect(roomService.joinRoom(1, "missing")).toBe(false);
         expect(mockUserService.getUser).not.toHaveBeenCalled();
-        expect(mockRoomLogger.outputRoomState).not.toHaveBeenCalled();
+        expect(mockServerLogger.info).not.toHaveBeenCalled();
     });
 
     test.each([
-        [{ getSocketId: () => "socket-1" }, "socket-1"],
-        [undefined, "取得失敗しました"],
-    ])("leave は状態を更新して退出ログを出力する", (user, socketId) => {
+        [new User({ id: 1, name: "Alice", socketId: "socket-1" }), { userName: "Alice", socketId: "socket-1" }],
+        [undefined, {}],
+    ])("leave は状態を更新して構造化退出ログを出力する", (user, expectedUserFields) => {
         mockUserService.getUser.mockReturnValue(user);
         roomService.leave(1);
         expect(mockRoomState.leave).toHaveBeenCalledWith(1);
-        expect(mockRoomLogger.outputRoomState).toHaveBeenCalledWith({ event: "退出", userId: 1, socketId });
+        expect(mockServerLogger.info).toHaveBeenCalledWith("room.left", { roomId: undefined, userId: 1, ...expectedUserFields, reason: "explicit" });
     });
 
-    test("leave はユーザーを取得できない場合も退出処理を行い、取得失敗のログを出力すること", () => {
+    test("leave はユーザーを取得できない場合も退出処理を行うこと", () => {
         mockUserService.getUser.mockReturnValue(undefined);
 
         roomService.leave(999);
 
         expect(mockRoomState.leave).toHaveBeenCalledWith(999);
-        expect(mockRoomLogger.outputRoomState).toHaveBeenCalledWith({
-            event: "退出",
-            userId: 999,
-            socketId: "取得失敗しました",
-        });
+        expect(mockServerLogger.info).toHaveBeenCalledWith("room.left", { roomId: undefined, userId: 999, reason: "explicit" });
     });
 
     test("最後の参加者が退出してルームが削除された場合、得点と AnswerBar の補助状態を破棄する", () => {

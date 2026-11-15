@@ -1,7 +1,7 @@
 import type { Socket } from "socket.io";
 
 import type { Cursor } from "../../shared/excalidraw/Cursor";
-import type { ApplyQuestionResult } from "../../shared/question/QuestionEvents";
+import type { ApplyQuestionRequest, ApplyQuestionResult } from "../../shared/question/QuestionEvents";
 import type { JoinRoomRequest } from "../../shared/room/RoomEvents";
 import { SocketEvents } from "../../shared/SocketEvents";
 import type { UpdateSocketIdRequest } from "../../shared/user/UserEvents";
@@ -13,13 +13,21 @@ import { roomController } from "../features/room/RoomController";
 import type { User } from "../features/user/User";
 import { userController } from "../features/user/UserController";
 import { userService } from "../features/user/UserService";
+import { ServerLogEvents } from "../logging/ServerLogEvents";
+import { serverLogger } from "../logging/ServerLogger";
 
-/** 接続済みソケットのイベントハンドラーを登録する。 */
+/**
+ * 接続済みソケットのイベントハンドラーを登録する。
+ */
 export class SocketController {
-    /** イベントを受信し、同一ルームへの通知にも使用する接続済みソケット。 */
+    /**
+     * イベントを受信し、同一ルームへの通知にも使用する接続済みソケット。
+     */
     private socket: Socket;
 
-    /** この接続に紐付く、登録または再接続済みユーザーの ID。 */
+    /**
+     * この接続に紐付く、登録または再接続済みユーザーの ID。
+     */
     private activeUserId: number | undefined;
 
     /**
@@ -116,6 +124,16 @@ export class SocketController {
             callback(roomController.getRoomId(this.socket));
         });
 
+        this.socket.on(SocketEvents.GET_ROOM_PARTICIPANTS, (message, callback) => {
+            callback(answerBarController.getParticipants(this.activeUserId, message?.roomId));
+        });
+
+        this.socket.on(SocketEvents.KICK_USER, (message, callback) => {
+            callback(
+                answerBarController.kickUser(this.socket, this.activeUserId, message?.roomId, message?.targetUserId),
+            );
+        });
+
         this.socket.on(SocketEvents.SYNC_ELEMENTS, (message) => {
             excalidrawSyncController.send(this.socket, message);
         });
@@ -141,12 +159,15 @@ export class SocketController {
 
         this.socket.on(SocketEvents.APPLY_QUESTION, (message, callback: (result: ApplyQuestionResult) => void) => {
             const result = questionController.apply(this.socket, this.activeUserId, message);
-            console.debug("[apply-question]", {
-                userId: this.activeUserId,
-                roomId: message?.roomId,
-                deleteExternalElements: message?.deleteExternalElements,
-                result,
-            });
+            if (!result.ok) {
+                const request = message as ApplyQuestionRequest | undefined;
+                serverLogger.warn(ServerLogEvents.COMMAND_REJECTED, {
+                    command: SocketEvents.APPLY_QUESTION,
+                    userId: this.activeUserId,
+                    roomId: typeof request?.roomId === "string" ? request.roomId : undefined,
+                    reason: result.reason,
+                });
+            }
             callback(result);
         });
 
@@ -160,6 +181,35 @@ export class SocketController {
 
         this.socket.on(SocketEvents.RESET_SCORES, (message, callback) => {
             callback(questionController.resetScores(this.socket, this.activeUserId, message?.roomId));
+        });
+
+        this.socket.on(SocketEvents.SET_USER_SCORE, (message, callback) => {
+            callback(
+                questionController.setUserScore(
+                    this.socket,
+                    this.activeUserId,
+                    message?.roomId,
+                    message?.targetUserId,
+                    message?.score,
+                ),
+            );
+        });
+
+        this.socket.on(SocketEvents.GET_SCORE_REPORT, (message, callback) => {
+            const scores = questionController.getScoreReport(this.activeUserId, message?.roomId);
+            if (scores) {
+                const room = roomController.getRoom(message.roomId);
+                const user = userService.getUser(this.activeUserId);
+                if (room && user) {
+                    serverLogger.info(ServerLogEvents.SCORES_REPORT_DOWNLOADED, {
+                        roomId: message.roomId,
+                        userId: user.getId(),
+                        userName: user.getName(),
+                        socketId: this.socket.id,
+                    });
+                }
+            }
+            callback(scores);
         });
 
         this.socket.on(SocketEvents.SET_SCORE_LIST_ENABLED, (message, callback) => {

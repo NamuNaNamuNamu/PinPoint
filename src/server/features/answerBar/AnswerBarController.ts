@@ -2,7 +2,7 @@ import type { Socket } from "socket.io";
 
 import type { AnswerBarPositionUpdateRequest } from "../../../shared/answerBar/AnswerBarEvents";
 import { getQuestionTemplate } from "../../../shared/question/QuestionTemplate";
-import type { JoinRoomRequest } from "../../../shared/room/RoomEvents";
+import type { JoinRoomRequest, JoinRoomResponse, RoomParticipant } from "../../../shared/room/RoomEvents";
 import { SocketEvents } from "../../../shared/SocketEvents";
 import { excalidrawCursorSyncController } from "../excalidrawCursor/ExcalidrawCursorSyncController";
 import { questionController } from "../question/QuestionController";
@@ -24,14 +24,14 @@ export class AnswerBarController {
      * @param userId 参加するユーザー ID。
      * @param roomId 参加対象のルーム ID。
      * @param recovery 再接続者が保持する AnswerBar と scene の復元候補。
-     * @returns 成功時はルーム ID、失敗時は `null`。
+     * @returns 成功時は入室先と現在ユーザーのロール。失敗時は `null`。
      */
     public joinRoom(
         socket: Socket,
         userId: number,
         roomId: string,
         recovery?: JoinRoomRequest["recovery"],
-    ): string | null {
+    ): JoinRoomResponse | null {
         const ownerUser = userService.getUser(userId);
         if (!ownerUser) {
             return null;
@@ -57,7 +57,6 @@ export class AnswerBarController {
         if (!response) {
             return null;
         }
-
         const questionId = room.getCurrentQuestionId();
         const question = questionId === undefined ? undefined : getQuestionTemplate(questionId);
         let didRecoverScore = false;
@@ -110,7 +109,61 @@ export class AnswerBarController {
             didRecoverScore ? "recovered" : "snapshot",
             recovery === undefined,
         );
-        return response;
+        return { roomId: response, isCreator: room.isCreatedBy(userId) };
+    }
+
+    /**
+     * ホスト向けに、参加中と再接続猶予中を含む参加者を返す。
+     *
+     * @param userId 一覧を要求するユーザー ID。
+     * @param roomId 参加者を取得するルーム ID。
+     * @returns 参加者一覧。要求者がルームのホストでない場合または対象が不正な場合は `undefined`。
+     */
+    public getParticipants(userId: number | undefined, roomId: unknown): readonly RoomParticipant[] | undefined {
+        if (userId === undefined || typeof roomId !== "string") return undefined;
+        const room = roomController.getRoom(roomId);
+        if (!room || !room.isCreatedBy(userId) || !room.hasUser(userId)) return undefined;
+        return room.getUserIds().flatMap((participantUserId) => {
+            const user = userService.getUser(participantUserId);
+            return user
+                ? [{
+                    userId: participantUserId,
+                    userName: user.getName(),
+                    isCreator: room.isCreatedBy(participantUserId),
+                    connectionStatus: room.isDisconnecting(participantUserId) ? "reconnecting" : "connected",
+                }]
+                : [];
+        });
+    }
+
+    /**
+     * ホストが残留参加者を退出させる。
+     *
+     * 強制退出後の再参加は禁止しない。
+     *
+     * @param socket 強制退出の通知と Socket.IO の退出に使用する接続。
+     * @param actorUserId 強制退出を要求するホストのユーザー ID。
+     * @param roomId 強制退出の対象ルーム ID。
+     * @param targetUserId 強制退出させる参加者のユーザー ID。
+     * @returns 強制退出を実行した場合は `true`。権限または対象が不正な場合は `false`。
+     */
+    public kickUser(socket: Socket, actorUserId: number | undefined, roomId: unknown, targetUserId: unknown): boolean {
+        if (actorUserId === undefined || typeof roomId !== "string" || typeof targetUserId !== "number" || !Number.isInteger(targetUserId)) return false;
+        const room = roomController.getRoom(roomId);
+        if (!room || !room.isCreatedBy(actorUserId) || !room.hasUser(actorUserId) || room.isCreatedBy(targetUserId) || !room.hasUser(targetUserId)) return false;
+        const targetUser = userService.getUser(targetUserId);
+        const removed = answerBarAssignmentState.remove(roomId, targetUserId);
+        if (removed) socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_REMOVED, removed);
+        roomController.leaveUser(targetUserId);
+        socket.nsp.to(roomId).emit(SocketEvents.SCORES_UPDATED, { scores: scoreState.get(roomId), reason: "snapshot" });
+        const targetSocket = targetUser ? socket.nsp.sockets.get(targetUser.getSocketId()) : undefined;
+        if (targetSocket) {
+            excalidrawCursorSyncController.remove(targetSocket);
+            targetSocket.leave(roomId);
+            targetSocket.emit(SocketEvents.ROOM_KICKED, { roomId });
+            targetSocket.disconnect(true);
+        }
+        return true;
     }
 
     /**

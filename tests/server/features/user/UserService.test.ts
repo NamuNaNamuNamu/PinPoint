@@ -7,9 +7,9 @@ const mockUserState = {
     getUserBySocketId: jest.fn(),
     updateUser: jest.fn(),
 };
-const mockUserLogger = { outputUserState: jest.fn() };
+const mockServerLogger = { info: jest.fn() };
 jest.unstable_mockModule("../../../../src/server/features/user/UserState", () => ({ userState: mockUserState }));
-jest.unstable_mockModule("../../../../src/server/logging/UserLogger", () => ({ userLogger: mockUserLogger }));
+jest.unstable_mockModule("../../../../src/server/logging/ServerLogger", () => ({ serverLogger: mockServerLogger }));
 const { UserService } = await import("../../../../src/server/features/user/UserService");
 
 describe("UserService", () => {
@@ -17,7 +17,7 @@ describe("UserService", () => {
     beforeEach(() => {
         userService = new UserService();
         Object.values(mockUserState).forEach((fn) => fn.mockReset());
-        mockUserLogger.outputUserState.mockReset();
+        mockServerLogger.info.mockReset();
     });
 
     test("addUser は連番の User を状態へ追加し、追加ログを出力する", () => {
@@ -30,15 +30,8 @@ describe("UserService", () => {
         expect(mockUserState.addUser).toHaveBeenCalledTimes(2);
         expect(mockUserState.addUser).toHaveBeenNthCalledWith(1, firstUser);
         expect(mockUserState.addUser).toHaveBeenNthCalledWith(2, secondUser);
-        expect(mockUserLogger.outputUserState).toHaveBeenCalledTimes(2);
-        expect(mockUserLogger.outputUserState).toHaveBeenNthCalledWith(1, {
-            event: "追加",
-            userId: firstUser.getId(),
-        });
-        expect(mockUserLogger.outputUserState).toHaveBeenNthCalledWith(2, {
-            event: "追加",
-            userId: secondUser.getId(),
-        });
+        expect(mockServerLogger.info).toHaveBeenNthCalledWith(1, "user.registered", { userId: 1, userName: "Alice", socketId: "socket-1" });
+        expect(mockServerLogger.info).toHaveBeenNthCalledWith(2, "user.registered", { userId: 2, userName: "Bob", socketId: "socket-2" });
     });
 
     test.each([[10], [undefined]])("getUser は ID を適切に処理する: %s", (id) => {
@@ -61,16 +54,13 @@ describe("UserService", () => {
         expect(userService.updateSocketId(10, "after")).toBe(user);
         expect(user.getSocketId()).toBe("after");
         expect(mockUserState.updateUser).toHaveBeenCalledWith(user);
-        expect(mockUserLogger.outputUserState).toHaveBeenCalledWith({
-            event: "socketId 更新 (before -> after)",
-            userId: 10,
-        });
+        expect(mockServerLogger.info).toHaveBeenCalledWith("user.socket_id_updated", { userId: 10, userName: "Alice", previousSocketId: "before", socketId: "after" });
     });
 
     test("updateSocketId は対象がない場合は状態もログも変更しない", () => {
         expect(userService.updateSocketId(99, "after")).toBeUndefined();
         expect(mockUserState.updateUser).not.toHaveBeenCalled();
-        expect(mockUserLogger.outputUserState).not.toHaveBeenCalled();
+        expect(mockServerLogger.info).not.toHaveBeenCalled();
     });
 
     test("updateUserName は前後空白を除いた名前へ更新する", () => {
@@ -80,10 +70,7 @@ describe("UserService", () => {
         expect(userService.updateUserName(10, "  Bob  ")).toBe(user);
         expect(user.getName()).toBe("Bob");
         expect(mockUserState.updateUser).toHaveBeenCalledWith(user);
-        expect(mockUserLogger.outputUserState).toHaveBeenCalledWith({
-            event: "名前更新 (Alice -> Bob)",
-            userId: 10,
-        });
+        expect(mockServerLogger.info).toHaveBeenCalledWith("user.name_updated", { userId: 10, previousUserName: "Alice", userName: "Bob", socketId: "socket-1" });
     });
 
     test.each(["", "   ", "1234567890123"])("updateUserName は無効な名前を更新しない: %s", (userName) => {
@@ -93,6 +80,6 @@ describe("UserService", () => {
         expect(userService.updateUserName(10, userName)).toBeUndefined();
         expect(user.getName()).toBe("Alice");
         expect(mockUserState.updateUser).not.toHaveBeenCalled();
-        expect(mockUserLogger.outputUserState).not.toHaveBeenCalled();
+        expect(mockServerLogger.info).not.toHaveBeenCalled();
     });
 });

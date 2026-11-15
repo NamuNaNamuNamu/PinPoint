@@ -1,7 +1,6 @@
 import type { Socket } from "socket.io";
 
 import { SocketEvents } from "../../../shared/SocketEvents";
-import { socketLogger } from "../../logging/SocketLogger";
 import { scoreState } from "../score/ScoreState";
 import { userService } from "../user/UserService";
 import { Room, ROOM_RECONNECT_GRACE_MS } from "./Room";
@@ -44,10 +43,6 @@ class RoomController {
         if (success) {
             socket.join(roomId);
             this.addScoreParticipant(socket, userId, roomId);
-            socketLogger.outputAllSockets({
-                event: "部屋参加",
-                socketId: socket.id,
-            });
         }
 
         return success ? roomId : null;
@@ -127,10 +122,6 @@ class RoomController {
         roomService.leave(user.getId());
         socket.leave(roomId);
         this.removeScoreParticipant(socket, roomId, user.getId());
-        socketLogger.outputAllSockets({
-            event: `部屋退出 (roomId: ${roomId})`,
-            socketId: socket.id,
-        });
 
         return roomId;
     };

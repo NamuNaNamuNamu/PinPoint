@@ -11,11 +11,9 @@ const mockRoomService = {
     leaveIfStillDisconnected: jest.fn(),
 };
 const mockUserService = { getUserBySocketId: jest.fn(), getUser: jest.fn() };
-const mockSocketLogger = { outputAllSockets: jest.fn() };
 const mockScoreState = { addParticipant: jest.fn(), removeParticipant: jest.fn(), get: jest.fn() };
 jest.unstable_mockModule("../../../../src/server/features/room/RoomService", () => ({ roomService: mockRoomService }));
 jest.unstable_mockModule("../../../../src/server/features/user/UserService", () => ({ userService: mockUserService }));
-jest.unstable_mockModule("../../../../src/server/logging/SocketLogger", () => ({ socketLogger: mockSocketLogger }));
 jest.unstable_mockModule("../../../../src/server/features/score/ScoreState", () => ({ scoreState: mockScoreState }));
 const { roomController } = await import("../../../../src/server/features/room/RoomController");
 
@@ -24,7 +22,6 @@ describe("RoomController", () => {
         Object.values(mockRoomService).forEach((fn) => fn.mockReset());
         mockUserService.getUserBySocketId.mockReset();
         mockUserService.getUser.mockReset();
-        mockSocketLogger.outputAllSockets.mockReset();
         Object.values(mockScoreState).forEach((mock) => mock.mockReset());
     });
 
@@ -38,13 +35,12 @@ describe("RoomController", () => {
         expect(mockRoomService.getRoomIdBySocketId).toHaveBeenCalledWith("socket-1");
     });
 
-    test("joinRoom は成功時だけ Socket.IO 参加とログ出力を行う", () => {
+    test("joinRoom は成功時だけ Socket.IO へ参加する", () => {
         const client = createSocket("socket-1");
         mockRoomService.joinRoom.mockReturnValue(true);
         expect(roomController.joinRoom(client, 1, "room-1")).toBe("room-1");
         expect(mockRoomService.joinRoom).toHaveBeenCalledWith(1, "room-1");
         expect(client.join).toHaveBeenCalledWith("room-1");
-        expect(mockSocketLogger.outputAllSockets).toHaveBeenCalledWith({ event: "部屋参加", socketId: "socket-1" });
     });
 
     test("joinRoom は失敗時に副作用を起こさず null を返す", () => {
@@ -52,7 +48,6 @@ describe("RoomController", () => {
         mockRoomService.joinRoom.mockReturnValue(false);
         expect(roomController.joinRoom(client, 1, "missing")).toBeNull();
         expect(client.join).not.toHaveBeenCalled();
-        expect(mockSocketLogger.outputAllSockets).not.toHaveBeenCalled();
     });
 
     test("非作成者の入室時に得点一覧へ追加して通知する", () => {
@@ -81,16 +76,12 @@ describe("RoomController", () => {
         expect(mockRoomService.getRoomIdBySocketId).toHaveBeenCalledWith("socket-1");
     });
 
-    test("leaveRoom はユーザーがある時だけ退出・ログ出力する", () => {
+    test("leaveRoom はユーザーがある時だけ退出する", () => {
         const client = createSocket("socket-1");
         mockUserService.getUserBySocketId.mockReturnValue({ getId: () => 1 });
         expect(roomController.leaveRoom(client, "room-1")).toBe("room-1");
         expect(mockRoomService.leave).toHaveBeenCalledWith(1);
         expect(client.leave).toHaveBeenCalledWith("room-1");
-        expect(mockSocketLogger.outputAllSockets).toHaveBeenCalledWith({
-            event: "部屋退出 (roomId: room-1)",
-            socketId: "socket-1",
-        });
     });
 
     test("leaveRoom はユーザーがない時に副作用を起こさず null を返す", () => {

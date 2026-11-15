@@ -1,19 +1,9 @@
 import { jest } from "@jest/globals";
 import type { Socket } from "socket.io";
 
-const roomLogger = { outputRoomState: jest.fn() };
-const socketLogger = { outputAllSockets: jest.fn() };
-const userLogger = { outputUserState: jest.fn() };
-jest.unstable_mockModule("../../../../src/server/logging/RoomLogger", () => ({ roomLogger }));
-jest.unstable_mockModule("../../../../src/server/logging/SocketLogger", () => ({ socketLogger }));
-jest.unstable_mockModule("../../../../src/server/logging/UserLogger", () => ({ userLogger }));
-
 describe("RoomController / RoomState integration", () => {
     beforeEach(() => {
         jest.resetModules();
-        roomLogger.outputRoomState.mockReset();
-        socketLogger.outputAllSockets.mockReset();
-        userLogger.outputUserState.mockReset();
     });
 
     test("登録済みユーザーを作成済みルームへ参加させ、公開APIから参加状態を取得できる", async () => {
