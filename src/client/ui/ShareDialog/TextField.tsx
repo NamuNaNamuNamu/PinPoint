@@ -1,109 +1,105 @@
-import clsx from "clsx";
-import {
-  forwardRef,
-  useRef,
-  useImperativeHandle,
-  useLayoutEffect,
-  // useState,
-} from "react";
-
 // import { Button } from "./Button";
 // import { eyeIcon, eyeClosedIcon } from "./icons";
-
 import "./TextField.scss";
 
-import type { KeyboardEvent } from "react";
+import clsx from "clsx";
+import type { InputHTMLAttributes, KeyboardEvent } from "react";
+import {
+    forwardRef,
+    useImperativeHandle,
+    useLayoutEffect,
+    useRef,
+    // useState,
+} from "react";
 
 type TextFieldProps = {
-  onChange?: (value: string) => void;
-  onClick?: () => void;
-  onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+    onChange?: (value: string) => void;
+    onClick?: () => void;
+    onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
 
-  readonly?: boolean;
-  fullWidth?: boolean;
-  selectOnRender?: boolean;
+    readonly?: boolean;
+    fullWidth?: boolean;
+    selectOnRender?: boolean;
 
-  icon?: React.ReactNode;
-  label?: string;
-  className?: string;
-  placeholder?: string;
-  maxLength?: number;
-  isRedacted?: boolean;
-  type?: "text" | "search";
+    icon?: React.ReactNode;
+    label?: string;
+    className?: string;
+    placeholder?: string;
+    maxLength?: number;
+    isRedacted?: boolean;
+    type?: "text" | "search" | "number";
+    inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
 } & ({ value: string } | { defaultValue: string });
 
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
-  (
-    {
-      onChange,
-      label,
-      fullWidth,
-      placeholder,
-      readonly,
-      selectOnRender,
-      onKeyDown,
-      isRedacted = false,
-      icon,
-      className,
-      type,
-      maxLength,
-      ...rest
-    },
-    ref,
-  ) => {
-    const innerRef = useRef<HTMLInputElement | null>(null);
+    (
+        {
+            onChange,
+            label,
+            fullWidth,
+            placeholder,
+            readonly,
+            selectOnRender,
+            onKeyDown,
+            isRedacted = false,
+            icon,
+            className,
+            type,
+            inputMode,
+            maxLength,
+            ...rest
+        },
+        ref,
+    ) => {
+        const innerRef = useRef<HTMLInputElement | null>(null);
 
-    useImperativeHandle(ref, () => innerRef.current!);
+        useImperativeHandle(ref, () => innerRef.current!);
 
-    useLayoutEffect(() => {
-      if (selectOnRender) {
-        // focusing first is needed because vitest/jsdom
-        innerRef.current?.focus();
-        innerRef.current?.select();
-      }
-    }, [selectOnRender]);
-
-    // const [isTemporarilyUnredacted, setIsTemporarilyUnredacted] =
-    //   useState<boolean>(false);
-
-    return (
-      <div
-        className={clsx("ExcTextField", className, {
-          "ExcTextField--fullWidth": fullWidth,
-          "ExcTextField--hasIcon": !!icon,
-        })}
-        onClick={() => {
-          innerRef.current?.focus();
-        }}
-      >
-        {icon}
-        {label && <div className="ExcTextField__label">{label}</div>}
-        <div
-          className={clsx("ExcTextField__input", {
-            "ExcTextField__input--readonly": readonly,
-          })}
-        >
-          <input
-            className={clsx({
-              "is-redacted":
-                "value" in rest &&
-                rest.value &&
-                isRedacted /* && */
-                // !isTemporarilyUnredacted,
-            })}
-            readOnly={readonly}
-            value={"value" in rest ? rest.value : undefined}
-            defaultValue={
-              "defaultValue" in rest ? rest.defaultValue : undefined
+        useLayoutEffect(() => {
+            if (selectOnRender) {
+                // focusing first is needed because vitest/jsdom
+                innerRef.current?.focus();
+                innerRef.current?.select();
             }
-            placeholder={placeholder}
-            maxLength={maxLength}
-            ref={innerRef}
-            onChange={(event) => onChange?.(event.target.value)}
-            onKeyDown={onKeyDown}
-            type={type}
-          />
-          {/* {isRedacted && (
+        }, [selectOnRender]);
+
+        // const [isTemporarilyUnredacted, setIsTemporarilyUnredacted] =
+        //   useState<boolean>(false);
+
+        return (
+            <div
+                className={clsx("ExcTextField", className, {
+                    "ExcTextField--fullWidth": fullWidth,
+                    "ExcTextField--hasIcon": !!icon,
+                })}
+                onClick={() => {
+                    innerRef.current?.focus();
+                }}
+            >
+                {icon}
+                {label && <div className="ExcTextField__label">{label}</div>}
+                <div
+                    className={clsx("ExcTextField__input", {
+                        "ExcTextField__input--readonly": readonly,
+                    })}
+                >
+                    <input
+                        className={clsx({
+                            "is-redacted": "value" in rest && rest.value && isRedacted /* && */,
+                            // !isTemporarilyUnredacted,
+                        })}
+                        readOnly={readonly}
+                        value={"value" in rest ? rest.value : undefined}
+                        defaultValue={"defaultValue" in rest ? rest.defaultValue : undefined}
+                        placeholder={placeholder}
+                        maxLength={maxLength}
+                        ref={innerRef}
+                        onChange={(event) => onChange?.(event.target.value)}
+                        onKeyDown={onKeyDown}
+                        type={type}
+                        inputMode={inputMode}
+                    />
+                    {/* {isRedacted && (
             <Button
               onSelect={() =>
                 setIsTemporarilyUnredacted(!isTemporarilyUnredacted)
@@ -113,8 +109,8 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
               {isTemporarilyUnredacted ? eyeClosedIcon : eyeIcon}
             </Button>
           )} */}
-        </div>
-      </div>
-    );
-  },
+                </div>
+            </div>
+        );
+    },
 );
