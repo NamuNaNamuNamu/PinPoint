@@ -1,0 +1,54 @@
+.excalidraw {
+    .RoomSettingsDialog {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+
+        &__title,
+        &__sectionTitle,
+        &__current {
+            margin: 0;
+        }
+
+        &__title {
+            font-size: 1.5rem;
+        }
+
+        &__section {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 0.5rem 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--dialog-border-color);
+        }
+
+        &__section:last-child {
+            padding-bottom: 0;
+            border-bottom: 0;
+        }
+
+        &__sectionTitle {
+            font-size: 1rem;
+        }
+
+        &__current {
+            margin-top: 0.5rem;
+            color: var(--color-on-surface-variant);
+        }
+    }
+}
+
+@media (max-width: 600px) {
+    .excalidraw {
+        .RoomSettingsDialog {
+            &__section {
+                grid-template-columns: 1fr;
+            }
+
+            .ExcButton {
+                justify-self: start;
+            }
+        }
+    }
+}

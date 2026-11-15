@@ -107,13 +107,7 @@ export function ProblemOperationDialog({ roomId, closeDialog }: Props) {
                 <hr className="ProblemOperationDialog__divider" />
                 <section className="ProblemOperationDialog__section ProblemOperationDialog__answerSection">
                     <h3 className="ProblemOperationDialog__sectionTitle">現在の問題の解答</h3>
-                    <FilledButton
-                        disabled={!currentQuestion}
-                        label="表示"
-                        size="large"
-                        variant="outlined"
-                        onClick={reveal}
-                    />
+                    <FilledButton disabled={!currentQuestion} label="表示" size="large" onClick={reveal} />
                 </section>
             </div>
         </Dialog>
