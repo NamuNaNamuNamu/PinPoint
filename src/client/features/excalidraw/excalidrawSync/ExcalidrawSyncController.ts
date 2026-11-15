@@ -1,6 +1,8 @@
 import { reconcileElements } from "@excalidraw/excalidraw";
 import type { ReconciledExcalidrawElement, RemoteExcalidrawElement } from "@excalidraw/excalidraw/data/reconcile";
 
+import type { ElementsSyncMessage } from "../../../../shared/excalidraw/ElementsSyncEvents";
+import { socketController } from "../../../socket/SocketController";
 import { answerBarSceneController } from "../../answerBar/AnswerBarSceneController";
 import { excalidrawAPIHolder } from "../ExcalidrawAPIHolder";
 import { excalidrawSyncState } from "./ExcalidrawSyncState";
@@ -19,7 +21,9 @@ class ExcalidrawSyncController {
      *
      * @param remoteElements 他クライアントが送信した scene 要素。
      */
-    public syncElements = (remoteElements: readonly RemoteExcalidrawElement[]): void => {
+    public syncElements = (message: ElementsSyncMessage): void => {
+        socketController.setSyncEpoch(message.epoch);
+        const remoteElements = message.elements as readonly RemoteExcalidrawElement[];
         try {
             const api = excalidrawAPIHolder.getApi();
             const normalizedRemoteElements = answerBarSceneController.normalizeRemoteElements(remoteElements);

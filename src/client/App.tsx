@@ -10,8 +10,8 @@ import { excalidrawSyncState } from "./features/excalidraw/excalidrawSync/Excali
 import { handlePointerChange } from "./features/excalidraw/handlePointerChange.ts";
 import { useExcalidrawSceneInitialization } from "./features/excalidraw/useExcalidrawSceneInitialization";
 import { useRoomConnection } from "./features/room/useRoomConnection";
-import { CurrentScore } from "./ui/CurrentScore";
 import { ConnectionStatus } from "./ui/ConnectionStatus";
+import { CurrentScore } from "./ui/CurrentScore";
 import ExcalidrawMainMenu from "./ui/ExcalidrawMainMenu.tsx";
 
 function App() {
@@ -27,7 +27,10 @@ function App() {
                 excalidrawAPI={(api) => {
                     setExcalidrawAPI(api);
                     excalidrawAPIHolder.setApi(api);
-                    excalidrawSyncController.syncElements(excalidrawSyncState.getRemoteElements());
+                    excalidrawSyncController.syncElements({
+                        epoch: 0,
+                        elements: excalidrawSyncState.getRemoteElements(),
+                    });
                 }}
                 onPointerUpdate={(payload) => {
                     handlePointerChange(payload);

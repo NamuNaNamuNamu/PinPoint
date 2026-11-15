@@ -134,3 +134,54 @@ export const listOrderedIcon = createIcon(
     </>,
     tablerIconProps,
 );
+
+/** オリジナルアイコン、問題操作。 */
+export const fileQuestionIcon = createIcon(
+    <>
+        <path d="M12 17h.01" />
+        <path d="M12 13a2 2 0 1 0 -2 -2" />
+        <path d="M14 2H6a2 2 0 0 0 -2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2V8z" />
+        <path d="M14 2v6h6" />
+    </>,
+    tablerIconProps,
+);
+
+/** オリジナルアイコン、ルーム設定。 */
+export const settings2Icon = createIcon(
+    <>
+        <path d="M14 17H5" />
+        <path d="M19 7h-9" />
+        <circle cx="17" cy="17" r="3" />
+        <circle cx="7" cy="7" r="3" />
+    </>,
+    tablerIconProps,
+);
+
+/** オリジナルアイコン、参加者管理。 */
+export const userRoundCogIcon = createIcon(
+    <>
+        <path d="M2 21a8 8 0 0 1 10.4 -7.6" />
+        <circle cx="10" cy="7" r="4" />
+        <circle cx="18" cy="18" r="3" />
+        <path d="M18 13v2" />
+        <path d="M18 21v2" />
+        <path d="M13 18h2" />
+        <path d="M21 18h2" />
+        <path d="m14.5 14.5 1.4 1.4" />
+        <path d="m20.1 20.1 1.4 1.4" />
+        <path d="m21.5 14.5 -1.4 1.4" />
+        <path d="m15.9 20.1 -1.4 1.4" />
+    </>,
+    tablerIconProps,
+);
+
+/** オリジナルアイコン、得点一覧ダウンロード。 */
+export const fileDownIcon = createIcon(
+    <>
+        <path d="M12 17V10" />
+        <path d="m9 14 3 3 3 -3" />
+        <path d="M14 2H6a2 2 0 0 0 -2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2V8z" />
+        <path d="M14 2v6h6" />
+    </>,
+    tablerIconProps,
+);

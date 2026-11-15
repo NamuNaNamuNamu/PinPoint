@@ -87,7 +87,7 @@ class QuestionSceneController {
             );
         this.managedElementIds.clear();
         this.currentQuestion = payload.question;
-        questionStore.set(true);
+        questionStore.setCurrentQuestion(payload.question);
         setSliders(payload.question.sliders);
         answerBarSceneController.setAnswerBarReveal(payload.answerBarReveal);
         const elements = convertToExcalidrawElements(this.getQuestionSkeletons(), { regenerateIds: false });
@@ -184,7 +184,7 @@ class QuestionSceneController {
         });
         this.managedElementIds.clear();
         this.currentQuestion = undefined;
-        questionStore.set(false);
+        questionStore.setCurrentQuestion(undefined);
         setSliders([]);
     }
 

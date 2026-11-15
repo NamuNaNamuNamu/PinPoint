@@ -1,6 +1,7 @@
 import { ServerLogEvents } from "../../logging/ServerLogEvents";
 import { serverLogger } from "../../logging/ServerLogger";
 import { answerBarAssignmentState } from "../answerBar/AnswerBarAssignmentState";
+import { excalidrawSyncController } from "../excalidrawSync/ExcalidrawSyncController";
 import { scoreState } from "../score/ScoreState";
 import { userService } from "../user/UserService";
 import { Room } from "./Room";
@@ -138,6 +139,7 @@ export class RoomService {
         }
         answerBarAssignmentState.clear(roomId);
         scoreState.clear(roomId);
+        excalidrawSyncController.clear(roomId);
     }
 }
 
