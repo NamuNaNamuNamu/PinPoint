@@ -9,8 +9,6 @@ import type { QuestionTemplate } from "../../../src/shared/question/QuestionTemp
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 type ApplyQuestion = (typeof import("../../../src/client/socket/SocketController").socketController)["applyQuestion"];
-type ControlCurrentQuestion =
-    (typeof import("../../../src/client/socket/SocketController").socketController)["controlCurrentQuestion"];
 type RevealQuestion = (typeof import("../../../src/client/socket/SocketController").socketController)["revealQuestion"];
 type UseCurrentQuestion = () => QuestionTemplate | undefined;
 
@@ -42,7 +40,6 @@ const questionTemplates = [
 const getQuestionTemplate = jest.fn<(questionId: number) => QuestionTemplate | undefined>();
 const useCurrentQuestion = jest.fn<UseCurrentQuestion>();
 const applyQuestion = jest.fn<ApplyQuestion>();
-const controlCurrentQuestion = jest.fn<ControlCurrentQuestion>();
 const revealQuestion = jest.fn<RevealQuestion>();
 
 jest.unstable_mockModule("../../../src/shared/question/QuestionTemplate", () => ({
@@ -51,7 +48,7 @@ jest.unstable_mockModule("../../../src/shared/question/QuestionTemplate", () => 
 }));
 jest.unstable_mockModule("../../../src/client/features/question/questionStore", () => ({ useCurrentQuestion }));
 jest.unstable_mockModule("../../../src/client/socket/SocketController", () => ({
-    socketController: { applyQuestion, controlCurrentQuestion, revealQuestion },
+    socketController: { applyQuestion, revealQuestion },
 }));
 jest.unstable_mockModule("../../../src/client/ui/ShareDialog/Dialog", () => ({
     Dialog: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -114,7 +111,6 @@ describe("ProblemOperationDialog", () => {
         );
         useCurrentQuestion.mockReturnValue(questionTemplates[0]);
         applyQuestion.mockResolvedValue({ ok: true });
-        controlCurrentQuestion.mockResolvedValue({ ok: true });
         container = document.createElement("div");
         document.body.append(container);
         root = createRoot(container);
@@ -175,8 +171,22 @@ describe("ProblemOperationDialog", () => {
             questionId: 2,
             deleteExternalElements: true,
             scrollToContent: true,
-            answerBarReveal: false,
         });
+    });
+
+    test("解答表示は現在問題に対する専用 API だけを呼び出すこと", async () => {
+        await renderDialog(root);
+
+        const revealButton = container.querySelector('button[aria-label="表示"]');
+        if (!revealButton) {
+            throw new Error("解答表示ボタンが表示されていません。");
+        }
+
+        await act(async () => {
+            revealButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        expect(revealQuestion).toHaveBeenCalledWith("room-1");
     });
 
     test("解答の表示は適用と同じ primary filled large でアイコンを表示しないこと", async () => {

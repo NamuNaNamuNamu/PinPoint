@@ -1,17 +1,9 @@
 export type InitialRoomCommand = {
     roomId: string;
-    questionId: number | undefined;
     deleteExternalElements: boolean;
-    answerReveal: boolean;
-    answerBarReveal: boolean | undefined;
-    scrollToContent: boolean;
-    hasScrollToContentParam: boolean;
     scoreReset: boolean;
-    scoreListEnabled: boolean | undefined;
-    cursorRevealed: boolean | undefined;
     scoreSetUser?: number;
     scoreSetValue?: number;
-    kickUser?: number;
 };
 
 class Url {
@@ -30,17 +22,6 @@ class Url {
     };
 
     /**
-     * URL の `question` パラメータを正の整数として取得する。
-     *
-     * @returns 問題 ID。未指定または正の整数以外の場合は `undefined`。
-     */
-    public getQuestionIdFromParams = (): number | undefined => {
-        const value = new URLSearchParams(window.location.search).get("question");
-        const questionId = Number(value);
-        return Number.isInteger(questionId) && questionId > 0 ? questionId : undefined;
-    };
-
-    /**
      * URL の `deleteExternalElements` が文字列 `true` かを判定する。
      *
      * @returns `true` が明示された場合は `true`。
@@ -50,69 +31,12 @@ class Url {
     };
 
     /**
-     * URL の `answerReveal` が文字列 `true` かを判定する。
-     *
-     * @returns `true` が明示された場合は `true`。
-     */
-    public shouldAnswerReveal = (): boolean => {
-        return new URLSearchParams(window.location.search).get("answerReveal") === "true";
-    };
-
-    /**
-     * URL の `answerBarReveal` を AnswerBar の全体公開状態として取得する。
-     *
-     * @returns `true` または `false` が明示された場合だけその値。未指定または無効値は `undefined`。
-     */
-    public getAnswerBarRevealFromParams = (): boolean | undefined => {
-        const value = new URLSearchParams(window.location.search).get("answerBarReveal");
-        return value === "true" ? true : value === "false" ? false : undefined;
-    };
-
-    /**
-     * URL の `scrollToContent` に従い、問題適用後に表示範囲を合わせるかを判定する。
-     *
-     * @returns 文字列 `true` が明示された場合だけ `true`。未指定を含むそれ以外は `false`。
-     */
-    public shouldScrollToContent = (): boolean => {
-        return new URLSearchParams(window.location.search).get("scrollToContent") === "true";
-    };
-
-    /**
-     * URL に `scrollToContent` が明示されているかを判定する。
-     *
-     * @returns パラメータが存在する場合は `true`。
-     */
-    public hasScrollToContentParam = (): boolean => {
-        return new URLSearchParams(window.location.search).has("scrollToContent");
-    };
-
-    /**
      * URL の `scoreReset` が文字列 `true` かを判定する。
      *
      * @returns `true` が明示された場合は `true`。
      */
     public shouldResetScores = (): boolean => {
         return new URLSearchParams(window.location.search).get("scoreReset") === "true";
-    };
-
-    /**
-     * URL の `scoreListEnabled` を表示可否として取得する。
-     *
-     * @returns `true` または `false` が明示された場合だけその値。未指定または無効値は `undefined`。
-     */
-    public getScoreListEnabledFromParams = (): boolean | undefined => {
-        const value = new URLSearchParams(window.location.search).get("scoreListEnabled");
-        return value === "true" ? true : value === "false" ? false : undefined;
-    };
-
-    /**
-     * URL の `cursorRevealed` を共有カーソルの公開状態として取得する。
-     *
-     * @returns `true` または `false` が明示された場合だけその値。未指定または無効値は `undefined`。
-     */
-    public getCursorRevealedFromParams = (): boolean | undefined => {
-        const value = new URLSearchParams(window.location.search).get("cursorRevealed");
-        return value === "true" ? true : value === "false" ? false : undefined;
     };
 
     /**
@@ -140,18 +64,6 @@ class Url {
     };
 
     /**
-     * URL の `kickUser` を強制退出対象の正の整数として取得する。
-     *
-     * @returns 正の整数が指定された場合はそのユーザー ID。未指定または無効値の場合は `undefined`。
-     */
-    public getKickUserFromParams = (): number | undefined => {
-        const rawValue = new URLSearchParams(window.location.search).get("kickUser");
-        if (rawValue === null) return undefined;
-        const value = Number(rawValue);
-        return Number.isInteger(value) && value > 0 ? value : undefined;
-    };
-
-    /**
      * 現在の URL を、ページ遷移時に一度だけ実行する入室・問題操作として読み取る。
      *
      * @returns room パラメータがある場合はその操作内容。ない場合は `undefined`。
@@ -164,22 +76,14 @@ class Url {
 
         return {
             roomId,
-            questionId: this.getQuestionIdFromParams(),
             deleteExternalElements: this.shouldDeleteExternalElements(),
-            answerReveal: this.shouldAnswerReveal(),
-            answerBarReveal: this.getAnswerBarRevealFromParams(),
-            scrollToContent: this.shouldScrollToContent(),
-            hasScrollToContentParam: this.hasScrollToContentParam(),
             scoreReset: this.shouldResetScores(),
-            scoreListEnabled: this.getScoreListEnabledFromParams(),
-            cursorRevealed: this.getCursorRevealedFromParams(),
             ...(this.getScoreSetUserFromParams() === undefined
                 ? {}
                 : { scoreSetUser: this.getScoreSetUserFromParams() }),
             ...(this.getScoreSetValueFromParams() === undefined
                 ? {}
                 : { scoreSetValue: this.getScoreSetValueFromParams() }),
-            ...(this.getKickUserFromParams() === undefined ? {} : { kickUser: this.getKickUserFromParams() }),
         };
     };
 

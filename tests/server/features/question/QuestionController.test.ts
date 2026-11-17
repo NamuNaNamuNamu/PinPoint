@@ -32,7 +32,6 @@ describe("QuestionController", () => {
             hasUser: jest.fn().mockReturnValue(true),
             getUserIds: jest.fn().mockReturnValue([1]),
             setCurrentQuestionId: jest.fn(),
-            setAnswerBarReveal: jest.fn(),
             isAnswerBarRevealed: jest.fn().mockReturnValue(true),
         };
         const socket = createSocket();
@@ -47,7 +46,6 @@ describe("QuestionController", () => {
         });
 
         expect(room.setCurrentQuestionId).toHaveBeenCalledWith(1);
-        expect(room.setAnswerBarReveal).toHaveBeenCalledWith(true);
         expect(mockAnswerBarAssignmentState.reset).toHaveBeenCalledWith("room-1", [], expect.any(Array));
         expect(socket.nsp.to).toHaveBeenCalledWith("room-1");
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(
@@ -56,13 +54,12 @@ describe("QuestionController", () => {
         );
     });
 
-    test("問題適用時の answerBarReveal=false を保持して全参加者へ配信する", () => {
+    test("問題適用時は Room が復元した AnswerBar 公開状態を全参加者へ配信する", () => {
         const room = {
             isCreatedBy: jest.fn().mockReturnValue(true),
             hasUser: jest.fn().mockReturnValue(true),
             getUserIds: jest.fn().mockReturnValue([1]),
             setCurrentQuestionId: jest.fn(),
-            setAnswerBarReveal: jest.fn(),
             isAnswerBarRevealed: jest.fn().mockReturnValue(false),
         };
         const socket = createSocket();
@@ -74,11 +71,10 @@ describe("QuestionController", () => {
                 roomId: "room-1",
                 questionId: 1,
                 deleteExternalElements: false,
-                answerBarReveal: false,
             }),
         ).toEqual({ ok: true });
 
-        expect(room.setAnswerBarReveal).toHaveBeenCalledWith(false);
+        expect(room.setCurrentQuestionId).toHaveBeenCalledWith(1);
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(
             SocketEvents.QUESTION_APPLIED,
             expect.objectContaining({ answerBarReveal: false }),
@@ -323,7 +319,8 @@ describe("QuestionController", () => {
             hasUser: jest.fn().mockReturnValue(true),
             getCurrentQuestionId: jest.fn().mockReturnValue(1),
             isAnswerRevealed: jest.fn().mockReturnValue(false),
-            revealAnswer: jest.fn(),
+            revealAnswer: jest.fn().mockReturnValue(true),
+            isAnswerBarRevealed: jest.fn().mockReturnValue(true),
         };
         const socket = createSocket();
         mockRoomController.getRoom.mockReturnValue(room);
@@ -334,6 +331,14 @@ describe("QuestionController", () => {
 
         expect(room.revealAnswer).toHaveBeenCalledTimes(1);
         expect(mockScoreState.addQuestionScores).toHaveBeenCalledTimes(1);
+        expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(
+            SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS,
+            expect.objectContaining({ syncEpoch: expect.any(Number) }),
+        );
+        expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.QUESTION_SCROLL_TO_CONTENT);
+        expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.ANSWER_BAR_REVEAL_UPDATED, {
+            answerBarReveal: true,
+        });
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.QUESTION_REVEALED, { questionId: 1 });
         expect(socket.nsp.to("room-1").emit).toHaveBeenCalledWith(SocketEvents.SCORES_UPDATED, {
             scores: [{ userId: 1, userName: "Alice", score: 100 }],

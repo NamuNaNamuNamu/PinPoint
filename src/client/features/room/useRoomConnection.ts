@@ -81,31 +81,11 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 command,
             });
 
-            if (command.questionId !== undefined) {
-                const result = await socketController.applyQuestion({
-                    roomId: command.roomId,
-                    questionId: command.questionId,
-                    deleteExternalElements: command.deleteExternalElements,
-                    scrollToContent: command.scrollToContent,
-                    ...(command.answerBarReveal === undefined ? {} : { answerBarReveal: command.answerBarReveal }),
-                });
-                console.debug("[initial-room-command] apply-question acknowledged", {
-                    socketId: socketController.getSocketId(),
-                    result,
-                });
-                if (!result.ok) {
-                    return;
-                }
-            } else if (
-                command.deleteExternalElements ||
-                command.hasScrollToContentParam ||
-                command.answerBarReveal !== undefined
-            ) {
+            if (command.deleteExternalElements) {
                 const result = await socketController.controlCurrentQuestion({
                     roomId: command.roomId,
-                    deleteExternalElements: command.deleteExternalElements,
-                    scrollToContent: command.scrollToContent,
-                    ...(command.answerBarReveal === undefined ? {} : { answerBarReveal: command.answerBarReveal }),
+                    deleteExternalElements: true,
+                    scrollToContent: false,
                 });
                 if (!result.ok) {
                     return;
@@ -119,20 +99,6 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                 }
             }
 
-            if (command.scoreListEnabled !== undefined) {
-                const result = await socketController.setScoreListEnabled(command.roomId, command.scoreListEnabled);
-                if (!result.ok) {
-                    return;
-                }
-            }
-
-            if (command.cursorRevealed !== undefined) {
-                const result = await socketController.setCursorRevealed(command.roomId, command.cursorRevealed);
-                if (!result.ok) {
-                    return;
-                }
-            }
-
             if (command.scoreSetUser !== undefined && command.scoreSetValue !== undefined) {
                 const result = await socketController.setUserScore(
                     command.roomId,
@@ -140,15 +106,6 @@ export function useRoomConnection({ enabled }: Props): RoomConnection {
                     command.scoreSetValue,
                 );
                 if (!result.ok) return;
-            }
-
-            if (command.kickUser !== undefined) {
-                const kicked = await socketController.kickUser(command.roomId, command.kickUser);
-                if (!kicked) return;
-            }
-
-            if (command.answerReveal) {
-                socketController.revealQuestion(command.roomId);
             }
 
             url.replaceRoomUrl(command.roomId);

@@ -27,16 +27,21 @@ describe("RoomState", () => {
         expect(first.getSocketIds()).toEqual([]);
     });
 
-    test("AnswerBar は既定で公開され、新しい問題の適用時にも公開状態へ戻る", () => {
+    test("解答表示で強制公開した AnswerBar は次の問題適用時に解答表示前の状態へ戻る", () => {
         const room = roomState.addRoom(1);
 
         expect(room.isAnswerBarRevealed()).toBe(true);
+        room.setCurrentQuestionId(1);
         expect(room.setAnswerBarReveal(false)).toBe(true);
         expect(room.isAnswerBarRevealed()).toBe(false);
-
-        room.setCurrentQuestionId(1);
-
+        expect(room.revealAnswer()).toBe(true);
         expect(room.isAnswerBarRevealed()).toBe(true);
+        expect(room.isAnswerRevealed()).toBe(true);
+
+        room.setCurrentQuestionId(2);
+
+        expect(room.isAnswerBarRevealed()).toBe(false);
+        expect(room.isAnswerRevealed()).toBe(false);
     });
 
     test("共有カーソルは既定で公開され、問題の切替後も公開状態を保持する", () => {

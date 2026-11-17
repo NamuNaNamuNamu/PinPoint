@@ -17,6 +17,7 @@ export class Room {
     private answerRevealed = false;
     private answerRevealedAt: number | undefined;
     private answerBarReveal = true;
+    private answerBarRevealBeforeAnswerReveal: boolean | undefined;
     private cursorRevealed = true;
     private scoreListEnabled = true;
     private readonly disconnectTokensByUserId = new Map<number, string>();
@@ -71,19 +72,35 @@ export class Room {
     /**
      * 現在の問題を設定し、正解表示を隠す。
      *
+     * 解答表示で一時的に公開した AnswerBar は、表示前に保存した公開状態へ戻す。
+     *
      * @param questionId 新たに適用する問題 ID。
      */
     public setCurrentQuestionId(questionId: number): void {
         this.currentQuestionId = questionId;
         this.answerRevealed = false;
         this.answerRevealedAt = undefined;
-        this.answerBarReveal = true;
+        if (this.answerBarRevealBeforeAnswerReveal !== undefined) {
+            this.answerBarReveal = this.answerBarRevealBeforeAnswerReveal;
+            this.answerBarRevealBeforeAnswerReveal = undefined;
+        }
     }
 
-    /** 現在の問題の正解を表示済みにする。 */
-    public revealAnswer(): void {
+    /**
+     * 現在の問題の正解を表示済みにし、AnswerBar を一時的に全参加者へ公開する。
+     *
+     * 次の問題適用時に復元できるよう、公開状態を変更する前の値を保存する。
+     *
+     * @returns AnswerBar の公開状態を変更した場合は `true`。
+     */
+    public revealAnswer(): boolean {
+        if (this.answerRevealed) {
+            return false;
+        }
+        this.answerBarRevealBeforeAnswerReveal = this.answerBarReveal;
         this.answerRevealed = true;
         this.answerRevealedAt = Date.now();
+        return this.setAnswerBarReveal(true);
     }
 
     /**
