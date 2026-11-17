@@ -57,8 +57,7 @@ class QuestionController {
             !request ||
             userId === undefined ||
             (request.deleteExternalElements !== true && request.deleteExternalElements !== false) ||
-            (request.scrollToContent !== undefined && typeof request.scrollToContent !== "boolean") ||
-            (request.answerBarReveal !== undefined && typeof request.answerBarReveal !== "boolean")
+            (request.scrollToContent !== undefined && typeof request.scrollToContent !== "boolean")
         ) {
             return { ok: false, reason: "invalid-request" };
         }
@@ -81,7 +80,6 @@ class QuestionController {
         const syncEpoch = request.deleteExternalElements
             ? excalidrawSyncController.reset(request.roomId)
             : externalElementsState.getEpoch(request.roomId);
-        room.setAnswerBarReveal(request.answerBarReveal ?? true);
         const users = room.getUserIds().flatMap((participantUserId) => {
             if (room.isCreatedBy(participantUserId)) {
                 return [];
@@ -110,6 +108,8 @@ class QuestionController {
     /**
      * 作成者からの正解表示を検証し、現在の問題を表示状態へ切り替える。
      *
+     * 正解表示前に管理外要素を削除して現在問題へ表示範囲を合わせ、AnswerBar を一時的に公開する。
+     *
      * @param socket 要求元の Socket.IO 接続。
      * @param userId 要求元ユーザー ID。
      * @param roomId 対象ルーム ID。
@@ -126,7 +126,14 @@ class QuestionController {
         if (room.isAnswerRevealed()) {
             return;
         }
-        room.revealAnswer();
+        const syncEpoch = excalidrawSyncController.reset(roomId);
+        socket.nsp.to(roomId).emit(SocketEvents.QUESTION_REMOVE_EXTERNAL_ELEMENTS, { syncEpoch });
+        socket.nsp.to(roomId).emit(SocketEvents.QUESTION_SCROLL_TO_CONTENT);
+        if (room.revealAnswer()) {
+            socket.nsp.to(roomId).emit(SocketEvents.ANSWER_BAR_REVEAL_UPDATED, {
+                answerBarReveal: room.isAnswerBarRevealed(),
+            } satisfies AnswerBarRevealUpdated);
+        }
         const scores = scoreState.addQuestionScores(
             roomId,
             getQuestionTemplate(questionId)!,

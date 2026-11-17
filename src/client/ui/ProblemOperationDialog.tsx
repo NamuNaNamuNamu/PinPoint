@@ -34,17 +34,10 @@ export function ProblemOperationDialog({ roomId, closeDialog }: Props) {
             questionId: targetQuestion.id,
             deleteExternalElements: true,
             scrollToContent: true,
-            answerBarReveal: false,
         });
     };
-    const reveal = async () => {
-        const result = await socketController.controlCurrentQuestion({
-            roomId,
-            deleteExternalElements: true,
-            scrollToContent: true,
-            answerBarReveal: true,
-        });
-        if (result.ok) socketController.revealQuestion(roomId);
+    const reveal = () => {
+        socketController.revealQuestion(roomId);
     };
 
     return (
