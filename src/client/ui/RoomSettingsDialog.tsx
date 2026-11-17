@@ -39,7 +39,7 @@ export function RoomSettingsDialog({ roomId, closeDialog }: Props) {
                 </section>
                 <section className="RoomSettingsDialog__section">
                     <div>
-                        <h3 className="RoomSettingsDialog__sectionTitle">他チーム正解バー表示</h3>
+                        <h3 className="RoomSettingsDialog__sectionTitle">他チーム回答バー表示</h3>
                         <p className="RoomSettingsDialog__current">現在: {answerBarReveal ? "表示中" : "非表示"}</p>
                     </div>
                     <FilledButton

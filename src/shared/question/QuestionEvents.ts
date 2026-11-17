@@ -9,7 +9,6 @@ export type ApplyQuestionRequest = {
     questionId: number;
     deleteExternalElements: boolean;
     scrollToContent?: boolean;
-    answerBarReveal?: boolean;
 };
 
 /**

@@ -5,11 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 
 import type { InitialRoomCommand } from "../../../../src/client/features/url/Url";
 import type { UserParams } from "../../../../src/server/features/user/User";
-import type {
-    ApplyQuestionRequest,
-    ApplyQuestionResult,
-    ControlCurrentQuestionRequest,
-} from "../../../../src/shared/question/QuestionEvents";
+import type { ApplyQuestionResult, ControlCurrentQuestionRequest } from "../../../../src/shared/question/QuestionEvents";
 import type { JoinRoomResponse } from "../../../../src/shared/room/RoomEvents";
 
 type ConnectListener = () => void;
@@ -18,14 +14,9 @@ type OnDisconnect = (listener: ConnectListener) => () => void;
 type GetUser = (userId: number | undefined) => Promise<UserParams | undefined>;
 type UpdateSocketId = (userId: number | undefined) => Promise<UserParams | undefined>;
 type RegisterUser = (userName: string) => Promise<UserParams>;
-type ApplyQuestion = (request: ApplyQuestionRequest) => Promise<ApplyQuestionResult>;
 type ControlCurrentQuestion = (request: ControlCurrentQuestionRequest) => Promise<ApplyQuestionResult>;
 type ResetScores = (roomId: string) => Promise<ApplyQuestionResult>;
-type SetScoreListEnabled =
-    (typeof import("../../../../src/client/socket/SocketController").socketController)["setScoreListEnabled"];
-type SetCursorRevealed =
-    (typeof import("../../../../src/client/socket/SocketController").socketController)["setCursorRevealed"];
-type RevealQuestion = (roomId: string) => void;
+type SetUserScore = (typeof import("../../../../src/client/socket/SocketController").socketController)["setUserScore"];
 type GetSocketId = () => string | undefined;
 type JoinRoom = (userId: number, roomId: string) => Promise<JoinRoomResponse | null>;
 type GetUserIdForCurrentNavigation = () => number | undefined;
@@ -42,12 +33,9 @@ const onDisconnect = jest.fn<OnDisconnect>();
 const getUser = jest.fn<GetUser>();
 const updateSocketId = jest.fn<UpdateSocketId>();
 const registerUser = jest.fn<RegisterUser>();
-const applyQuestion = jest.fn<ApplyQuestion>();
 const controlCurrentQuestion = jest.fn<ControlCurrentQuestion>();
 const resetScores = jest.fn<ResetScores>();
-const setScoreListEnabled = jest.fn<SetScoreListEnabled>();
-const setCursorRevealed = jest.fn<SetCursorRevealed>();
-const revealQuestion = jest.fn<RevealQuestion>();
+const setUserScore = jest.fn<SetUserScore>();
 const getSocketId = jest.fn<GetSocketId>();
 const joinRoom = jest.fn<JoinRoom>();
 const getUserIdForCurrentNavigation = jest.fn<GetUserIdForCurrentNavigation>();
@@ -79,12 +67,9 @@ jest.unstable_mockModule("../../../../src/client/socket/SocketController", () =>
         getUser,
         updateSocketId,
         registerUser,
-        applyQuestion,
         controlCurrentQuestion,
         resetScores,
-        setScoreListEnabled,
-        setCursorRevealed,
-        revealQuestion,
+        setUserScore,
         getSocketId,
     },
 }));
@@ -132,25 +117,16 @@ describe("useRoomConnection", () => {
         getUser.mockResolvedValue({ id: 1, name: "名無し", socketId: "socket-1" });
         updateSocketId.mockResolvedValue({ id: 1, name: "名無し", socketId: "socket-1" });
         registerUser.mockResolvedValue({ id: 1, name: "名無し", socketId: "socket-1" });
-        applyQuestion.mockResolvedValue({ ok: true });
         controlCurrentQuestion.mockResolvedValue({ ok: true });
         resetScores.mockResolvedValue({ ok: true });
-        setScoreListEnabled.mockResolvedValue({ ok: true });
-        setCursorRevealed.mockResolvedValue({ ok: true });
+        setUserScore.mockResolvedValue({ ok: true });
         getSocketId.mockReturnValue("socket-1");
         joinRoom.mockResolvedValue({ roomId: "room-1", isCreator: true });
         waitForInitialUrlControlReadiness.mockResolvedValue(undefined);
         getInitialRoomCommand.mockReturnValue({
             roomId: "room-1",
-            questionId: 1,
             deleteExternalElements: true,
-            answerReveal: true,
-            answerBarReveal: undefined,
-            scrollToContent: true,
-            hasScrollToContentParam: true,
             scoreReset: false,
-            scoreListEnabled: undefined,
-            cursorRevealed: undefined,
         });
         container = document.createElement("div");
         document.body.append(container);
@@ -169,13 +145,11 @@ describe("useRoomConnection", () => {
 
         expect(getInitialRoomCommand).toHaveBeenCalledTimes(1);
         expect(joinRoom).toHaveBeenCalledWith(1, "room-1");
-        expect(applyQuestion).toHaveBeenCalledWith({
+        expect(controlCurrentQuestion).toHaveBeenCalledWith({
             roomId: "room-1",
-            questionId: 1,
             deleteExternalElements: true,
-            scrollToContent: true,
+            scrollToContent: false,
         });
-        expect(revealQuestion).toHaveBeenCalledWith("room-1");
         expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
 
         const listener = connectListener;
@@ -193,42 +167,23 @@ describe("useRoomConnection", () => {
             answerBarPositions: [],
             elements: [],
         });
-        expect(applyQuestion).toHaveBeenCalledTimes(1);
-        expect(revealQuestion).toHaveBeenCalledTimes(1);
+        expect(controlCurrentQuestion).toHaveBeenCalledTimes(1);
         expect(getInitialRoomCommand).toHaveBeenCalledTimes(1);
-    });
-
-    test("問題適用が拒否された場合は正解表示と URL 置換を行わないこと", async () => {
-        applyQuestion.mockResolvedValue({ ok: false, reason: "not-creator" });
-
-        await renderAndFlush(root);
-
-        expect(applyQuestion).toHaveBeenCalledTimes(1);
-        expect(revealQuestion).not.toHaveBeenCalled();
-        expect(replaceRoomUrl).not.toHaveBeenCalled();
     });
 
     test("問題 ID のない URL は現在問題への削除・スクロール要求として送信すること", async () => {
         getInitialRoomCommand.mockReturnValue({
             roomId: "room-1",
-            questionId: undefined,
             deleteExternalElements: true,
-            answerReveal: false,
-            answerBarReveal: undefined,
-            scrollToContent: true,
-            hasScrollToContentParam: true,
             scoreReset: false,
-            scoreListEnabled: undefined,
-            cursorRevealed: undefined,
         });
 
         await renderAndFlush(root);
 
-        expect(applyQuestion).not.toHaveBeenCalled();
         expect(controlCurrentQuestion).toHaveBeenCalledWith({
             roomId: "room-1",
             deleteExternalElements: true,
-            scrollToContent: true,
+            scrollToContent: false,
         });
         expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
     });
@@ -236,15 +191,8 @@ describe("useRoomConnection", () => {
     test("scoreReset=true は問題適用と独立して作成者の得点リセットを要求すること", async () => {
         getInitialRoomCommand.mockReturnValue({
             roomId: "room-1",
-            questionId: undefined,
             deleteExternalElements: false,
-            answerReveal: false,
-            answerBarReveal: undefined,
-            scrollToContent: false,
-            hasScrollToContentParam: false,
             scoreReset: true,
-            scoreListEnabled: undefined,
-            cursorRevealed: undefined,
         });
 
         await renderAndFlush(root);
@@ -253,43 +201,18 @@ describe("useRoomConnection", () => {
         expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
     });
 
-    test("scoreListEnabled が指定された URL は得点一覧の表示可否を要求すること", async () => {
+    test("scoreSetUser と scoreSetValue が指定された URL は得点補正を要求すること", async () => {
         getInitialRoomCommand.mockReturnValue({
             roomId: "room-1",
-            questionId: undefined,
             deleteExternalElements: false,
-            answerReveal: false,
-            answerBarReveal: undefined,
-            scrollToContent: false,
-            hasScrollToContentParam: false,
             scoreReset: false,
-            scoreListEnabled: false,
-            cursorRevealed: undefined,
+            scoreSetUser: 2,
+            scoreSetValue: 100,
         });
 
         await renderAndFlush(root);
 
-        expect(setScoreListEnabled).toHaveBeenCalledWith("room-1", false);
-        expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
-    });
-
-    test("cursorRevealed が指定された URL は共有カーソル公開状態を要求すること", async () => {
-        getInitialRoomCommand.mockReturnValue({
-            roomId: "room-1",
-            questionId: undefined,
-            deleteExternalElements: false,
-            answerReveal: false,
-            answerBarReveal: undefined,
-            scrollToContent: false,
-            hasScrollToContentParam: false,
-            scoreReset: false,
-            scoreListEnabled: undefined,
-            cursorRevealed: false,
-        });
-
-        await renderAndFlush(root);
-
-        expect(setCursorRevealed).toHaveBeenCalledWith("room-1", false);
+        expect(setUserScore).toHaveBeenCalledWith("room-1", 2, 100);
         expect(replaceRoomUrl).toHaveBeenCalledWith("room-1");
     });
 
@@ -308,7 +231,7 @@ describe("useRoomConnection", () => {
         expect(getInitialRoomCommand).not.toHaveBeenCalled();
         expect(getUser).not.toHaveBeenCalled();
         expect(joinRoom).not.toHaveBeenCalled();
-        expect(applyQuestion).not.toHaveBeenCalled();
+        expect(controlCurrentQuestion).not.toHaveBeenCalled();
 
         if (!resolveReadiness) {
             throw new Error("URL 制御の実行許可を解決できません。");
@@ -323,31 +246,7 @@ describe("useRoomConnection", () => {
         expect(getInitialRoomCommand).toHaveBeenCalledTimes(1);
         expect(getUser).toHaveBeenCalledWith(1);
         expect(joinRoom).toHaveBeenCalledWith(1, "room-1");
-        expect(applyQuestion).toHaveBeenCalledTimes(1);
-    });
-
-    test("問題 ID のない answerBarReveal=false は現在問題の公開状態だけを更新すること", async () => {
-        getInitialRoomCommand.mockReturnValue({
-            roomId: "room-1",
-            questionId: undefined,
-            deleteExternalElements: false,
-            answerReveal: false,
-            answerBarReveal: false,
-            scrollToContent: false,
-            hasScrollToContentParam: false,
-            scoreReset: false,
-            scoreListEnabled: undefined,
-            cursorRevealed: undefined,
-        });
-
-        await renderAndFlush(root);
-
-        expect(controlCurrentQuestion).toHaveBeenCalledWith({
-            roomId: "room-1",
-            deleteExternalElements: false,
-            scrollToContent: false,
-            answerBarReveal: false,
-        });
+        expect(controlCurrentQuestion).toHaveBeenCalledTimes(1);
     });
 });
 
